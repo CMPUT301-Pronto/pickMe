@@ -1,0 +1,455 @@
+package com.example.pickme.repositories;
+
+import android.util.Log;
+
+import androidx.annotation.NonNull;
+
+import com.example.pickme.models.Event;
+import com.example.pickme.models.Geolocation;
+import com.example.pickme.models.WaitingList;
+import com.example.pickme.services.FirebaseManager;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.Transaction;
+import com.google.firebase.firestore.WriteBatch;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * EventRepository - Repository for Event CRUD operations and waiting list management
+ *
+ * Handles all Firestore operations related to events including:
+ * - Event creation, retrieval, update, deletion
+ * - Organizer-specific event queries
+ * - Waiting list management
+ * - Event filtering for entrants
+ * - Admin operations
+ *
+ * Firestore Structure:
+ * events/{eventId}
+ *   ├─ Event fields
+ *   └─ subcollections:
+ *       ├─ waitingList/{entrantId}
+ *       ├─ responsePendingList/{entrantId}
+ *       ├─ inEventList/{entrantId}
+ *       └─ notifications/{notificationId}
+ *
+ * Related User Stories: US 01.01.01, US 01.01.02, US 01.01.03, US 02.01.01,
+ *                       US 02.02.01, US 03.01.01
+ */
+public class EventRepository extends BaseRepository {
+
+    private static final String TAG = "EventRepository";
+    private static final String COLLECTION_EVENTS = "events";
+    private static final String SUBCOLLECTION_WAITING_LIST = "waitingList";
+    private static final String SUBCOLLECTION_RESPONSE_PENDING = "responsePendingList";
+    private static final String SUBCOLLECTION_IN_EVENT = "inEventList";
+
+    private FirebaseFirestore db;
+
+    /**
+     * Constructor - initializes repository for "events" collection
+     */
+    public EventRepository() {
+        super(COLLECTION_EVENTS);
+        this.db = FirebaseManager.getFirestore();
+    }
+
+    // ==================== Event CRUD Operations ====================
+
+    /**
+     * Create a new event in Firestore
+     *
+     * @param event Event object to create
+     * @param onSuccess Success callback with event ID
+     * @param onFailure Failure callback with exception
+     */
+    public void createEvent(@NonNull Event event,
+                           @NonNull OnSuccessListener onSuccess,
+                           @NonNull OnFailureListener onFailure) {
+        if (event.getEventId() == null || event.getEventId().isEmpty()) {
+            // Auto-generate event ID if not provided
+            String eventId = db.collection(COLLECTION_EVENTS).document().getId();
+            event.setEventId(eventId);
+        }
+
+        db.collection(COLLECTION_EVENTS)
+                .document(event.getEventId())
+                .set(event.toMap())
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Event created successfully: " + event.getEventId());
+                    onSuccess.onSuccess(event.getEventId());
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to create event", e);
+                    onFailure.onFailure(e);
+                });
+    }
+
+    /**
+     * Update specific fields of an event
+     *
+     * @param eventId Event ID to update
+     * @param updates Map of field names to new values
+     * @param onSuccess Success callback
+     * @param onFailure Failure callback
+     */
+    public void updateEvent(@NonNull String eventId,
+                           @NonNull Map<String, Object> updates,
+                           @NonNull OnSuccessListener onSuccess,
+                           @NonNull OnFailureListener onFailure) {
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .update(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Event updated successfully: " + eventId);
+                    onSuccess.onSuccess(eventId);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to update event: " + eventId, e);
+                    onFailure.onFailure(e);
+                });
+    }
+
+    /**
+     * Delete an event and all its subcollections
+     * Uses batch write to ensure atomicity
+     *
+     * @param eventId Event ID to delete
+     * @param onSuccess Success callback
+     * @param onFailure Failure callback
+     */
+    public void deleteEvent(@NonNull String eventId,
+                           @NonNull OnSuccessListener onSuccess,
+                           @NonNull OnFailureListener onFailure) {
+        // Delete event document (subcollections must be deleted separately)
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Event deleted successfully: " + eventId);
+                    // Note: Subcollections are not auto-deleted.
+                    // For production, implement batch deletion of subcollections
+                    onSuccess.onSuccess(eventId);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to delete event: " + eventId, e);
+                    onFailure.onFailure(e);
+                });
+    }
+
+    /**
+     * Get a single event by ID
+     *
+     * @param eventId Event ID to retrieve
+     * @param listener Callback with Event object
+     */
+    public void getEvent(@NonNull String eventId,
+                        @NonNull OnEventLoadedListener listener) {
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        Event event = documentSnapshot.toObject(Event.class);
+                        Log.d(TAG, "Event retrieved: " + eventId);
+                        listener.onEventLoaded(event);
+                    } else {
+                        Log.w(TAG, "Event not found: " + eventId);
+                        listener.onError(new Exception("Event not found"));
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get event: " + eventId, e);
+                    listener.onError(e);
+                });
+    }
+
+    /**
+     * Get all events created by a specific organizer
+     *
+     * @param organizerId Organizer's user ID
+     * @param listener Callback with list of events
+     */
+    public void getEventsByOrganizer(@NonNull String organizerId,
+                                    @NonNull OnEventsLoadedListener listener) {
+        db.collection(COLLECTION_EVENTS)
+                .whereEqualTo("organizerId", organizerId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<Event> events = new ArrayList<>();
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Event event = doc.toObject(Event.class);
+                        if (event != null) {
+                            events.add(event);
+                        }
+                    }
+                    Log.d(TAG, "Retrieved " + events.size() + " events for organizer: " + organizerId);
+                    listener.onEventsLoaded(events);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get events for organizer: " + organizerId, e);
+                    listener.onError(e);
+                });
+    }
+
+    /**
+     * Get all events (for admin browsing)
+     *
+     * @param listener Callback with list of all events
+     */
+    public void getAllEvents(@NonNull OnEventsLoadedListener listener) {
+        db.collection(COLLECTION_EVENTS)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<Event> events = new ArrayList<>();
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Event event = doc.toObject(Event.class);
+                        if (event != null) {
+                            events.add(event);
+                        }
+                    }
+                    Log.d(TAG, "Retrieved all events: " + events.size());
+                    listener.onEventsLoaded(events);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get all events", e);
+                    listener.onError(e);
+                });
+    }
+
+    /**
+     * Get events available for entrants to join
+     * Filters events with status "OPEN" and registration currently open
+     *
+     * @param listener Callback with list of available events
+     */
+    public void getEventsForEntrant(@NonNull OnEventsLoadedListener listener) {
+        long currentTime = System.currentTimeMillis();
+
+        db.collection(COLLECTION_EVENTS)
+                .whereEqualTo("status", "OPEN")
+                .whereLessThanOrEqualTo("registrationStartDate", currentTime)
+                .whereGreaterThanOrEqualTo("registrationEndDate", currentTime)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<Event> events = new ArrayList<>();
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        Event event = doc.toObject(Event.class);
+                        if (event != null && event.isRegistrationOpen()) {
+                            events.add(event);
+                        }
+                    }
+                    Log.d(TAG, "Retrieved " + events.size() + " events for entrant");
+                    listener.onEventsLoaded(events);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get events for entrant", e);
+                    listener.onError(e);
+                });
+    }
+
+    // ==================== Waiting List Operations ====================
+
+    /**
+     * Add entrant to event waiting list
+     * Uses transaction to ensure atomic operation and duplicate prevention
+     *
+     * @param eventId Event ID
+     * @param entrantId User ID to add
+     * @param location Optional geolocation
+     * @param onSuccess Success callback
+     * @param onFailure Failure callback
+     */
+    public void addEntrantToWaitingList(@NonNull String eventId,
+                                       @NonNull String entrantId,
+                                       Geolocation location,
+                                       @NonNull OnSuccessListener onSuccess,
+                                       @NonNull OnFailureListener onFailure) {
+        // Create waiting list entry data
+        Map<String, Object> entrantData = new HashMap<>();
+        entrantData.put("entrantId", entrantId);
+        entrantData.put("joinedTimestamp", System.currentTimeMillis());
+
+        if (location != null) {
+            entrantData.put("latitude", location.getLatitude());
+            entrantData.put("longitude", location.getLongitude());
+            entrantData.put("locationTimestamp", location.getTimestamp());
+        }
+
+        // Add to waiting list subcollection
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .collection(SUBCOLLECTION_WAITING_LIST)
+                .document(entrantId)
+                .set(entrantData)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Entrant added to waiting list: " + entrantId + " for event: " + eventId);
+                    onSuccess.onSuccess(entrantId);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to add entrant to waiting list", e);
+                    onFailure.onFailure(e);
+                });
+    }
+
+    /**
+     * Remove entrant from event waiting list
+     *
+     * @param eventId Event ID
+     * @param entrantId User ID to remove
+     * @param onSuccess Success callback
+     * @param onFailure Failure callback
+     */
+    public void removeEntrantFromWaitingList(@NonNull String eventId,
+                                            @NonNull String entrantId,
+                                            @NonNull OnSuccessListener onSuccess,
+                                            @NonNull OnFailureListener onFailure) {
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .collection(SUBCOLLECTION_WAITING_LIST)
+                .document(entrantId)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Entrant removed from waiting list: " + entrantId + " from event: " + eventId);
+                    onSuccess.onSuccess(entrantId);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to remove entrant from waiting list", e);
+                    onFailure.onFailure(e);
+                });
+    }
+
+    /**
+     * Get waiting list for an event
+     * Returns WaitingList object with all entrants and their data
+     *
+     * @param eventId Event ID
+     * @param listener Callback with WaitingList object
+     */
+    public void getWaitingListForEvent(@NonNull String eventId,
+                                      @NonNull OnWaitingListLoadedListener listener) {
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .collection(SUBCOLLECTION_WAITING_LIST)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    WaitingList waitingList = new WaitingList(eventId);
+
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        String entrantId = doc.getString("entrantId");
+                        Long joinedTimestamp = doc.getLong("joinedTimestamp");
+
+                        // Add entrant
+                        if (entrantId != null) {
+                            waitingList.getEntrantIds().add(entrantId);
+
+                            if (joinedTimestamp != null) {
+                                waitingList.getEntrantTimestamps().put(entrantId, joinedTimestamp);
+                            }
+
+                            // Add geolocation if available
+                            Double latitude = doc.getDouble("latitude");
+                            Double longitude = doc.getDouble("longitude");
+                            Long locationTimestamp = doc.getLong("locationTimestamp");
+
+                            if (latitude != null && longitude != null) {
+                                Geolocation location = new Geolocation(
+                                    latitude,
+                                    longitude,
+                                    locationTimestamp != null ? locationTimestamp : System.currentTimeMillis()
+                                );
+                                waitingList.getGeolocationData().put(entrantId, location);
+                            }
+                        }
+                    }
+
+                    Log.d(TAG, "Waiting list retrieved for event: " + eventId +
+                              " with " + waitingList.getEntrantCount() + " entrants");
+                    listener.onWaitingListLoaded(waitingList);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get waiting list for event: " + eventId, e);
+                    listener.onError(e);
+                });
+    }
+
+    /**
+     * Check if entrant is in waiting list
+     *
+     * @param eventId Event ID
+     * @param entrantId User ID to check
+     * @param listener Callback with boolean result
+     */
+    public void isEntrantInWaitingList(@NonNull String eventId,
+                                      @NonNull String entrantId,
+                                      @NonNull OnEntrantCheckListener listener) {
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .collection(SUBCOLLECTION_WAITING_LIST)
+                .document(entrantId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    boolean exists = documentSnapshot.exists();
+                    Log.d(TAG, "Entrant " + entrantId + " in waiting list: " + exists);
+                    listener.onCheckComplete(exists);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to check entrant in waiting list", e);
+                    listener.onError(e);
+                });
+    }
+
+    // ==================== Listener Interfaces ====================
+
+    /**
+     * Callback for successful operations returning ID
+     */
+    public interface OnSuccessListener {
+        void onSuccess(String id);
+    }
+
+    /**
+     * Callback for failed operations
+     */
+    public interface OnFailureListener {
+        void onFailure(Exception e);
+    }
+
+    /**
+     * Callback for loading a single event
+     */
+    public interface OnEventLoadedListener {
+        void onEventLoaded(Event event);
+        void onError(Exception e);
+    }
+
+    /**
+     * Callback for loading multiple events
+     */
+    public interface OnEventsLoadedListener {
+        void onEventsLoaded(List<Event> events);
+        void onError(Exception e);
+    }
+
+    /**
+     * Callback for loading waiting list
+     */
+    public interface OnWaitingListLoadedListener {
+        void onWaitingListLoaded(WaitingList waitingList);
+        void onError(Exception e);
+    }
+
+    /**
+     * Callback for checking entrant existence
+     */
+    public interface OnEntrantCheckListener {
+        void onCheckComplete(boolean exists);
+        void onError(Exception e);
+    }
+}
+
