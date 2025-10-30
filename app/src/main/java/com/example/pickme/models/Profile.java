@@ -28,6 +28,11 @@ import java.util.Map;
  */
 public class Profile implements Parcelable {
 
+    // Role constants
+    public static final String ROLE_ENTRANT = "entrant";
+    public static final String ROLE_ORGANIZER = "organizer";
+    public static final String ROLE_ADMIN = "admin";
+
     private String userId; // Device ID or Firebase Auth UID
     private String name;
     private String email;
@@ -35,6 +40,7 @@ public class Profile implements Parcelable {
     private boolean notificationEnabled;
     private List<EventHistoryItem> eventHistory;
     private String profileImageUrl;
+    private String role; // entrant, organizer, admin
 
     /**
      * Default constructor required for Firebase deserialization
@@ -42,6 +48,7 @@ public class Profile implements Parcelable {
     public Profile() {
         this.eventHistory = new ArrayList<>();
         this.notificationEnabled = true; // Enabled by default
+        this.role = ROLE_ENTRANT; // Default role
     }
 
     /**
@@ -55,6 +62,7 @@ public class Profile implements Parcelable {
         this.name = name;
         this.eventHistory = new ArrayList<>();
         this.notificationEnabled = true;
+        this.role = ROLE_ENTRANT;
     }
 
     /**
@@ -70,6 +78,7 @@ public class Profile implements Parcelable {
         this.email = email;
         this.eventHistory = new ArrayList<>();
         this.notificationEnabled = true;
+        this.role = ROLE_ENTRANT;
     }
 
     // Getters and Setters
@@ -128,6 +137,14 @@ public class Profile implements Parcelable {
 
     public void setProfileImageUrl(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
+    }
+
+    public String getRole() {
+        return role != null ? role : ROLE_ENTRANT;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     // Helper Methods
@@ -192,6 +209,20 @@ public class Profile implements Parcelable {
     }
 
     /**
+     * Check if user is an organizer
+     */
+    public boolean isOrganizer() {
+        return ROLE_ORGANIZER.equals(role) || ROLE_ADMIN.equals(role);
+    }
+
+    /**
+     * Check if user is an admin
+     */
+    public boolean isAdmin() {
+        return ROLE_ADMIN.equals(role);
+    }
+
+    /**
      * Convert Profile to Map for Firestore
      *
      * @return Map representation of Profile
@@ -203,6 +234,7 @@ public class Profile implements Parcelable {
         map.put("email", email);
         map.put("phoneNumber", phoneNumber);
         map.put("notificationEnabled", notificationEnabled);
+        map.put("role", role);
 
         // Convert eventHistory to list of maps
         if (eventHistory != null) {
@@ -244,6 +276,7 @@ public class Profile implements Parcelable {
         eventHistory = new ArrayList<>();
         in.readList(eventHistory, EventHistoryItem.class.getClassLoader());
         profileImageUrl = in.readString();
+        role = in.readString();
     }
 
     public static final Creator<Profile> CREATOR = new Creator<Profile>() {
@@ -272,6 +305,6 @@ public class Profile implements Parcelable {
         dest.writeByte((byte) (notificationEnabled ? 1 : 0));
         dest.writeList(eventHistory);
         dest.writeString(profileImageUrl);
+        dest.writeString(role);
     }
 }
-
