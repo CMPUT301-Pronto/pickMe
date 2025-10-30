@@ -3,4 +3,44 @@
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
+
+    <!-- Profile Strings -->
+    <string name="profile_title">My Profile</string>
+    <string name="create_profile_title">Create Profile</string>
+    <string name="profile_name">Name</string>
+    <string name="profile_email">Email</string>
+    <string name="profile_phone">Phone Number (Optional)</string>
+    <string name="profile_notifications">Enable Notifications</string>
+    <string name="profile_save">Save Changes</string>
+    <string name="profile_view_history">View Event History</string>
+    <string name="profile_delete_account">Delete Account</string>
+    <string name="profile_upload_photo">Upload Photo</string>
+    <string name="profile_change_photo">Change Photo</string>
+
+    <!-- Profile Validation -->
+    <string name="error_name_required">Name is required</string>
+    <string name="error_email_invalid">Please enter a valid email address</string>
+    <string name="error_profile_save_failed">Failed to save profile</string>
+    <string name="profile_saved">Profile saved successfully</string>
+    <string name="profile_loading">Loading profile…</string>
+
+    <!-- Profile Deletion -->
+    <string name="delete_account_title">Delete Account</string>
+    <string name="delete_account_message">Are you sure you want to delete your account? This action cannot be undone and will remove you from all events.</string>
+    <string name="delete_account_confirm">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="account_deleted">Account deleted successfully</string>
+    <string name="error_delete_failed">Failed to delete account</string>
+
+    <!-- Create Profile -->
+    <string name="create_profile_welcome">Welcome to PickMe!</string>
+    <string name="create_profile_subtitle">Let\'s set up your profile</string>
+    <string name="create_profile_button">Create Profile</string>
+    <string name="skip_for_now">Skip for now</string>
+
+    <!-- General -->
+    <string name="loading">Loading…</string>
+    <string name="error_occurred">An error occurred</string>
+    <string name="retry">Retry</string>
+    <string name="ok">OK</string>
 </resources>
