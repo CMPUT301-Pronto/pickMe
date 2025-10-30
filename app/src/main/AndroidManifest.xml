@@ -88,6 +88,19 @@
             android:theme="@style/Theme.PickMe"
             android:parentActivityName=".ui.events.EventBrowserActivity" />
 
+        <!-- Invitation & History Activities -->
+        <activity
+            android:name=".ui.invitations.EventInvitationsActivity"
+            android:exported="false"
+            android:label="@string/invitations_title"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".ui.history.EventHistoryActivity"
+            android:exported="false"
+            android:label="@string/event_history_title"
+            android:parentActivityName=".MainActivity" />
+
     </application>
 
 </manifest>

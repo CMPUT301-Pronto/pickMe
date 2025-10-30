@@ -96,4 +96,34 @@
     <string name="location_required_message">This event requires location tracking. Please grant location permission to join.</string>
     <string name="grant_permission">Grant Permission</string>
     <string name="location_permission_denied">Location permission is required to join this event</string>
+
+    <!-- Event Invitations Strings -->
+    <string name="invitations_title">My Invitations</string>
+    <string name="no_invitations">No pending invitations</string>
+    <string name="no_invitations_message">You don\'t have any event invitations at the moment</string>
+    <string name="respond_by">Respond by: %s</string>
+    <string name="accept_invitation">Accept</string>
+    <string name="decline_invitation">Decline</string>
+    <string name="invitation_accepted">Invitation accepted!</string>
+    <string name="invitation_declined">Invitation declined</string>
+    <string name="accept_failed">Failed to accept invitation</string>
+    <string name="decline_failed">Failed to decline invitation</string>
+    <string name="confirm_decline_invitation">Are you sure you want to decline this invitation?</string>
+    <string name="invitation_expired">This invitation has expired</string>
+
+    <!-- Event History Strings -->
+    <string name="event_history_title">My Event History</string>
+    <string name="tab_upcoming">Upcoming</string>
+    <string name="tab_waiting">Waiting List</string>
+    <string name="tab_past">Past Events</string>
+    <string name="no_upcoming_events">No upcoming events</string>
+    <string name="no_waiting_lists">Not on any waiting lists</string>
+    <string name="no_past_events">No past events</string>
+    <string name="event_status_enrolled">Enrolled</string>
+    <string name="event_status_waiting">Waiting</string>
+    <string name="event_status_selected">Selected</string>
+    <string name="event_status_not_selected">Not Selected</string>
+    <string name="event_status_cancelled">Cancelled</string>
+    <string name="event_status_completed">Completed</string>
+    <string name="view_event">View Event</string>
 </resources>

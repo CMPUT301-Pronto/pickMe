@@ -263,8 +263,8 @@ public class ProfileActivity extends AppCompatActivity {
      * Navigate to event history activity
      */
     private void viewEventHistory() {
-        // TODO: Create and navigate to EventHistoryActivity
-        Toast.makeText(this, "Event History - Coming Soon", Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(this, com.example.pickme.ui.history.EventHistoryActivity.class);
+        startActivity(intent);
     }
 
     /**
