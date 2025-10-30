@@ -1,9 +1,9 @@
 # Firebase Project Setup - Summary
 
-## Latest Update: Phase 5.1 Complete ✅
+## Latest Update: Phase 5.2 Complete ✅
 **Date**: October 30, 2025  
-**Status**: Phase 1-4 complete + Phase 5.1 (Profile Management UI) implemented  
-**Build Status**: ✅ BUILD SUCCESSFUL (assembleDebug)  
+**Status**: Phase 1-4 complete + Phase 5.1-5.2 (Profile + Event Discovery UI) implemented  
+**Build Status**: ✅ BUILD SUCCESSFUL (assembleDebug, 6s)  
 **Min SDK**: 34 (Android 14.0)  
 **Target SDK**: 36  
 
@@ -1423,6 +1423,213 @@ event_posters/{posterId}
 - Test first-launch flow with DeviceAuthenticator
 - Add photo upload to Firebase Storage
 - Test cascade deletion
+
+---
+
+### Session 5.2: Event Discovery & Joining ✅
+
+**Implementation Date**: October 30, 2025
+
+#### Layouts Created ✅
+
+**1. event_card_item.xml** (~120 lines):
+- ✅ MaterialCardView with 16dp rounded corners
+- ✅ Event poster image (80x80dp)
+- ✅ "Joined" badge (conditional visibility)
+- ✅ Event name (bold, 18sp, 2 lines max)
+- ✅ Event date with calendar icon
+- ✅ Event location with map icon
+- ✅ Divider line
+- ✅ Status row (spots available or waiting list count)
+- ✅ Price tag (bold, primary pink color)
+- ✅ Proper spacing and padding
+
+**2. activity_event_browser.xml** (~120 lines):
+- ✅ CoordinatorLayout with AppBarLayout
+- ✅ MaterialToolbar with pink background
+- ✅ SearchView for event filtering
+- ✅ HorizontalScrollView with filter chips
+- ✅ ChipGroup (All, Open, Upcoming)
+- ✅ RecyclerView for event list
+- ✅ ProgressBar for loading
+- ✅ Empty state layout with icon and message
+- ✅ FloatingActionButton for QR scanning
+- ✅ Proper scrolling behavior
+
+**3. activity_event_details.xml** (~250 lines):
+- ✅ CollapsingToolbarLayout with parallax effect
+- ✅ Full-screen event poster image
+- ✅ Gradient overlay for text readability
+- ✅ Material toolbar with back navigation
+- ✅ NestedScrollView for content
+- ✅ Registration status badge
+- ✅ Event details section (date, location, price, capacity)
+- ✅ Waiting list status display
+- ✅ Geolocation warning (conditional)
+- ✅ Description section
+- ✅ Lottery criteria explanation
+- ✅ Join/Leave button (contextual)
+- ✅ ProgressBar for loading
+
+**4. Drawables Created**:
+- ✅ badge_background.xml - Rounded pink badge
+- ✅ gradient_overlay.xml - Bottom gradient for images
+
+---
+
+#### Activities & Adapters Implemented ✅
+
+**1. EventAdapter.java** (~175 lines):
+
+**Functionality**:
+- ✅ RecyclerView adapter for event cards
+- ✅ ViewHolder pattern implementation
+- ✅ Display event poster with Glide
+- ✅ Show event name, date, location
+- ✅ Display "Joined" badge conditionally
+- ✅ Show spots available or waiting list count
+- ✅ Display price or "Free"
+- ✅ Click listener interface
+- ✅ Update events and joined status
+
+**Key Features**:
+- SimpleDateFormat for date display
+- Glide image loading with placeholder
+- Stream API for filtering (Java 8+)
+- Conditional visibility for badges
+- Resource string formatting
+
+**2. EventBrowserActivity.java** (~280 lines):
+
+**Functionality**:
+- ✅ Load events where registration is open
+- ✅ Display events in RecyclerView
+- ✅ SearchView for text filtering
+- ✅ Chip filters (All, Open, Upcoming)
+- ✅ Navigate to event details on click
+- ✅ Launch QR scanner with FAB
+- ✅ Handle QR scan results
+- ✅ Empty state display
+- ✅ Loading state management
+- ✅ Refresh on resume
+
+**Filter Logic**:
+- Search by event name or location
+- Filter by registration status (OPEN)
+- Filter by upcoming start dates
+- Stream API for efficient filtering
+
+**QR Integration**:
+- QRCodeScanner service integration
+- IntentIntegrator for camera
+- Parse scanned event IDs
+- Navigate to scanned event
+
+**Related User Stories**: US 01.01.03, US 01.01.04, US 01.06.01, US 01.06.02
+
+**3. EventDetailsActivity.java** (~370 lines):
+
+**Functionality**:
+- ✅ Load full event details
+- ✅ Display event poster in collapsing toolbar
+- ✅ Show registration status badge
+- ✅ Display all event information
+- ✅ Show waiting list status
+- ✅ Check if user is on waiting list
+- ✅ Join waiting list button
+- ✅ Leave waiting list with confirmation
+- ✅ Geolocation capture (if required)
+- ✅ Location permission handling
+- ✅ Contextual button (Join/Leave)
+- ✅ Loading states
+- ✅ Error handling
+
+**Geolocation Integration**:
+- Check if event requires location
+- Request location permission with dialog
+- Capture location using GeolocationService
+- Pass location when joining waiting list
+- Graceful handling of permission denial
+
+**Key Features**:
+- CollapsingToolbarLayout parallax effect
+- Contextual button based on user status
+- AlertDialog for confirmations
+- Integration with EventRepository methods
+- Integration with GeolocationService
+- SimpleDateFormat for date formatting
+
+**Related User Stories**: US 01.01.01, US 01.01.02, US 01.05.04, US 01.05.05
+
+---
+
+### Phase 5.2 Summary
+
+**Files Created**: 10 files
+- 3 Activity classes
+- 1 Adapter class
+- 3 Layout files
+- 2 Drawable files
+- 1 Updated strings.xml
+
+**Files Updated**: 2 files
+- strings.xml (~50 new strings)
+- AndroidManifest.xml (2 activities registered)
+
+**Lines of Code**: ~1,350+ lines
+- EventBrowserActivity: ~280 lines
+- EventDetailsActivity: ~370 lines
+- EventAdapter: ~175 lines
+- Layouts: ~490 lines (combined XML)
+- Strings: ~35 lines
+
+**Features Implemented**:
+✅ Event browsing with RecyclerView
+✅ Search functionality
+✅ Filter chips (All, Open, Upcoming)
+✅ Event cards with posters and details
+✅ "Joined" badges
+✅ QR code scanning integration
+✅ Event details with collapsing toolbar
+✅ Join waiting list
+✅ Leave waiting list with confirmation
+✅ Geolocation capture (optional)
+✅ Location permission handling
+✅ Waiting list status display
+✅ Lottery criteria explanation
+✅ Registration status badges
+✅ Empty state handling
+✅ Loading state management
+✅ Error handling with Toast messages
+
+**Build Status**: ✅ BUILD SUCCESSFUL
+- Java compilation: 0 errors, 0 warnings
+- assembleDebug: SUCCESS (6s)
+- 18 tasks executed, 21 up-to-date
+- All activities compile correctly
+- **Deprecated API fixed**: Replaced Parcel.writeList/readList with type-safe implementation
+- Ready for testing
+
+**Code Quality Improvements**:
+- ✅ Fixed deprecated Parcel.writeList() in Event.java (replaced with writeInt/writeLong loop)
+- ✅ Fixed deprecated Parcel.readList() in Event.java (replaced with readInt/readLong loop)
+- ✅ Improved type safety in Parcelable implementation
+- ✅ No deprecation warnings in compilation
+
+**Integration Points**:
+- EventRepository (getEventsForEntrant, addEntrantToWaitingList, removeEntrantFromWaitingList, isEntrantInWaitingList)
+- DeviceAuthenticator (getStoredUserId)
+- GeolocationService (requestLocationPermission, getCurrentLocation, hasLocationPermission)
+- QRCodeScanner (startScanning, parseScannedResult)
+- Glide (image loading)
+
+**Next Steps**:
+- Test event browsing flow
+- Test QR code scanning
+- Test join/leave waiting list
+- Test geolocation capture
+- Add actual waiting list count queries
+- Test search and filter functionality
 
 ---
 

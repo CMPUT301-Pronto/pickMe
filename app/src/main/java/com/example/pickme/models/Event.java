@@ -349,8 +349,14 @@ public class Event implements Parcelable {
         name = in.readString();
         description = in.readString();
         organizerId = in.readString();
-        eventDates = new ArrayList<>();
-        in.readList(eventDates, Long.class.getClassLoader());
+
+        // Read List<Long> for event dates (avoiding deprecated readList)
+        int eventDatesSize = in.readInt();
+        eventDates = new ArrayList<>(eventDatesSize);
+        for (int i = 0; i < eventDatesSize; i++) {
+            eventDates.add(in.readLong());
+        }
+
         location = in.readString();
         registrationStartDate = in.readLong();
         registrationEndDate = in.readLong();
@@ -386,7 +392,13 @@ public class Event implements Parcelable {
         dest.writeString(name);
         dest.writeString(description);
         dest.writeString(organizerId);
-        dest.writeList(eventDates);
+
+        // Write List<Long> for event dates (avoiding deprecated writeList)
+        dest.writeInt(eventDates.size());
+        for (Long date : eventDates) {
+            dest.writeLong(date);
+        }
+
         dest.writeString(location);
         dest.writeLong(registrationStartDate);
         dest.writeLong(registrationEndDate);

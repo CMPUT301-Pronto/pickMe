@@ -43,4 +43,57 @@
     <string name="error_occurred">An error occurred</string>
     <string name="retry">Retry</string>
     <string name="ok">OK</string>
+
+    <!-- Event Browser Strings -->
+    <string name="event_browser_title">Browse Events</string>
+    <string name="search_events">Search events…</string>
+    <string name="filter_open">Open</string>
+    <string name="filter_upcoming">Upcoming</string>
+    <string name="filter_all">All Events</string>
+    <string name="scan_qr_code">Scan QR Code</string>
+    <string name="no_events_found">No events found</string>
+    <string name="no_events_available">No events available at the moment</string>
+
+    <!-- Event Card Strings -->
+    <string name="spots_available">Spots available: %d</string>
+    <string name="waiting_list_count">Waiting list: %d entrants</string>
+    <string name="event_full">Event Full</string>
+    <string name="joined_badge">Joined</string>
+    <string name="event_date">Date: %s</string>
+    <string name="event_location">Location: %s</string>
+    <string name="free_event">Free</string>
+    <string name="event_price">$%.2f</string>
+
+    <!-- Event Details Strings -->
+    <string name="event_details_title">Event Details</string>
+    <string name="event_description">Description</string>
+    <string name="event_details">Details</string>
+    <string name="event_dates">Event Dates</string>
+    <string name="registration_period">Registration Period</string>
+    <string name="registration_open">Registration Open</string>
+    <string name="registration_closed">Registration Closed</string>
+    <string name="event_capacity">Capacity: %d</string>
+    <string name="waiting_list_status">Waiting list: %d entrants</string>
+    <string name="lottery_criteria">Lottery Selection</string>
+    <string name="lottery_criteria_description">Winners will be randomly selected from the waiting list when registration closes.</string>
+    <string name="geolocation_required">Location tracking required for this event</string>
+
+    <!-- Event Actions -->
+    <string name="join_waiting_list">Join Waiting List</string>
+    <string name="leave_waiting_list">Leave Waiting List</string>
+    <string name="already_joined">You\'re on the waiting list</string>
+    <string name="join_success">Successfully joined waiting list</string>
+    <string name="leave_success">Successfully left waiting list</string>
+    <string name="join_failed">Failed to join waiting list</string>
+    <string name="leave_failed">Failed to leave waiting list</string>
+    <string name="event_full_message">This event has reached its waiting list capacity</string>
+    <string name="confirm_leave_title">Leave Waiting List</string>
+    <string name="confirm_leave_message">Are you sure you want to leave the waiting list for this event?</string>
+    <string name="leave">Leave</string>
+
+    <!-- Location Permission -->
+    <string name="location_required_title">Location Required</string>
+    <string name="location_required_message">This event requires location tracking. Please grant location permission to join.</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="location_permission_denied">Location permission is required to join this event</string>
 </resources>

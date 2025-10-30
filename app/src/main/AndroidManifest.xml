@@ -74,6 +74,20 @@
             android:label="@string/create_profile_title"
             android:theme="@style/Theme.PickMe" />
 
+        <!-- Event Activities -->
+        <activity
+            android:name=".ui.events.EventBrowserActivity"
+            android:exported="false"
+            android:label="@string/event_browser_title"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".ui.events.EventDetailsActivity"
+            android:exported="false"
+            android:label="@string/event_details_title"
+            android:theme="@style/Theme.PickMe"
+            android:parentActivityName=".ui.events.EventBrowserActivity" />
+
     </application>
 
 </manifest>
