@@ -1,5 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
+    // Google Services plugin - processes google-services.json and generates Firebase config
+    id("com.google.gms.google-services") version "4.4.4" apply false
 }
 
 android {

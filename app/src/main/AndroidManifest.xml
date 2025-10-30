@@ -2,7 +2,34 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Internet permission - Required for Firebase services (Firestore, Storage, FCM, Auth) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Network state permissions - Used to detect connectivity for offline handling -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Camera permission - Required for QR code scanning functionality -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Location permissions - For geolocation features (event location tracking) -->
+    <!-- Fine location provides GPS-level accuracy -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Coarse location provides network-based location (less battery intensive) -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Notification permission - Required for Android 13+ (API 33+) to show push notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Camera feature - Declares camera usage but makes it optional (app works without camera) -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
+
     <application
+        android:name=".PickMeApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
