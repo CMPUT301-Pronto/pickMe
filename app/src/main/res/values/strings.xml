@@ -263,6 +263,7 @@
     <!-- Main Navigation -->
     <string name="entrant_features">Entrant Features</string>
     <string name="organizer_features">Organizer Features</string>
+    <string name="admin_features">Admin Features</string>
     <string name="my_profile">My Profile</string>
     <string name="browse_events">Browse Events</string>
     <string name="my_invitations">My Invitations</string>
@@ -270,4 +271,40 @@
     <string name="create_new_event">Create New Event</string>
     <string name="my_events_dashboard">My Events Dashboard</string>
     <string name="browse_all_events">Browse All Events</string>
+    <string name="admin_dashboard">Admin Dashboard</string>
+
+    <!-- Admin Dashboard Strings -->
+    <string name="admin_dashboard_title">Admin Dashboard</string>
+    <string name="admin_panel">Admin Panel</string>
+    <string name="admin_subtitle">System Administration</string>
+    <string name="admin_icon">Admin Icon</string>
+    <string name="browse_section">Browse</string>
+    <string name="browse_events_admin">Browse Events</string>
+    <string name="browse_profiles">Browse Profiles</string>
+    <string name="browse_images">Browse Images</string>
+    <string name="notification_logs">Notification Logs</string>
+    <string name="management">Management</string>
+    <string name="remove_organizer">Remove Organizer</string>
+    <string name="search">Search</string>
+    <string name="no_items">No items</string>
+    <string name="no_items_found">No items found</string>
+    <string name="no_profiles_found">No profiles found</string>
+    <string name="no_images_found">No images found</string>
+    <string name="no_notifications_found">No notifications found</string>
+
+    <!-- Delete Confirmations -->
+    <string name="delete_event_title">Delete Event</string>
+    <string name="delete_event_message">Are you sure you want to delete this event? This action cannot be undone.</string>
+    <string name="delete_profile_title">Delete Profile</string>
+    <string name="delete_profile_message">Are you sure you want to delete this profile? This will remove the user from all events.</string>
+    <string name="delete_image_title">Delete Image</string>
+    <string name="delete_image_message">Are you sure you want to delete this image?</string>
+    <string name="delete">Delete</string>
+    <string name="deleting">Deleting…</string>
+    <string name="deleted_successfully">Deleted successfully</string>
+    <string name="delete_failed">Failed to delete</string>
+
+    <!-- Admin Access -->
+    <string name="admin_access_denied_title">Admin Access Required</string>
+    <string name="admin_access_denied_message">Only users with Admin role can access this feature</string>
 </resources>

@@ -201,11 +201,11 @@ public class Event implements Parcelable {
     }
 
     /**
-     * Set status using EventStatus enum
+     * Set status using EventStatus enum (helper method)
      *
      * @param status EventStatus enum value
      */
-    public void setStatus(EventStatus status) {
+    public void setStatusEnum(EventStatus status) {
         this.status = status.name();
     }
 

@@ -1,3150 +1,1203 @@
-# Firebase Project Setup - Summary
+# PickMe Event Lottery System - Developer Documentation
 
-## Latest Update: Phase 5.1-5.4 Complete ✅
-**Date**: October 30, 2025  
-**Status**: Phase 1-4 complete + Phase 5.1-5.4 (Entrant UI complete) implemented  
-**Build Status**: ✅ BUILD SUCCESSFUL (assembleDebug, 9s)  
-**Min SDK**: 34 (Android 14.0)  
-**Target SDK**: 36  
+**Project**: CMPUT 301 - Event Lottery Mobile Application  
+**Last Updated**: October 31, 2025  
+**Status**: Phase 1-7.1 Complete (Entrant, Organizer, Admin features implemented)  
+**Min SDK**: 34 (Android 14.0) | **Target SDK**: 36
 
 ---
 
-## What Has Been Completed
+## Project Overview
 
-### ✅ 1. Build Configuration (Gradle Files)
+PickMe is an Android lottery event management system allowing organizers to create events, entrants to join waiting lists, and admins to manage the system. Uses Firebase (Firestore, Storage, FCM) with device-based authentication.
 
-#### Root `build.gradle.kts`
-- ✅ Google Services plugin v4.4.4 configured
-- ✅ Plugin set to process `google-services.json`
+**Core Architecture**: Repository Pattern + MVVM-style UI + Firebase Backend
 
-#### App `build.gradle.kts`
-- ✅ Google Services plugin applied
-- ✅ Firebase BOM (Bill of Materials) v34.4.0
-- ✅ Firebase dependencies added:
-  - Firestore (database)
-  - Storage (images)
-  - Cloud Messaging (notifications)
-  - Authentication (device-based)
-  - Analytics
-- ✅ Additional libraries:
-  - ZXing QR code (core 3.5.3 + android-embedded 4.3.0)
-  - Google Location Services (21.3.0)
-  - Material Design Components
-  - Glide image loader (4.16.0)
-  - CircleImageView (3.1.0)
+---
 
-### ✅ 2. AndroidManifest.xml Configuration
+## Build Configuration
 
-#### Permissions Added:
-- ✅ `INTERNET` - Firebase services
-- ✅ `ACCESS_NETWORK_STATE` - Connectivity monitoring
-- ✅ `CAMERA` - QR code scanning
-- ✅ `ACCESS_FINE_LOCATION` - GPS location
-- ✅ `ACCESS_COARSE_LOCATION` - Network location
-- ✅ `POST_NOTIFICATIONS` - Push notifications (Android 13+)
+### Root `build.gradle.kts`
+```kotlin
+plugins {
+    id("com.google.gms.google-services") version "4.4.4" apply false
+}
+```
 
-#### Features Declared:
-- ✅ Camera (optional)
-- ✅ Camera autofocus (optional)
+### App `build.gradle.kts`
+```kotlin
+plugins {
+    id("com.google.gms.google-services")
+}
 
-#### Application Configuration:
-- ✅ Custom Application class registered (`PickMeApplication`)
+dependencies {
+    // Firebase BOM
+    implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-storage")
+    implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-auth")
+    
+    // QR Code
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    implementation("com.google.zxing:core:3.5.3")
+    
+    // UI
+    implementation("com.google.android.material:material:1.11.0")
+    implementation("de.hdodenhof:circleimageview:3.1.0")
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    
+    // Location
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+}
+```
 
-### ✅ 3. Modular Package Structure Created
+### Permissions (`AndroidManifest.xml`)
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+```
+
+---
+
+## Package Structure
 
 ```
 com.example.pickme/
-├── models/          ✅ Created
-├── services/        ✅ Created
-├── repositories/    ✅ Created
-├── ui/              ✅ Already exists
-├── utils/           ✅ Created
-└── adapters/        ✅ Created
-```
-
-### ✅ 4. Core Java Classes Implemented
-
-#### PickMeApplication.java
-**Location**: `com.example.pickme.PickMeApplication`
-
-**Features**:
-- ✅ Extends Application
-- ✅ Initializes Firebase on app startup
-- ✅ Sets up FirebaseManager singleton
-- ✅ Performs anonymous authentication
-- ✅ Handles app lifecycle events
-- ✅ Memory management callbacks
-
-**Status**: Complete with detailed comments
-
-#### FirebaseManager.java
-**Location**: `com.example.pickme.services.FirebaseManager`
-
-**Features**:
-- ✅ Singleton pattern implementation
-- ✅ Firestore initialization with offline persistence
-- ✅ Storage reference access
-- ✅ Authentication management
-- ✅ Cloud Messaging setup with FCM token retrieval
-- ✅ Connection state monitoring
-- ✅ Network enable/disable controls
-- ✅ Static helper methods for all services
-
-**Public Methods**:
-- `getFirestore()` - Firestore instance
-- `getStorageReference()` - Storage reference
-- `getAuth()` - Authentication instance
-- `getMessaging()` - FCM instance
-- `signInAnonymously()` - Device-based auth
-- `getCurrentUserId()` - Current user ID
-- `isUserAuthenticated()` - Auth check
-- `isConnected()` - Connection status
-- `enableNetwork()` / `disableNetwork()` - Network control
-- `monitorConnectionState()` - Connection listener
-
-**Status**: Complete with extensive error handling and documentation
-
-#### BaseRepository.java
-**Location**: `com.example.pickme.repositories.BaseRepository`
-
-**Features**:
-- ✅ Abstract base class for all repositories
-- ✅ Common CRUD operations
-- ✅ Collection/document reference management
-- ✅ Callback interfaces for async operations
-
-**Methods**:
-- `addDocument()` - Add with auto ID
-- `setDocument()` - Set/overwrite document
-- `updateDocument()` - Update specific fields
-- `deleteDocument()` - Delete document
-- `documentExists()` - Check existence
-
-**Callbacks**:
-- `OperationCallback` - Success/failure with document ID
-- `DataCallback<T>` - Single data retrieval
-- `ListCallback<T>` - Multiple data retrieval
-- `ExistsCallback` - Boolean existence check
-
-**Status**: Complete and ready for extension
-
-#### UserRepository.java
-**Location**: `com.example.pickme.repositories.UserRepository`
-
-**Features**:
-- ✅ Extends BaseRepository
-- ✅ User-specific Firestore operations
-- ✅ Role-based queries
-- ✅ Device ID lookup
-- ✅ Name search functionality
-
-**Methods**:
-- `createUser()` - Create new user
-- `getUserById()` - Get by user ID
-- `updateUser()` - Update profile
-- `deleteUser()` - Delete user
-- `userExists()` - Check if exists
-- `getUsersByRole()` - Query by role
-- `getUserByDeviceId()` - Find by device
-- `searchUsersByName()` - Search users
-- `getAllUsers()` - Get all (paginate in production)
-
-**Status**: Complete example repository
-
-#### User.java (Model)
-**Location**: `com.example.pickme.models.User`
-
-**Features**:
-- ✅ POJO for Firestore auto-serialization
-- ✅ All fields with getters/setters
-- ✅ Role constants (ENTRANT, ORGANIZER, ADMIN)
-- ✅ Helper methods (isOrganizer, isAdmin, isProfileComplete)
-- ✅ toMap() for manual conversion
-- ✅ Detailed documentation
-
-**Fields**:
-- userId, name, email
-- profileImageUrl, phoneNumber
-- deviceId, createdAt, role
-
-**Status**: Complete example model
-
-#### NetworkUtil.java
-**Location**: `com.example.pickme.utils.NetworkUtil`
-
-**Features**:
-- ✅ Network connectivity checks
-- ✅ Supports Android 6.0+ and Android 10+ APIs
-- ✅ WiFi detection
-- ✅ Mobile data detection
-
-**Methods**:
-- `isConnected()` - General connectivity
-- `isWifiConnected()` - WiFi check
-- `isMobileDataConnected()` - Mobile data check
-
-**Status**: Complete with Android version compatibility
-
-#### PermissionUtil.java
-**Location**: `com.example.pickme.utils.PermissionUtil`
-
-**Features**:
-- ✅ Runtime permission helpers for Android 6.0+
-- ✅ Camera permission handling
-- ✅ Location permission handling
-- ✅ Notification permission (Android 13+)
-- ✅ Permanent denial detection
-
-**Methods**:
-- `hasCameraPermission()` / `requestCameraPermission()`
-- `hasLocationPermission()` / `requestLocationPermission()`
-- `hasNotificationPermission()` / `requestNotificationPermission()`
-- `isPermissionPermanentlyDenied()`
-- `hasAllRequiredPermissions()`
-
-**Request Codes**:
-- REQUEST_CAMERA = 100
-- REQUEST_LOCATION = 101
-- REQUEST_NOTIFICATION = 102
-
-**Status**: Complete with Android version compatibility
-
-### ✅ 5. Documentation
-
-#### FIREBASE_SETUP.md
-**Location**: `c:\School\CMPUT301\Project\pickme\FIREBASE_SETUP.md`
-
-**Contents**:
-- ✅ Complete project overview
-- ✅ Firebase services explanation
-- ✅ Package structure documentation
-- ✅ Build configuration details
-- ✅ Detailed class documentation
-- ✅ Usage examples for all major features
-- ✅ Offline support explanation
-- ✅ Security guidelines
-- ✅ Testing instructions
-- ✅ Troubleshooting guide
-- ✅ Package name change instructions
-- ✅ Next steps recommendations
-
-**Status**: Comprehensive 400+ line documentation
-
-### ✅ 6. Git Configuration
-
-#### .gitignore
-- ✅ `app/google-services.json` added to root .gitignore
-- ✅ `google-services.json` added to app/.gitignore
-
-#### google-services.json.example
-- ✅ Template file created with placeholders
-- ✅ Safe to commit (no real credentials)
-- ✅ Shows structure for team reference
-
-**Status**: Firebase config file properly secured
-
----
-
-## ✅ PHASE 2: CORE DATA MODELS - COMPLETED
-
-### Session 2.1: Entity Models ✅
-
-All entity model classes created with:
-- Empty constructors for Firebase deserialization ✅
-- Full Parcelable implementation for Android intents ✅
-- Comprehensive JavaDoc comments ✅
-- Validation and helper methods ✅
-- toMap() methods for Firestore conversion ✅
-
-#### 1. Event.java ✅
-**Location**: `com.example.pickme.models.Event`
-
-**Fields**:
-- eventId, name, description, organizerId
-- eventDates (List<Long>) - multiple event dates
-- location, registrationStartDate, registrationEndDate
-- price, capacity, waitingListLimit
-- geolocationRequired, qrCodeId, posterImageUrl
-- status (String, uses EventStatus enum)
-
-**Validation Methods**:
-- `isRegistrationOpen()` - Check if registration is currently open
-- `hasReachedCapacity(int)` - Check if event is at capacity
-- `hasWaitingListSpace(int)` - Check if waiting list has space
-- `isFree()` - Check if event is free
-- `isDraft()`, `isCancelled()`, `isCompleted()` - Status checks
-- `getAvailableSpots(int)` - Calculate available spots
-
-**Features**:
-- EventStatus enum integration (DRAFT, OPEN, CLOSED, COMPLETED, CANCELLED)
-- Multiple event dates support
-- Unlimited waiting list option (-1 value)
-- Complete Firestore and Parcelable implementation
-
-**Status**: ✅ Complete and build verified
-
-#### 2. Profile.java ✅
-**Location**: `com.example.pickme.models.Profile`
-
-**Fields**:
-- userId (device ID), name, email
-- phoneNumber (optional), notificationEnabled
-- eventHistory (List<EventHistoryItem>)
-- profileImageUrl
-
-**Helper Methods**:
-- `isProfileComplete()` - Validate required fields
-- `hasContactInfo()` - Check for email/phone
-- `addEventHistory()` - Add event to history
-- `getEventCount()` - Count participated events
-- `hasEventInHistory(String)` - Check event participation
-
-**Features**:
-- Device-based authentication support
-- Event history tracking with EventHistoryItem
-- Notification preferences
-- Optional contact information
-
-**Status**: ✅ Complete and build verified
-
-#### 3. EventPoster.java ✅
-**Location**: `com.example.pickme.models.EventPoster`
-
-**Fields**:
-- posterId, eventId, imageUrl
-- uploadTimestamp, uploadedBy
-
-**Helper Methods**:
-- `isValid()` - Validate all required fields set
-
-**Features**:
-- Firebase Storage URL tracking
-- Upload metadata (timestamp, uploader)
-- Automatic timestamp on creation
-
-**Status**: ✅ Complete and build verified
-
-#### 4. QRCode.java ✅
-**Location**: `com.example.pickme.models.QRCode`
-
-**Fields**:
-- qrCodeId, eventId, encodedData
-- generatedTimestamp
-
-**Static Helper Methods**:
-- `generateEncodedData(eventId, hash)` - Create formatted QR data
-- `generateSimpleEncodedData(eventId)` - Create simple QR data
-- `extractEventId(encodedData)` - Parse event ID from QR data
-
-**Helper Methods**:
-- `isValid()` - Validate QR code data
-
-**Features**:
-- Multiple encoding formats supported
-- Event ID extraction utility
-- Security hash support in encoded data
-
-**Status**: ✅ Complete and build verified
-
-#### 5. Geolocation.java ✅
-**Location**: `com.example.pickme.models.Geolocation`
-
-**Fields**:
-- latitude, longitude, timestamp
-
-**Helper Methods**:
-- `isValid()` - Validate coordinate ranges
-- `distanceTo(Geolocation)` - Calculate distance using Haversine formula
-- `toMap()` - Convert to Map for Firestore
-
-**Features**:
-- Coordinate validation (lat: -90 to 90, lon: -180 to 180)
-- Distance calculation in kilometers
-- Automatic timestamp on creation
-
-**Status**: ✅ Complete and build verified
-
-#### 6. EventStatus.java ✅
-**Location**: `com.example.pickme.models.EventStatus`
-
-**Enum Values**:
-- DRAFT - Event created but not published
-- OPEN - Event published, accepting registrations
-- CLOSED - Registration closed, lottery in progress
-- COMPLETED - Event finished
-- CANCELLED - Event cancelled
-
-**Status**: ✅ Complete and build verified
-
-#### 7. EventHistoryItem.java ✅
-**Location**: `com.example.pickme.models.EventHistoryItem`
-
-**Fields**:
-- eventId, eventName, joinedTimestamp, status
-
-**Status Values**:
-- "waiting" - User joined waiting list
-- "selected" - User selected in lottery
-- "enrolled" - User confirmed participation
-- "cancelled" - User cancelled
-- "not_selected" - User not selected in lottery
-
-**Features**:
-- Tracks user's event participation history
-- Used in Profile.eventHistory
-- Full Parcelable support
-
-**Status**: ✅ Complete and build verified
-
-### Session 2.2: Collection & State Models ✅
-
-All collection classes created with:
-- Comprehensive entrant management methods ✅
-- Geolocation data tracking (Map<String, Geolocation>) ✅
-- Timestamp tracking for all actions ✅
-- Duplicate prevention ✅
-- Firebase-compatible (empty constructor, getters/setters) ✅
-- Full Parcelable implementation ✅
-
-#### 8. WaitingList.java ✅
-**Location**: `com.example.pickme.models.WaitingList`
-
-**Fields**:
-- eventId
-- entrantIds (List<String>)
-- geolocationData (Map<String, Geolocation>)
-- entrantTimestamps (Map<String, Long>)
-
-**Methods**:
-- `addEntrant(entrantId, location)` - Add with duplicate check
-- `removeEntrant(entrantId)` - Remove entrant
-- `containsEntrant(entrantId)` - Check if entrant exists
-- `getEntrantCount()` - Get total count
-- `getAvailableSpots(limit)` - Calculate available spots
-- `getAllEntrants()` - Get all entrant IDs
-- `getEntrantsWithLocation()` - Get entrants who provided location
-- `getEntrantLocation(entrantId)` - Get specific location
-- `getEntrantJoinTime(entrantId)` - Get join timestamp
-- `hasSpace(limit)` - Check if list has space
-- `clear()` - Clear all entrants
-
-**Features**:
-- Unlimited waiting list support (-1 limit)
-- Optional geolocation tracking
-- Join timestamp tracking
-- Duplicate prevention
-
-**Status**: ✅ Complete and build verified
-
-#### 9. ResponsePendingList.java ✅
-**Location**: `com.example.pickme.models.ResponsePendingList`
-
-**Fields**:
-- eventId
-- entrantIds (List<String>)
-- geolocationData (Map<String, Geolocation>)
-- selectedTimestamps (Map<String, Long>)
-- responseDeadline (long)
-
-**Methods**:
-- `addEntrant(entrantId, location)` - Add selected entrant
-- `removeEntrant(entrantId)` - Remove on accept/decline
-- `containsEntrant(entrantId)` - Check if selected
-- `getEntrantCount()` - Get pending count
-- `getAvailableSpots(capacity)` - Calculate remaining spots
-- `getAllEntrants()` - Get all selected IDs
-- `getEntrantsWithLocation()` - Get with location data
-- `getEntrantLocation(entrantId)` - Get specific location
-- `getEntrantSelectionTime(entrantId)` - Get selection timestamp
-- `isDeadlinePassed()` - Check if deadline passed
-- `getTimeUntilDeadline()` - Calculate remaining time
-- `clear()` - Clear all entrants
-
-**Features**:
-- Response deadline tracking
-- Selection timestamp tracking
-- Deadline countdown calculation
-
-**Status**: ✅ Complete and build verified
-
-#### 10. InEventList.java ✅
-**Location**: `com.example.pickme.models.InEventList`
-
-**Fields**:
-- eventId
-- entrantIds (List<String>)
-- geolocationData (Map<String, Geolocation>)
-- enrolledTimestamps (Map<String, Long>)
-- checkInStatus (Map<String, Boolean>)
-
-**Methods**:
-- `addEntrant(entrantId, location)` - Add confirmed participant
-- `removeEntrant(entrantId)` - Remove if cancelled
-- `containsEntrant(entrantId)` - Check if enrolled
-- `getEntrantCount()` - Get participant count
-- `getAvailableSpots(capacity)` - Calculate remaining capacity
-- `getAllEntrants()` - Get all participant IDs
-- `getEntrantsWithLocation()` - Get with location data
-- `getEntrantLocation(entrantId)` - Get specific location
-- `getEntrantEnrollmentTime(entrantId)` - Get enrollment timestamp
-- `checkInEntrant(entrantId)` - Mark as checked in
-- `isCheckedIn(entrantId)` - Check if checked in
-- `getCheckedInCount()` - Count checked in participants
-- `getCheckedInEntrants()` - Get list of checked in IDs
-- `isAtCapacity(capacity)` - Check if event is full
-- `clear()` - Clear all participants
-
-**Features**:
-- Check-in status tracking for event day
-- Enrollment timestamp tracking
-- Capacity management
-- Check-in count statistics
-
-**Status**: ✅ Complete and build verified
-
-### Phase 2 Summary
-
-**Total Models Created**: 10 classes
-- 7 Entity models (Event, Profile, EventPoster, QRCode, Geolocation, EventStatus, EventHistoryItem)
-- 3 Collection models (WaitingList, ResponsePendingList, InEventList)
-
-**Total Lines of Code**: ~3,500+ lines of documented Java code
-
-**Features Implemented**:
-✅ All empty constructors for Firebase
-✅ All Parcelable implementations complete
-✅ All toMap() methods for Firestore serialization
-✅ All validation and helper methods
-✅ Comprehensive JavaDoc comments
-✅ Duplicate prevention in collections
-✅ Geolocation tracking in all collection models
-✅ Timestamp tracking for all user actions
-✅ Status enum and helper classes
-
-**Build Status**: ✅ BUILD SUCCESSFUL
-- 107 Gradle tasks executed
-- 0 compilation errors
-- All models compile successfully
-- Ready for repository implementation
-
-**Lifecycle Flow Implemented**:
-```
-User Interest → WaitingList
-                    ↓
-              Lottery Selection
-                    ↓
-            ResponsePendingList (awaiting response)
-                    ↓
-          Accept → InEventList (confirmed participants)
-          Decline → Back to WaitingList (if replacement draw)
+├── models/              # Data classes (Event, Profile, Notification, etc.)
+├── repositories/        # Firestore data access layer
+├── services/            # Firebase services, QR code, device auth
+├── ui/                  # Activities and Fragments
+│   ├── events/         # Event browsing, creation, management
+│   ├── profile/        # User profile management
+│   ├── invitations/    # Invitation handling
+│   ├── history/        # Event history
+│   └── admin/          # Admin dashboard
+├── adapters/           # RecyclerView adapters
+└── utils/              # Helper classes
 ```
 
 ---
 
-## ✅ PHASE 3: REPOSITORY LAYER - COMPLETED
+## Core Services Layer
 
-### Session 3.1: Event Repository ✅
+### 1. FirebaseManager (Singleton)
+**Path**: `services/FirebaseManager.java`
 
-**EventRepository.java** - Complete event and waiting list management  
-**Location**: `com.example.pickme.repositories.EventRepository`
+Central Firebase initialization and access point.
 
-**Firestore Structure Implemented**:
+```java
+public class FirebaseManager {
+    private static FirebaseManager instance;
+    private FirebaseFirestore firestore;
+    private FirebaseStorage storage;
+    private FirebaseAuth auth;
+    private FirebaseMessaging messaging;
+    
+    public static synchronized FirebaseManager getInstance() {
+        if (instance == null) {
+            instance = new FirebaseManager();
+        }
+        return instance;
+    }
+    
+    private FirebaseManager() {
+        firestore = FirebaseFirestore.getInstance();
+        firestore.setFirestoreSettings(new FirestoreSettings.Builder()
+            .setPersistenceEnabled(true)
+            .build());
+        storage = FirebaseStorage.getInstance();
+        auth = FirebaseAuth.getInstance();
+        messaging = FirebaseMessaging.getInstance();
+    }
+    
+    // Static accessors for convenience
+    public static FirebaseFirestore getFirestore() { ... }
+    public static StorageReference getStorageReference() { ... }
+}
 ```
-events/{eventId}
-  ├─ Event document fields
-  └─ subcollections:
-      ├─ waitingList/{entrantId}
-      ├─ responsePendingList/{entrantId}
-      ├─ inEventList/{entrantId}
-      └─ notifications/{notificationId}
-```
-
-**Methods Implemented** (10 methods):
-1. ✅ `createEvent(Event, OnSuccessListener, OnFailureListener)` - Create event with auto-generated ID
-2. ✅ `updateEvent(eventId, updates, callbacks)` - Update specific fields
-3. ✅ `deleteEvent(eventId, callbacks)` - Delete event (subcollections handled separately)
-4. ✅ `getEvent(eventId, OnEventLoadedListener)` - Retrieve single event
-5. ✅ `getEventsByOrganizer(organizerId, listener)` - Query by organizer
-6. ✅ `getAllEvents(listener)` - Admin browsing
-7. ✅ `getEventsForEntrant(listener)` - Filter OPEN events with active registration
-8. ✅ `addEntrantToWaitingList(eventId, entrantId, location, callbacks)` - Join waiting list
-9. ✅ `removeEntrantFromWaitingList(eventId, entrantId, callbacks)` - Leave waiting list
-10. ✅ `getWaitingListForEvent(eventId, listener)` - Retrieve WaitingList object with all data
-
-**Additional Helper Methods**:
-- ✅ `isEntrantInWaitingList(eventId, entrantId, listener)` - Check membership
-
-**Features**:
-- ✅ Async callbacks for all operations
-- ✅ Proper error handling and logging
-- ✅ Offline persistence support (via Firestore)
-- ✅ Geolocation tracking in waiting list
-- ✅ Timestamp tracking for join actions
-- ✅ Subcollection management
-- ✅ Event status filtering (OPEN events only for entrants)
-- ✅ Registration date validation
-
-**Custom Listener Interfaces**:
-- `OnSuccessListener` - Operation success with ID
-- `OnFailureListener` - Operation failure with exception
-- `OnEventLoadedListener` - Single event retrieval
-- `OnEventsLoadedListener` - Multiple events retrieval
-- `OnWaitingListLoadedListener` - WaitingList object retrieval
-- `OnEntrantCheckListener` - Boolean existence check
-
-**Related User Stories**: US 01.01.01, US 01.01.02, US 01.01.03, US 02.01.01, US 02.02.01, US 03.01.01
-
-**Status**: ✅ Complete, build verified, ~450 lines
-
----
-
-### Session 3.2: Profile Repository ✅
-
-**ProfileRepository.java** - Complete profile management with cascade deletion  
-**Location**: `com.example.pickme.repositories.ProfileRepository`
-
-**Firestore Structure**:
-```
-profiles/{userId}
-  ├─ userId (device ID)
-  ├─ name
-  ├─ email (optional)
-  ├─ phoneNumber (optional)
-  ├─ notificationEnabled
-  ├─ eventHistory: [ {...}, {...} ]
-  └─ profileImageUrl
-```
-
-**Methods Implemented** (8 methods):
-1. ✅ `createProfile(Profile, callbacks)` - Create profile with device-based ID
-2. ✅ `updateProfile(userId, updates, callbacks)` - Update specific fields
-3. ✅ `deleteProfile(userId, callbacks)` - Delete with CASCADE to all event lists
-4. ✅ `getProfile(userId, listener)` - Retrieve single profile
-5. ✅ `getAllProfiles(listener)` - Admin browsing
-6. ✅ `addEventToHistory(userId, EventHistoryItem, callbacks)` - Append to history array
-7. ✅ `updateNotificationPreference(userId, enabled, callbacks)` - Toggle notifications
-8. ✅ `profileExists(userId, listener)` - Check existence
-
-**Additional Methods**:
-- ✅ `updateEventHistoryStatus(userId, eventId, newStatus, callbacks)` - Update history item status
-- ✅ `cascadeDeleteFromEvents(userId, listener)` - Private method for cascade deletion
-
-**Cascade Deletion Logic**:
-- ✅ Removes user from ALL event waiting lists
-- ✅ Removes user from ALL event response pending lists
-- ✅ Removes user from ALL event in-event lists
-- ✅ Uses WriteBatch for atomic operations
-- ✅ Only deletes profile after cascade completes successfully
-
-**Features**:
-- ✅ Device-based authentication support (no username/password - US 01.07.01)
-- ✅ Event history tracking with EventHistoryItem
-- ✅ Notification preference management
-- ✅ Cascade deletion prevents orphaned data
-- ✅ FieldValue.arrayUnion for efficient array updates
-- ✅ Batch writes for multiple deletions
-- ✅ Comprehensive error handling
-
-**Custom Listener Interfaces**:
-- `OnSuccessListener` - Operation success
-- `OnFailureListener` - Operation failure
-- `OnProfileLoadedListener` - Single profile retrieval
-- `OnProfilesLoadedListener` - Multiple profiles retrieval
-- `OnCascadeCompleteListener` - Internal cascade deletion callback
-- `OnProfileExistsListener` - Existence check
-
-**Related User Stories**: US 01.02.01, US 01.02.02, US 01.02.03, US 01.02.04, US 03.02.01, US 03.05.01
-
-**Status**: ✅ Complete, build verified, ~430 lines
-
----
-
-### Session 3.3: Image Repository ✅
-
-**ImageRepository.java** - Firebase Storage image operations  
-**Location**: `com.example.pickme.repositories.ImageRepository`
-
-**Storage Structure**:
-```
-event_posters/
-  └─ {eventId}/
-      └─ {uuid}.jpg
-```
-
-**Firestore Structure for Tracking**:
-```
-event_posters/{posterId}
-  ├─ posterId
-  ├─ eventId
-  ├─ imageUrl (download URL)
-  ├─ uploadTimestamp
-  └─ uploadedBy
-```
-
-**Methods Implemented** (4 main methods):
-1. ✅ `uploadEventPoster(eventId, imageUri, uploadedBy, listener)` - Upload with compression
-   - Generates unique filename (UUID)
-   - Uploads to Storage path: event_posters/{eventId}/{filename}.jpg
-   - Gets download URL
-   - Updates Event.posterImageUrl field
-   - Creates EventPoster tracking record
-
-2. ✅ `updateEventPoster(eventId, newImageUri, uploadedBy, listener)` - Replace poster
-   - Deletes old image from Storage
-   - Uploads new image
-   - Updates Event document
-   - Updates EventPoster record
-
-3. ✅ `deleteEventPoster(eventId, listener)` - Complete cleanup
-   - Deletes file from Storage
-   - Clears Event.posterImageUrl field
-   - Deletes EventPoster tracking records
-
-4. ✅ `getAllEventPosters(listener)` - Admin browsing
-   - Retrieves all EventPoster records from Firestore
-
-**Internal Helper Methods**:
-- ✅ `updateEventPosterUrl(eventId, posterUrl, listener)` - Update Event document
-- ✅ `clearEventPosterUrl(eventId, listener)` - Clear Event field
-- ✅ `createEventPosterRecord(eventId, imageUrl, uploadedBy, listener)` - Create tracking record
-- ✅ `deleteImageFromStorage(eventId, listener)` - Delete from Storage
-- ✅ `deleteEventPosterRecords(eventId, listener)` - Delete tracking records
-
-**Image Processing**:
-- ✅ Configured for max 1MB compression (ready for implementation)
-- ✅ JPEG quality setting: 85%
-- ✅ Unique filename generation with UUID
-- ✅ Organized folder structure per event
-
-**Features**:
-- ✅ Complete upload/update/delete lifecycle
-- ✅ Atomic operations (Storage + Firestore updates)
-- ✅ Error handling with graceful degradation
-- ✅ Multiple file cleanup in event folders
-- ✅ EventPoster record tracking for audit
-- ✅ StorageReference from FirebaseManager
-- ✅ Download URL generation and storage
-
-**Custom Listener Interfaces**:
-- `OnUploadCompleteListener` - Upload success with URL and poster ID
-- `OnDeleteCompleteListener` - Deletion completion
-- `OnEventUpdateListener` - Internal Event document updates
-- `OnStorageDeleteListener` - Internal Storage deletion
-- `OnPosterRecordCreatedListener` - Internal tracking record creation
-- `OnPostersLoadedListener` - Multiple posters retrieval
-
-**Related User Stories**: US 02.04.01, US 02.04.02, US 03.03.01, US 03.06.01
-
-**Status**: ✅ Complete, build verified, ~520 lines
-
----
-
-### Phase 3 Summary
-
-**Total Repositories Created**: 3 new + 2 existing = 5 total
-- BaseRepository (Phase 1) - Abstract CRUD base
-- UserRepository (Phase 1) - User management example
-- **EventRepository (Phase 3)** - Event & waiting list operations
-- **ProfileRepository (Phase 3)** - Profile management with cascade deletion
-- **ImageRepository (Phase 3)** - Firebase Storage image operations
-
-**Total Phase 3 Lines of Code**: ~1,400+ lines of documented Java code
-
-**Features Implemented**:
-✅ All async callback patterns
-✅ Comprehensive error handling and logging
-✅ Offline persistence support (Firestore)
-✅ Cascade deletion logic
-✅ Batch operations for atomicity
-✅ Subcollection management
-✅ Firebase Storage integration
-✅ Event history tracking
-✅ Notification preferences
-✅ Geolocation tracking
-✅ Custom listener interfaces (16 total)
-✅ Firestore queries with filtering
-✅ Image upload/update/delete lifecycle
-✅ EventPoster tracking records
-
-**Build Status**: ✅ BUILD SUCCESSFUL
-- 107 Gradle tasks executed
-- Build time: 2m 20s
-- 0 compilation errors
-- All repositories verified
-- Ready for service layer implementation
-
-**Firebase Operations Supported**:
-- ✅ CRUD operations (Create, Read, Update, Delete)
-- ✅ Collection queries with filters
-- ✅ Subcollection management
-- ✅ Batch writes (atomic multi-document operations)
-- ✅ Array updates (FieldValue.arrayUnion)
-- ✅ Storage file upload/download
-- ✅ Storage file deletion
-- ✅ Download URL generation
-
----
-
-## Phase 3 Completion Checklist ✅
-
-### Session 3.1: Event Repository
-- [x] EventRepository.java - Complete implementation
-- [x] createEvent() - Event creation with auto-ID
-- [x] updateEvent() - Field updates
-- [x] deleteEvent() - Event deletion
-- [x] getEvent() - Single event retrieval
-- [x] getEventsByOrganizer() - Query by organizer
-- [x] getAllEvents() - Admin browsing
-- [x] getEventsForEntrant() - Filter OPEN events
-- [x] addEntrantToWaitingList() - Join waiting list
-- [x] removeEntrantFromWaitingList() - Leave waiting list
-- [x] getWaitingListForEvent() - Retrieve full waiting list
-- [x] isEntrantInWaitingList() - Membership check
-
-### Session 3.2: Profile Repository
-- [x] ProfileRepository.java - Complete implementation
-- [x] createProfile() - Device-based profile creation
-- [x] updateProfile() - Field updates
-- [x] deleteProfile() - Cascade deletion
-- [x] getProfile() - Single profile retrieval
-- [x] getAllProfiles() - Admin browsing
-- [x] addEventToHistory() - Event history tracking
-- [x] updateNotificationPreference() - Toggle notifications
-- [x] profileExists() - Existence check
-- [x] updateEventHistoryStatus() - Update history item
-- [x] cascadeDeleteFromEvents() - Remove from all event lists
-
-### Session 3.3: Image Repository
-- [x] ImageRepository.java - Complete implementation
-- [x] uploadEventPoster() - Upload with unique filename
-- [x] updateEventPoster() - Delete old, upload new
-- [x] deleteEventPoster() - Complete cleanup
-- [x] getAllEventPosters() - Admin browsing
-- [x] Storage path structure - event_posters/{eventId}/
-- [x] EventPoster tracking records in Firestore
-- [x] Download URL generation and storage
-- [x] Event document posterImageUrl updates
-
-### All Repositories Include:
-- [x] Async callback patterns
-- [x] Custom listener interfaces
-- [x] Comprehensive error handling
-- [x] Logging for debugging
-- [x] Offline persistence support
-- [x] Proper exception handling
-- [x] JavaDoc documentation
-
-### Build Verification:
-- [x] All repositories compile successfully
-- [x] 0 compilation errors
-- [x] BUILD SUCCESSFUL (107 tasks)
-- [x] Build time: 2m 20s
-- [x] Ready for Phase 4
-
----
-
-## ✅ PHASE 4: SERVICE LAYER (BUSINESS LOGIC) - COMPLETED
-
-### Session 4.1: Lottery Service ✅
-
-**LotteryService.java** - HIGH-RISK lottery draw implementation  
-**Location**: `com.example.pickme.services.LotteryService`
-
-**Critical Features**:
-- ✅ SecureRandom for fair selection
-- ✅ Firestore transactions for atomicity
-- ✅ Race condition prevention
-- ✅ Comprehensive audit logging
-
-**Methods Implemented** (4 main methods):
-1. ✅ `executeLotteryDraw(eventId, numberOfWinners, listener)` - Random selection from waiting list
-   - Uses SecureRandom for fairness
-   - WriteBatch for atomic operations
-   - Moves winners to responsePendingList
-   - Marks losers as "not_selected"
-   - Updates profile event history
-   - Sets 7-day response deadline
-
-2. ✅ `executeReplacementDraw(eventId, numberOfReplacements, listener)` - Replacement selection
-   - Selects from remaining eligible entrants
-   - Excludes previously selected users
-   - Same atomic transaction process
-
-3. ✅ `handleEntrantAcceptance(eventId, entrantId, listener)` - Move to in-event list
-   - Transfers from responsePendingList to inEventList
-   - Updates profile history with "enrolled" status
-   - Preserves geolocation data
-   - Sets checkInStatus to false
-
-4. ✅ `handleEntrantDecline(eventId, entrantId, listener)` - Handle rejection
-   - Removes from responsePendingList
-   - Updates profile history with "cancelled" status
-   - Enables automatic replacement draw trigger
-
-**Helper Methods**:
-- ✅ `selectRandomEntrants()` - SecureRandom selection
-- ✅ `updateProfileHistories()` - Batch history updates
-- ✅ `executeLotteryTransaction()` - Atomic batch operations
-
-**Data Structures**:
-- `LotteryResult` - Contains winners, losers, deadline
-
-**Related User Stories**: US 02.05.02, US 02.05.03, US 01.05.01, US 01.05.02, US 01.05.03
-
-**Status**: ✅ Complete, build verified, ~500 lines
-
----
-
-### Session 4.2: Notification Service ✅
-
-**NotificationService.java** - FCM notification management  
-**Location**: `com.example.pickme.services.NotificationService`
-
-**Methods Implemented** (7 main methods):
-1. ✅ `sendLotteryWinNotification(entrantIds, event, listener)` - Winner notifications
-2. ✅ `sendLotteryLossNotification(entrantIds, event, listener)` - Loser notifications
-3. ✅ `sendReplacementDrawNotification(entrantIds, event, listener)` - Replacement winners
-4. ✅ `sendOrganizerMessage(entrantIds, message, event, listener)` - Custom broadcasts
-5. ✅ `sendToAllWaitingList(eventId, message, listener)` - Broadcast to waiting list
-6. ✅ `sendToAllSelected(eventId, message, listener)` - Broadcast to response pending
-7. ✅ `sendToAllConfirmed(eventId, message, listener)` - Broadcast to confirmed participants
-
-**Features**:
-- ✅ User preference filtering (notificationEnabled)
-- ✅ NotificationLog creation for admin review (US 03.08.01)
-- ✅ FCM payload structure
-- ✅ Batch sending support
-- ✅ Graceful failure handling
-
-**Helper Methods**:
-- ✅ `sendNotifications()` - Core logic with preference checking
-- ✅ `filterEnabledRecipients()` - Filter by notification preferences
-- ✅ `sendFCMMessages()` - FCM integration
-- ✅ `getEntrantIdsFromSubcollection()` - Query subcollections
-
-**Notification Types**:
-- lottery_win
-- lottery_loss
-- organizer_message
-- replacement_draw
-
-**Related User Stories**: US 01.04.01, US 01.04.02, US 01.04.03, US 02.05.01, US 02.07.01-03, US 03.08.01
-
-**Status**: ✅ Complete, build verified, ~450 lines
-
----
-
-### Session 4.3: QR Code Service ✅
-
-**QRCodeGenerator.java** - QR code generation using ZXing  
-**Location**: `com.example.pickme.services.QRCodeGenerator`
-
-**Methods Implemented**:
-1. ✅ `generateQRCode(eventId, context, listener)` - Generate and save QR code
-   - Encodes: "eventlottery://event/{eventId}"
-   - Creates 512x512 bitmap
-   - Saves to device storage
-   - Creates QRCode record in Firestore
-   - Returns bitmap and file path
-
-2. ✅ `regenerateQRCode(eventId, context, listener)` - Replace existing QR code
-   - Deletes old records
-   - Generates new QR code
-
-**Helper Methods**:
-- ✅ `generateQRCodeBitmap()` - ZXing bitmap generation
-- ✅ `saveQRCodeToFile()` - Device storage persistence
-
-**QRCodeScanner.java** - QR code scanning  
-**Location**: `com.example.pickme.services.QRCodeScanner`
-
-**Methods Implemented**:
-1. ✅ `startScanning(activity)` - Launch ZXing camera
-   - Configures IntentIntegrator
-   - Sets QR_CODE format only
-   - Enables beep sound
-
-2. ✅ `parseScannedResult(result, listener)` - Parse and validate
-   - Extracts event ID from deep link
-   - Validates format
-   - Checks event exists in database
-   - Returns Event object
-
-**Helper Methods**:
-- ✅ `validateAndReturnEvent()` - Database validation
-- ✅ `extractEventId()` - Quick parsing
-- ✅ `isValidEventQRCode()` - Format validation
-
-**Deep Link Format**: `eventlottery://event/{eventId}`
-
-**AndroidManifest.xml**:
-- ✅ Deep link intent filter added to MainActivity
-- ✅ Scheme: "eventlottery"
-- ✅ Host: "event"
-
-**Related User Stories**: US 02.01.01, US 01.06.01, US 01.06.02
-
-**Status**: ✅ Complete, build verified, ~350 lines (2 classes)
-
----
-
-### Session 4.4: Device Authentication Service ✅
-
-**DeviceAuthenticator.java** - Device-based authentication (NO username/password)  
-**Location**: `com.example.pickme.services.DeviceAuthenticator`
-
-**Methods Implemented**:
-1. ✅ `getDeviceId(listener)` - Firebase Installation ID
-   - Primary: Firebase Installations API
-   - Fallback: Android ID
-   - Caches in SharedPreferences
-
-2. ✅ `initializeUser(listener)` - First launch initialization
-   - Gets device ID
-   - Checks if profile exists
-   - Creates default profile for new users
-   - Returns Profile object
-   - Marks first launch flag
-
-3. ✅ `getUserRole()` - Role determination
-   - Returns: entrant, organizer, or admin
-
-4. ✅ `isFirstLaunch()` - SharedPreferences check
-
-**Helper Methods**:
-- ✅ `getCachedProfile()` - Access cached profile
-- ✅ `getStoredUserId()` - Get saved user ID
-- ✅ `updateCachedProfile()` - Update cache
-- ✅ `clearAuthData()` - Logout/reset
-
-**Profile Model Updates**:
-- ✅ Added `role` field (entrant, organizer, admin)
-- ✅ Added role constants
-- ✅ Added `isOrganizer()` and `isAdmin()` methods
-- ✅ Updated toMap() to include role
-- ✅ Updated Parcelable to include role
-
-**SharedPreferences Keys**:
-- device_id
-- is_first_launch
-- user_id
-
-**Related User Stories**: US 01.07.01
-
-**Status**: ✅ Complete, build verified, ~300 lines
-
----
-
-### Session 4.5: Geolocation Service ✅
-
-**GeolocationService.java** - Optional location capture  
-**Location**: `com.example.pickme.services.GeolocationService`
-
-**Methods Implemented**:
-1. ✅ `requestLocationPermission(activity, listener)` - Permission request
-   - Requests FINE and COARSE location
-   - Uses permission request code 1001
-
-2. ✅ `getCurrentLocation(context, listener)` - Location capture
-   - Uses FusedLocationProviderClient
-   - Tries last known location first (fast)
-   - Falls back to current location request
-   - Timeout after 5 seconds
-   - Returns Geolocation object or null
-
-3. ✅ `hasLocationPermission(context)` - Permission check
-
-**Helper Methods**:
-- ✅ `requestCurrentLocationUpdate()` - With timeout
-- ✅ `isLocationPermissionPermanentlyDenied()` - Check rationale
-- ✅ `handlePermissionResult()` - Process callback
-- ✅ `createLocationRequest()` - For continuous updates
-
-**Features**:
-- ✅ Graceful permission denial handling
-- ✅ 5-second timeout for unavailable location
-- ✅ Uses Priority.PRIORITY_HIGH_ACCURACY
-- ✅ Cancellation token for timeout
-- ✅ FusedLocationProviderClient integration
-
-**Related User Stories**: US 02.02.02, US 02.02.03
-
-**Status**: ✅ Complete, build verified, ~250 lines
-
----
-
-### Additional Model Created
-
-**NotificationLog.java** - Notification audit trail  
-**Location**: `com.example.pickme.models.NotificationLog`
-
-**Fields**:
-- notificationId
-- timestamp
-- senderId (organizer or system)
-- recipientIds (List)
-- messageContent
-- notificationType (lottery_win, lottery_loss, organizer_message, replacement_draw)
-- eventId
-
-**Purpose**: Admin review and audit trail (US 03.08.01)
-
-**Status**: ✅ Complete, ~180 lines
-
----
-
-### Phase 4 Summary
-
-**Total Services Created**: 6 services + 1 model
-- **LotteryService** - Random selection, acceptance/decline handling
-- **NotificationService** - FCM notifications with logging
-- **QRCodeGenerator** - ZXing QR generation
-- **QRCodeScanner** - ZXing scanning and validation
-- **DeviceAuthenticator** - Device-based authentication
-- **GeolocationService** - Optional location capture
-- **NotificationLog** (model) - Audit trail
-
-**Total Phase 4 Lines of Code**: ~2,030+ lines of documented Java code
-
-**Features Implemented**:
-✅ HIGH-RISK lottery algorithm with SecureRandom
-✅ Atomic transactions preventing race conditions
-✅ FCM notification infrastructure
-✅ User preference filtering
-✅ Notification audit logging
-✅ QR code generation (512x512)
-✅ QR code scanning with validation
-✅ Deep link handling (eventlottery://)
-✅ Device-based authentication (Firebase Installation ID)
-✅ First-launch profile creation
-✅ Role-based access (entrant, organizer, admin)
-✅ Geolocation capture with timeout
-✅ Permission handling with graceful denials
-✅ SharedPreferences caching
-✅ Profile history updates
-✅ Batch operations for performance
-
-**Build Status**: ✅ BUILD SUCCESSFUL
-- 107 Gradle tasks executed
-- Build time: 4s
-- 0 compilation errors
-- All services verified
-- Ready for UI implementation
-
-**Firebase Operations Used**:
-- ✅ WriteBatch for atomic operations
-- ✅ Firestore queries with filters
-- ✅ FCM message structure
-- ✅ Firebase Installations API
-- ✅ Document CRUD operations
-- ✅ Subcollection management
-
-**Android Features Used**:
-- ✅ ZXing IntentIntegrator
-- ✅ FusedLocationProviderClient
-- ✅ SharedPreferences
-- ✅ Deep link intent filters
-- ✅ Runtime permissions
-- ✅ CancellationTokenSource
-
-**Design Patterns**:
-- ✅ Singleton (all service classes)
-- ✅ Callback/Listener pattern (async operations)
-- ✅ Strategy pattern (SecureRandom selection)
-- ✅ Repository pattern integration
-- ✅ Factory pattern (location requests)
-
----
-
-## Phase 4 Completion Checklist ✅
-
-### Session 4.1: Lottery Service
-- [x] LotteryService.java - HIGH-RISK implementation
-- [x] executeLotteryDraw() - SecureRandom selection
-- [x] executeReplacementDraw() - Replacement selection
-- [x] handleEntrantAcceptance() - Move to in-event list
-- [x] handleEntrantDecline() - Handle rejection
-- [x] SecureRandom for fairness
-- [x] WriteBatch for atomic operations
-- [x] Race condition prevention
-- [x] Profile history updates
-- [x] 7-day response deadline
-- [x] Comprehensive logging
-
-### Session 4.2: Notification Service
-- [x] NotificationService.java - FCM integration
-- [x] sendLotteryWinNotification() - Winner alerts
-- [x] sendLotteryLossNotification() - Loser alerts
-- [x] sendReplacementDrawNotification() - Replacement alerts
-- [x] sendOrganizerMessage() - Custom broadcasts
-- [x] sendToAllWaitingList() - Waiting list broadcast
-- [x] sendToAllSelected() - Response pending broadcast
-- [x] sendToAllConfirmed() - Confirmed participants broadcast
-- [x] User preference filtering
-- [x] NotificationLog audit trail
-- [x] FCM payload structure
-- [x] Batch sending support
-
-### Session 4.3: QR Code Service
-- [x] QRCodeGenerator.java - ZXing generation
-- [x] generateQRCode() - Create 512x512 bitmap
-- [x] regenerateQRCode() - Replace existing
-- [x] Save to device storage
-- [x] Firestore QRCode record
-- [x] QRCodeScanner.java - ZXing scanning
-- [x] startScanning() - Launch camera
-- [x] parseScannedResult() - Parse and validate
-- [x] Deep link format (eventlottery://event/{eventId})
-- [x] Event validation
-- [x] AndroidManifest deep link intent filter
-
-### Session 4.4: Device Authentication Service
-- [x] DeviceAuthenticator.java - No username/password
-- [x] getDeviceId() - Firebase Installation ID
-- [x] initializeUser() - First launch initialization
-- [x] getUserRole() - Role determination
-- [x] isFirstLaunch() - SharedPreferences check
-- [x] Profile role field added (entrant, organizer, admin)
-- [x] Role constants in Profile model
-- [x] isOrganizer() and isAdmin() methods
-- [x] SharedPreferences caching
-- [x] Android ID fallback
-
-### Session 4.5: Geolocation Service
-- [x] GeolocationService.java - Optional location
-- [x] requestLocationPermission() - Permission request
-- [x] getCurrentLocation() - Capture location
-- [x] hasLocationPermission() - Permission check
-- [x] FusedLocationProviderClient integration
-- [x] Last known location (fast path)
-- [x] Current location with timeout (5s)
-- [x] Graceful permission denial
-- [x] Priority.PRIORITY_HIGH_ACCURACY
-- [x] CancellationTokenSource for timeout
-
-### Additional Components:
-- [x] NotificationLog model - Audit trail
-- [x] Profile model updated with role field
-- [x] AndroidManifest updated with deep link
-- [x] All Parcelable implementations updated
-
-### Build Verification:
-- [x] All services compile successfully
-- [x] 0 compilation errors
-- [x] BUILD SUCCESSFUL (107 tasks)
-- [x] Build time: 1s (incremental)
-- [x] Ready for UI implementation
-
----
-
-## ✅ PHASE 5: UI LAYER - ENTRANT FEATURES
-
-### Session 5.1: Profile Management UI ✅
-
-**Implementation Date**: October 30, 2025
-
-#### Theme & Styling ✅
-
-**colors.xml** - PickMe Theme Palette:
-- ✅ Primary Color: `#EF8A87` (Pinkish)
-- ✅ Primary Dark: `#E56B68`
-- ✅ Primary Light: `#F5B5B3`
-- ✅ Element Shadow: `#F5F4F4`
-- ✅ Text Primary: `#212121`
-- ✅ Text Secondary: `#757575` (Subtle)
-- ✅ Text Hint: `#BDBDBD`
-- ✅ Error Red, Success Green, Warning Orange
-- ✅ Divider and Border colors
-
-**themes.xml** - Material Theme Configuration:
-- ✅ Primary brand colors applied
-- ✅ Status bar color customization
-- ✅ Custom button styles (Primary, Outlined, Text)
-- ✅ Custom EditText style with pink accent
-- ✅ Custom Switch style
-- ✅ Night mode theme support
-
-**strings.xml** - Profile Strings:
-- ✅ Profile titles and labels
-- ✅ Validation error messages
-- ✅ Success/failure messages
-- ✅ Dialog messages
-- ✅ Button labels
-
----
-
-#### Layouts Created ✅
-
-**1. activity_profile.xml** (~200 lines):
-- ✅ ScrollView for full-screen scrolling
-- ✅ CircleImageView for profile photo (120dp)
-- ✅ CardView container with elevation
-- ✅ Change Photo button (text style)
-- ✅ Name input (TextInputLayout with icon)
-- ✅ Email input (with email validation)
-- ✅ Phone input (optional)
-- ✅ Notification switch with label
-- ✅ Save Changes button (primary style)
-- ✅ View History button (outlined style)
-- ✅ Delete Account button (text style, red)
-- ✅ ProgressBar for loading states
-- ✅ Proper spacing and margins (24dp padding)
-- ✅ ConstraintLayout for flexible positioning
-
-**2. activity_create_profile.xml** (~150 lines):
-- ✅ Welcome header ("Welcome to PickMe!")
-- ✅ Subtitle text
-- ✅ CircleImageView for profile photo
-- ✅ Upload Photo button
-- ✅ Name input (required)
-- ✅ Email input (optional with helper text)
-- ✅ Create Profile button (primary)
-- ✅ Skip button (text style)
-- ✅ ProgressBar for loading
-- ✅ Clean first-time user experience
-
-**3. rounded_background.xml** (drawable):
-- ✅ Shape drawable for card backgrounds
-- ✅ 12dp corner radius
-- ✅ Element shadow color
-
----
-
-#### Activities Implemented ✅
-
-**1. ProfileActivity.java** (~350 lines):
-
-**Functionality**:
-- ✅ Load current user's profile from ProfileRepository
-- ✅ Display profile data in editable fields
-- ✅ Load profile image with Glide
-- ✅ Image picker integration (ActivityResultLauncher)
-- ✅ Name validation (required)
-- ✅ Email validation (Patterns.EMAIL_ADDRESS)
-- ✅ Save profile updates to Firestore
-- ✅ Update notification preferences
-- ✅ View event history navigation (placeholder)
-- ✅ Delete account confirmation dialog
-- ✅ Cascade deletion via ProfileRepository
-- ✅ Clear authentication data on deletion
-- ✅ Loading state management
-- ✅ Error handling with Toast messages
-- ✅ Back navigation support
 
 **Key Features**:
-- Device-based authentication integration
-- ProfileRepository CRUD operations
-- Input validation before save
-- Profile image selection (TODO: upload to Storage)
-- Graceful error handling
-- User confirmation for destructive actions
+- Offline persistence enabled
+- Anonymous authentication
+- FCM token management
+- Connection state monitoring
 
-**Related User Stories**: US 01.02.01, US 01.02.02, US 01.02.04
+### 2. DeviceAuthenticator (Singleton)
+**Path**: `services/DeviceAuthenticator.java`
 
-**2. CreateProfileActivity.java** (~260 lines):
+Device-based user identification using Android ID + Firebase UID.
 
-**Functionality**:
-- ✅ First-time profile setup
-- ✅ Get device ID from DeviceAuthenticator
-- ✅ Pre-fill name with suggested value
-- ✅ Image picker integration
-- ✅ Name validation (required)
-- ✅ Email validation (optional)
-- ✅ Create profile in Firestore
-- ✅ Update cached profile
-- ✅ Skip option with minimal profile
-- ✅ Navigate to MainActivity after setup
-- ✅ Prevent back navigation during setup
-- ✅ Loading state management
-- ✅ Clean first-time UX
+```java
+public class DeviceAuthenticator {
+    private String cachedDeviceId;
+    private Profile cachedProfile;
+    
+    public void initializeUser(OnUserInitializedListener listener) {
+        String deviceId = getDeviceId();
+        ProfileRepository profileRepo = new ProfileRepository();
+        
+        profileRepo.getProfile(deviceId, new OnProfileLoadedListener() {
+            public void onProfileLoaded(Profile profile) {
+                cachedProfile = profile;
+                listener.onUserInitialized(profile, false);
+            }
+            
+            public void onError(Exception e) {
+                // Create new profile
+                Profile newProfile = new Profile(deviceId, "User" + deviceId.substring(0,6));
+                profileRepo.createProfile(newProfile, ...);
+            }
+        });
+    }
+    
+    private String getDeviceId() {
+        String androidId = Settings.Secure.getString(
+            context.getContentResolver(), 
+            Settings.Secure.ANDROID_ID
+        );
+        String firebaseUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        return androidId + "_" + firebaseUid;
+    }
+}
+```
 
-**Key Features**:
-- Device-based authentication (no password)
-- Minimal required information
-- Skip functionality for quick start
-- Default role assignment (entrant)
-- Default notification enabled
-- Profile image upload ready (TODO: Storage integration)
+**Usage Pattern**:
+```java
+DeviceAuthenticator.getInstance(this).initializeUser(new OnUserInitializedListener() {
+    public void onUserInitialized(Profile profile, boolean isNewUser) {
+        // Use profile
+    }
+});
+```
 
-**Related User Stories**: US 01.02.01, US 01.07.01
+### 3. QRCodeGenerator
+**Path**: `services/QRCodeGenerator.java`
 
----
+Generates QR codes for event registration using ZXing.
 
-#### AndroidManifest Updates ✅
+```java
+public class QRCodeGenerator {
+    public static Bitmap generateQRCode(String eventId, int size) {
+        try {
+            BitMatrix matrix = new MultiFormatWriter().encode(
+                eventId,
+                BarcodeFormat.QR_CODE,
+                size, size
+            );
+            return convertToBitmap(matrix);
+        } catch (WriterException e) {
+            return null;
+        }
+    }
+}
+```
 
-**New Activities Registered**:
-- ✅ ProfileActivity (exported=false, with parent)
-- ✅ CreateProfileActivity (exported=false, fullscreen theme)
+### 4. QRCodeScanner
+**Path**: `services/QRCodeScanner.java`
 
----
+Scans QR codes and extracts event IDs.
 
-### Phase 5.1 Summary
-
-**Files Created**: 7 files
-- 2 Activity classes (ProfileActivity, CreateProfileActivity)
-- 2 Layout files (activity_profile.xml, activity_create_profile.xml)
-- 1 Drawable (rounded_background.xml)
-- 2 Updated files (themes.xml day/night)
-
-**Files Updated**: 3 files
-- colors.xml (new PickMe theme colors)
-- strings.xml (profile strings added)
-- AndroidManifest.xml (activities registered)
-
-**Lines of Code**: ~800+ lines
-- ProfileActivity: ~350 lines
-- CreateProfileActivity: ~260 lines
-- Layouts: ~350 lines (combined XML)
-
-**Features Implemented**:
-✅ Profile viewing and editing
-✅ First-time profile creation
-✅ Image picker integration (Glide)
-✅ Input validation (name, email)
-✅ Notification preference toggle
-✅ Delete account with cascade deletion
-✅ Event history navigation (placeholder)
-✅ Loading states with ProgressBar
-✅ Error handling with Toast
-✅ Device-based authentication integration
-✅ PickMe theme with pink color scheme
-✅ Material Design components
-✅ Night mode support
-
-**Build Status**: ✅ BUILD SUCCESSFUL
-- Java compilation: 0 errors
-- assembleDebug: SUCCESS
-- All activities compile correctly
-- Ready for testing
-
-**Next Steps**:
-- Integrate ImageRepository for profile photo upload
-- Create EventHistoryActivity
-- Test first-launch flow with DeviceAuthenticator
-- Add photo upload to Firebase Storage
-- Test cascade deletion
-
----
-
-### Session 5.2: Event Discovery & Joining ✅
-
-**Implementation Date**: October 30, 2025
-
-#### Layouts Created ✅
-
-**1. event_card_item.xml** (~120 lines):
-- ✅ MaterialCardView with 16dp rounded corners
-- ✅ Event poster image (80x80dp)
-- ✅ "Joined" badge (conditional visibility)
-- ✅ Event name (bold, 18sp, 2 lines max)
-- ✅ Event date with calendar icon
-- ✅ Event location with map icon
-- ✅ Divider line
-- ✅ Status row (spots available or waiting list count)
-- ✅ Price tag (bold, primary pink color)
-- ✅ Proper spacing and padding
-
-**2. activity_event_browser.xml** (~120 lines):
-- ✅ CoordinatorLayout with AppBarLayout
-- ✅ MaterialToolbar with pink background
-- ✅ SearchView for event filtering
-- ✅ HorizontalScrollView with filter chips
-- ✅ ChipGroup (All, Open, Upcoming)
-- ✅ RecyclerView for event list
-- ✅ ProgressBar for loading
-- ✅ Empty state layout with icon and message
-- ✅ FloatingActionButton for QR scanning
-- ✅ Proper scrolling behavior
-
-**3. activity_event_details.xml** (~250 lines):
-- ✅ CollapsingToolbarLayout with parallax effect
-- ✅ Full-screen event poster image
-- ✅ Gradient overlay for text readability
-- ✅ Material toolbar with back navigation
-- ✅ NestedScrollView for content
-- ✅ Registration status badge
-- ✅ Event details section (date, location, price, capacity)
-- ✅ Waiting list status display
-- ✅ Geolocation warning (conditional)
-- ✅ Description section
-- ✅ Lottery criteria explanation
-- ✅ Join/Leave button (contextual)
-- ✅ ProgressBar for loading
-
-**4. Drawables Created**:
-- ✅ badge_background.xml - Rounded pink badge
-- ✅ gradient_overlay.xml - Bottom gradient for images
+```java
+public class QRCodeScanner {
+    public void launchScanner(Activity activity) {
+        IntentIntegrator integrator = new IntentIntegrator(activity);
+        integrator.setDesiredBarcodeFormats(IntentIntegrator.QR_CODE);
+        integrator.setPrompt("Scan event QR code");
+        integrator.setCameraId(0);
+        integrator.setBeepEnabled(true);
+        integrator.initiateScan();
+    }
+    
+    public String handleScanResult(IntentResult result) {
+        if (result != null && result.getContents() != null) {
+            return result.getContents(); // Returns event ID
+        }
+        return null;
+    }
+}
+```
 
 ---
 
-#### Activities & Adapters Implemented ✅
+## Data Models
 
-**1. EventAdapter.java** (~175 lines):
+### Profile
+**Path**: `models/Profile.java`
 
-**Functionality**:
-- ✅ RecyclerView adapter for event cards
-- ✅ ViewHolder pattern implementation
-- ✅ Display event poster with Glide
-- ✅ Show event name, date, location
-- ✅ Display "Joined" badge conditionally
-- ✅ Show spots available or waiting list count
-- ✅ Display price or "Free"
-- ✅ Click listener interface
-- ✅ Update events and joined status
+```java
+public class Profile implements Parcelable {
+    private String userId;
+    private String name;
+    private String email;
+    private String phoneNumber;
+    private String profileImageUrl;
+    private String role; // "entrant", "organizer", "admin"
+    private boolean notificationEnabled;
+    
+    public static final String ROLE_ENTRANT = "entrant";
+    public static final String ROLE_ORGANIZER = "organizer";
+    public static final String ROLE_ADMIN = "admin";
+    
+    // Firestore collection: profiles/{userId}
+}
+```
 
-**Key Features**:
-- SimpleDateFormat for date display
-- Glide image loading with placeholder
-- Stream API for filtering (Java 8+)
-- Conditional visibility for badges
-- Resource string formatting
+### Event
+**Path**: `models/Event.java`
 
-**2. EventBrowserActivity.java** (~280 lines):
+```java
+public class Event implements Parcelable {
+    private String eventId;
+    private String name;
+    private String description;
+    private String organizerId;
+    private String location;
+    private ArrayList<Long> eventDates;
+    private long registrationStartDate;
+    private long registrationEndDate;
+    private int capacity;
+    private double price;
+    private int waitingListLimit; // -1 = unlimited
+    private boolean geolocationRequired;
+    private String qrCodeHash;
+    private String posterImageUrl;
+    private String status; // Stores EventStatus enum as string
+    
+    public boolean isRegistrationOpen() {
+        long currentTime = System.currentTimeMillis();
+        return EventStatus.OPEN.name().equals(status)
+                && currentTime >= registrationStartDate
+                && currentTime <= registrationEndDate;
+    }
+    
+    // Firestore: events/{eventId}
+    // Subcollections: waitingList/, responsePendingList/, inEventList/, cancelledList/
+}
+```
 
-**Functionality**:
-- ✅ Load events where registration is open
-- ✅ Display events in RecyclerView
-- ✅ SearchView for text filtering
-- ✅ Chip filters (All, Open, Upcoming)
-- ✅ Navigate to event details on click
-- ✅ Launch QR scanner with FAB
-- ✅ Handle QR scan results
-- ✅ Empty state display
-- ✅ Loading state management
-- ✅ Refresh on resume
+### EventStatus Enum
+```java
+public enum EventStatus {
+    DRAFT,      // Created but not published
+    OPEN,       // Accepting registrations
+    CLOSED,     // Registration closed
+    COMPLETED,  // Event finished
+    CANCELLED   // Cancelled by organizer
+}
+```
 
-**Filter Logic**:
-- Search by event name or location
-- Filter by registration status (OPEN)
-- Filter by upcoming start dates
-- Stream API for efficient filtering
+### Notification
+**Path**: `models/Notification.java`
 
-**QR Integration**:
-- QRCodeScanner service integration
-- IntentIntegrator for camera
-- Parse scanned event IDs
-- Navigate to scanned event
-
-**Related User Stories**: US 01.01.03, US 01.01.04, US 01.06.01, US 01.06.02
-
-**3. EventDetailsActivity.java** (~370 lines):
-
-**Functionality**:
-- ✅ Load full event details
-- ✅ Display event poster in collapsing toolbar
-- ✅ Show registration status badge
-- ✅ Display all event information
-- ✅ Show waiting list status
-- ✅ Check if user is on waiting list
-- ✅ Join waiting list button
-- ✅ Leave waiting list with confirmation
-- ✅ Geolocation capture (if required)
-- ✅ Location permission handling
-- ✅ Contextual button (Join/Leave)
-- ✅ Loading states
-- ✅ Error handling
-
-**Geolocation Integration**:
-- Check if event requires location
-- Request location permission with dialog
-- Capture location using GeolocationService
-- Pass location when joining waiting list
-- Graceful handling of permission denial
-
-**Key Features**:
-- CollapsingToolbarLayout parallax effect
-- Contextual button based on user status
-- AlertDialog for confirmations
-- Integration with EventRepository methods
-- Integration with GeolocationService
-- SimpleDateFormat for date formatting
-
-**Related User Stories**: US 01.01.01, US 01.01.02, US 01.05.04, US 01.05.05
-
----
-
-### Phase 5.2 Summary
-
-**Files Created**: 10 files
-- 3 Activity classes
-- 1 Adapter class
-- 3 Layout files
-- 2 Drawable files
-- 1 Updated strings.xml
-
-**Files Updated**: 2 files
-- strings.xml (~50 new strings)
-- AndroidManifest.xml (2 activities registered)
-
-**Lines of Code**: ~1,350+ lines
-- EventBrowserActivity: ~280 lines
-- EventDetailsActivity: ~370 lines
-- EventAdapter: ~175 lines
-- Layouts: ~490 lines (combined XML)
-- Strings: ~35 lines
-
-**Features Implemented**:
-✅ Event browsing with RecyclerView
-✅ Search functionality
-✅ Filter chips (All, Open, Upcoming)
-✅ Event cards with posters and details
-✅ "Joined" badges
-✅ QR code scanning integration
-✅ Event details with collapsing toolbar
-✅ Join waiting list
-✅ Leave waiting list with confirmation
-✅ Geolocation capture (optional)
-✅ Location permission handling
-✅ Waiting list status display
-✅ Lottery criteria explanation
-✅ Registration status badges
-✅ Empty state handling
-✅ Loading state management
-✅ Error handling with Toast messages
-
-**Build Status**: ✅ BUILD SUCCESSFUL
-- Java compilation: 0 errors, 0 warnings
-- assembleDebug: SUCCESS (6s)
-- 18 tasks executed, 21 up-to-date
-- All activities compile correctly
-- **Deprecated API fixed**: Replaced Parcel.writeList/readList with type-safe implementation
-- Ready for testing
-
-**Code Quality Improvements**:
-- ✅ Fixed deprecated Parcel.writeList() in Event.java (replaced with writeInt/writeString loop)
-- ✅ Fixed deprecated Parcel.readList() in Event.java (replaced with readInt/readString loop)
-- ✅ Fixed deprecated Parcel.writeList() in InEventList.java (replaced with writeInt/writeString loop)
-- ✅ Fixed deprecated Parcel.readList() in InEventList.java (replaced with readInt/readString loop)
-- ✅ Improved type safety in Parcelable implementation
-- ✅ **No deprecation warnings in compilation**
-
-**Integration Points**:
-- EventRepository (getEventsForEntrant, addEntrantToWaitingList, removeEntrantFromWaitingList, isEntrantInWaitingList)
-- DeviceAuthenticator (getStoredUserId)
-- GeolocationService (requestLocationPermission, getCurrentLocation, hasLocationPermission)
-- QRCodeScanner (startScanning, parseScannedResult)
-- Glide (image loading)
-
-**Next Steps**:
-- Test event browsing flow
-- Test QR code scanning
-- Test join/leave waiting list
-- Test geolocation capture
-- Add actual waiting list count queries
-- Test search and filter functionality
+```java
+public class Notification {
+    private String notificationId;
+    private String recipientId;
+    private String senderId;
+    private String title;
+    private String message;
+    private long timestamp;
+    private String type; // "lottery_win", "lottery_loss", "organizer_message", etc.
+    private String eventId;
+    private boolean isRead;
+    
+    // Firestore: notifications/{userId}/userNotifications/{notificationId}
+}
+```
 
 ---
 
-### Session 5.3: Lottery Response Handling ✅
+## Repository Layer
 
-**Implementation Date**: October 30, 2025
+All repositories extend `BaseRepository<T>` which provides common CRUD operations.
 
-#### Layouts Created ✅
+### BaseRepository Pattern
+```java
+public abstract class BaseRepository<T> {
+    protected FirebaseFirestore db;
+    protected CollectionReference collection;
+    protected String collectionName;
+    
+    public void getById(String id, OnLoadedListener<T> listener) {
+        collection.document(id).get()
+            .addOnSuccessListener(doc -> {
+                T item = doc.toObject(getModelClass());
+                listener.onLoaded(item);
+            })
+            .addOnFailureListener(listener::onError);
+    }
+    
+    protected abstract Class<T> getModelClass();
+}
+```
 
-**1. invitation_card_item.xml** (~120 lines):
-- ✅ MaterialCardView with pink stroke
-- ✅ "Selected" badge at top
-- ✅ Event poster image (100x100dp)
-- ✅ Event name and date
-- ✅ Response deadline with warning icon
-- ✅ Decline button (outlined style)
-- ✅ Accept button (primary style)
-- ✅ Horizontal button layout
+### EventRepository
+**Path**: `repositories/EventRepository.java`
 
-**2. activity_event_invitations.xml** (~80 lines):
-- ✅ Toolbar with invitations title
-- ✅ RecyclerView for invitation cards
-- ✅ ProgressBar for loading
-- ✅ Empty state with email icon
-- ✅ "No pending invitations" message
+```java
+public class EventRepository extends BaseRepository<Event> {
+    private static final String COLLECTION_EVENTS = "events";
+    
+    // Create event
+    public void createEvent(Event event, OnSuccessListener listener) {
+        String eventId = collection.document().getId();
+        event.setEventId(eventId);
+        collection.document(eventId).set(event)
+            .addOnSuccessListener(v -> listener.onSuccess(eventId));
+    }
+    
+    // Get events for entrant (registration open)
+    public void getEventsForEntrant(OnEventsLoadedListener listener) {
+        collection.whereEqualTo("status", "OPEN")
+            .get()
+            .addOnSuccessListener(snapshot -> {
+                List<Event> events = new ArrayList<>();
+                for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                    Event event = doc.toObject(Event.class);
+                    if (event != null && event.isRegistrationOpen()) {
+                        events.add(event);
+                    }
+                }
+                listener.onEventsLoaded(events);
+            });
+    }
+    
+    // Get organizer's events
+    public void getEventsByOrganizer(String organizerId, OnEventsLoadedListener listener) {
+        collection.whereEqualTo("organizerId", organizerId).get()...
+    }
+    
+    // Waiting list operations
+    public void addToWaitingList(String eventId, String userId, Geolocation location) {
+        DocumentReference waitingListDoc = collection.document(eventId)
+            .collection("waitingList").document(userId);
+        
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", userId);
+        data.put("timestamp", System.currentTimeMillis());
+        if (location != null) {
+            data.put("latitude", location.getLatitude());
+            data.put("longitude", location.getLongitude());
+        }
+        
+        waitingListDoc.set(data)...
+    }
+    
+    // Get waiting list
+    public void getWaitingList(String eventId, OnEntrantsLoadedListener listener) {
+        collection.document(eventId).collection("waitingList")
+            .get()
+            .addOnSuccessListener(snapshot -> {
+                List<String> userIds = new ArrayList<>();
+                for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                    userIds.add(doc.getString("userId"));
+                }
+                listener.onEntrantsLoaded(userIds);
+            });
+    }
+}
+```
 
----
+**Subcollection Structure**:
+```
+events/{eventId}/
+├── waitingList/{userId}        # Users waiting for lottery
+├── responsePendingList/{userId} # Selected, awaiting response
+├── inEventList/{userId}         # Confirmed attendees
+└── cancelledList/{userId}       # Declined or cancelled
+```
 
-#### Activities & Adapters Implemented ✅
+### ProfileRepository
+**Path**: `repositories/ProfileRepository.java`
 
-**1. InvitationAdapter.java** (~160 lines):
+```java
+public class ProfileRepository extends BaseRepository<Profile> {
+    public void createProfile(Profile profile, OnSuccessListener listener) {
+        collection.document(profile.getUserId()).set(profile)...
+    }
+    
+    public void updateProfile(String userId, Map<String, Object> updates, OnSuccessListener listener) {
+        collection.document(userId).update(updates)...
+    }
+    
+    public void getAllProfiles(OnProfilesLoadedListener listener) {
+        collection.get()...
+    }
+}
+```
 
-**Functionality**:
-- ✅ RecyclerView adapter for invitations
-- ✅ Display event poster with Glide
-- ✅ Show event name, date, deadline
-- ✅ Accept/Decline button handlers
-- ✅ Check deadline expiration
-- ✅ Disable buttons if expired
-- ✅ Remove invitation method
-- ✅ Action listener interface
+### NotificationRepository
+**Path**: `repositories/NotificationRepository.java`
 
-**Key Features**:
-- SimpleDateFormat for dates
-- Deadline validation
-- Color change for expired (red)
-- Position-based callbacks
-
-**2. EventInvitationsActivity.java** (~210 lines):
-
-**Functionality**:
-- ✅ Load user's pending invitations
-- ✅ Display in RecyclerView
-- ✅ Handle accept invitation
-- ✅ Show decline confirmation
-- ✅ Handle decline invitation
-- ✅ Call LotteryService methods
-- ✅ Update UI after responses
-- ✅ Remove from list after action
-- ✅ Empty state handling
-- ✅ Loading states
-
-**Integration**:
-- EventRepository (queries)
-- LotteryService.handleEntrantAcceptance()
-- LotteryService.handleEntrantDecline()
-- DeviceAuthenticator
-
-**Note**: Current implementation uses placeholder for Firestore queries. Production implementation requires:
-- `EventRepository.getEventsWhereEntrantInResponsePending(String userId, OnEventsLoadedListener)`
-- Firestore collection group query on responsePendingList subcollections
-
-**Related User Stories**: US 01.04.01, US 01.05.01, US 01.05.02, US 01.05.03
-
----
-
-### Session 5.4: Event History ✅
-
-**Implementation Date**: October 30, 2025
-
-#### Layouts Created ✅
-
-**1. activity_event_history.xml** (~50 lines):
-- ✅ Toolbar with history title
-- ✅ TabLayout with 3 tabs
-- ✅ ViewPager2 for fragments
-- ✅ Tab names (Upcoming, Waiting, Past)
-- ✅ Material tab styling
-
-**2. fragment_event_list.xml** (~65 lines):
-- ✅ Reusable fragment layout
-- ✅ RecyclerView for events
-- ✅ ProgressBar for loading
-- ✅ Empty state with icon
-- ✅ Customizable empty message
-
----
-
-#### Fragments & Activities Implemented ✅
-
-**1. EventListFragment.java** (~135 lines):
-
-**Functionality**:
-- ✅ Reusable fragment for all tabs
-- ✅ Display events in RecyclerView
-- ✅ Navigate to event details on click
-- ✅ Show/hide loading
-- ✅ Show/hide empty state
-- ✅ Custom empty messages per tab
-- ✅ Static factory method
-- ✅ Tab type constants
-
-**Tab Types**:
-- TAB_UPCOMING (0) - Accepted invitations
-- TAB_WAITING (1) - Currently joined
-- TAB_PAST (2) - Completed/cancelled
-
-**2. EventHistoryActivity.java** (~150 lines):
-
-**Functionality**:
-- ✅ TabLayout + ViewPager2 setup
-- ✅ Three fragments (Upcoming, Waiting, Past)
-- ✅ Load event history
-- ✅ Categorize events by status
-- ✅ FragmentStateAdapter implementation
-- ✅ TabLayoutMediator for synchronization
-- ✅ Toolbar with back navigation
-- ✅ Error handling
-
-**Categorization Logic** (Placeholder):
-- Upcoming: User in inEventList, not completed/cancelled
-- Waiting: User in waitingList, not completed/cancelled
-- Past: Completed or cancelled events
-
-**Integration**:
-- EventRepository (queries)
-- DeviceAuthenticator
-- EventListFragment (reusable)
-- EventAdapter (from Phase 5.2)
-
-**Note**: Current implementation uses placeholder. Production requires:
-- `EventRepository.getEventsWhereEntrantInEventList(String userId, OnEventsLoadedListener)`
-- `EventRepository.getEventsWhereEntrantInWaitingList(String userId, OnEventsLoadedListener)`
-- Firestore collection group queries
-
-**Related User Stories**: US 01.02.03
+```java
+public class NotificationRepository {
+    // User-specific notifications
+    public void getUserNotifications(String userId, OnNotificationsLoadedListener listener) {
+        db.collection("notifications").document(userId)
+          .collection("userNotifications")
+          .orderBy("timestamp", Query.Direction.DESCENDING)
+          .get()...
+    }
+    
+    public void sendNotification(Notification notification) {
+        db.collection("notifications")
+          .document(notification.getRecipientId())
+          .collection("userNotifications")
+          .add(notification)...
+    }
+}
+```
 
 ---
 
-### Phase 5.3 & 5.4 Summary
+## Lottery System
 
-**Files Created**: 10 files
-- 2 Activity classes
-- 2 Adapter/Fragment classes
-- 4 Layout files
-- 2 Updated activities (ProfileActivity navigation)
+### LotteryService
+**Path**: `services/LotteryService.java`
 
-**Files Updated**: 3 files
-- strings.xml (~35 new strings)
-- AndroidManifest.xml (2 activities registered)
-- ProfileActivity.java (navigate to history)
+Executes lottery draws for event registration.
 
-**Lines of Code**: ~950+ lines
-- EventInvitationsActivity: ~210 lines
-- InvitationAdapter: ~160 lines
-- EventHistoryActivity: ~150 lines
-- EventListFragment: ~135 lines
-- Layouts: ~295 lines (combined XML)
-
-**Features Implemented**:
-✅ Lottery invitation display
-✅ Accept/decline invitations
-✅ Confirmation dialogs
-✅ Deadline tracking and display
-✅ LotteryService integration
-✅ Event history with tabs
-✅ ViewPager2 + TabLayout
-✅ Fragment reusability
-✅ Empty states per tab
-✅ Loading states
-✅ Event categorization
-✅ Navigation from profile
-
-**Build Status**: ✅ BUILD SUCCESSFUL
-- Java compilation: 0 errors, 0 warnings
-- assembleDebug: SUCCESS (9s)
-- 39 tasks executed
-- All activities compile correctly
-- ✅ **Collection group queries implemented**
-- Ready for testing with Firestore data
-
-**Repository Enhancements** ✅:
-- ✅ Created `OnEventsWithMetadataLoadedListener` interface
-- ✅ Added `getEventsWhereEntrantInResponsePending()` method
-- ✅ Added `getEventsWhereEntrantInEventList()` method
-- ✅ Added `getEventsWhereEntrantInWaitingList()` method
-- ✅ All methods use Firestore collection group queries
-- ✅ Metadata extraction (deadlines, timestamps)
-- ✅ Parallel parent document fetching
-- ✅ Thread-safe result aggregation
-
-**UI Integration** ✅:
-- ✅ EventInvitationsActivity now loads real data
-- ✅ EventHistoryActivity now loads real data
-- ✅ Proper error handling with user feedback
-- ✅ Loading states during queries
-- ✅ Empty states when no data
-
-**Integration Points**:
-- LotteryService.handleEntrantAcceptance()
-- LotteryService.handleEntrantDecline()
-- EventRepository (placeholder queries)
-- DeviceAuthenticator
-- EventAdapter (reused from 5.2)
-- Glide image loading
-
-**Next Steps**:
-- Implement Firestore collection group queries in EventRepository
-- Test invitation accept/decline flow
-- Test event history categorization
-- Add deadline calculation logic
-- Test tab navigation
-- Integrate with real lottery data
+```java
+public class LotteryService {
+    public void executeLottery(String eventId, int numberOfWinners, LotteryCallback callback) {
+        // 1. Get waiting list
+        eventRepository.getWaitingList(eventId, new OnEntrantsLoadedListener() {
+            public void onEntrantsLoaded(List<String> waitingList) {
+                // 2. Shuffle and select winners
+                Collections.shuffle(waitingList);
+                List<String> winners = waitingList.subList(0, 
+                    Math.min(numberOfWinners, waitingList.size()));
+                
+                // 3. Move winners to responsePendingList
+                moveToResponsePending(eventId, winners, () -> {
+                    // 4. Send notifications to winners
+                    sendWinnerNotifications(eventId, winners);
+                    
+                    // 5. Send loser notifications
+                    List<String> losers = new ArrayList<>(waitingList);
+                    losers.removeAll(winners);
+                    sendLoserNotifications(eventId, losers);
+                    
+                    callback.onLotteryComplete(new LotteryResult(winners, losers));
+                });
+            }
+        });
+    }
+    
+    private void moveToResponsePending(String eventId, List<String> userIds, Runnable onComplete) {
+        WriteBatch batch = db.batch();
+        
+        for (String userId : userIds) {
+            // Remove from waiting list
+            DocumentReference waitingDoc = db.collection("events").document(eventId)
+                .collection("waitingList").document(userId);
+            batch.delete(waitingDoc);
+            
+            // Add to response pending
+            DocumentReference pendingDoc = db.collection("events").document(eventId)
+                .collection("responsePendingList").document(userId);
+            batch.set(pendingDoc, Map.of(
+                "userId", userId,
+                "selectedTimestamp", System.currentTimeMillis(),
+                "status", "PENDING"
+            ));
+        }
+        
+        batch.commit().addOnSuccessListener(v -> onComplete.run());
+    }
+}
+```
 
 ---
 
-## Current Project State
+## UI Layer Architecture
 
-### ✅ Ready to Use:
-1. Firebase integration infrastructure ✅
-2. Modular architecture with separation of concerns ✅
-3. Repository pattern for data access ✅
-4. Utility classes for common tasks ✅
-5. Complete documentation ✅
-6. **All Phase 2 data models (12 classes)** ✅
-7. **All Phase 3 repositories (5 classes)** ✅
-8. **All Phase 4 services (7 classes)** ✅
-9. Entity models with validation ✅
-10. Collection models with lifecycle tracking ✅
-11. Parcelable implementations for all models ✅
-12. Firestore serialization ready ✅
-13. **Event CRUD operations** ✅
-14. **Profile management with cascade deletion** ✅
-15. **Image upload/storage operations** ✅
-16. **Waiting list management** ✅
-17. **Lottery draw algorithm (SecureRandom)** ✅
-18. **FCM notification system** ✅
-19. **QR code generation & scanning (ZXing)** ✅
-20. **Device-based authentication** ✅
-21. **Geolocation capture** ✅
-22. **Role-based access control** ✅
-23. **Deep link handling** ✅
-24. **Async callback patterns (25+ listeners)** ✅
-25. **Firebase Storage integration** ✅
+### MainActivity (Role-Based Navigation)
+**Path**: `MainActivity.java`
 
-### 📋 Next Steps (UI Implementation):
+Main entry point with role-based navigation.
 
-#### 1. Activities & Fragments
-Create UI components:
-- MainActivity - Navigation host
-- EventListActivity - Browse events
-- EventDetailActivity - View event details
-- CreateEventActivity - Organizer event creation
-- ProfileActivity - User profile management
-- QRScannerActivity - Scan event QR codes
-- NotificationListActivity - View notifications
-- LotteryResultsActivity - View selection results
-- WaitingListActivity - Organizer view of entrants
-
-#### 2. ViewModels
-Implement MVVM pattern:
-- EventViewModel - Event data management
-- ProfileViewModel - Profile state
-- LotteryViewModel - Lottery operations
-- NotificationViewModel - Notification handling
-
-#### 3. Adapters
-RecyclerView adapters:
-- EventListAdapter - Event list
-- NotificationAdapter - Notification list
-- EntrantAdapter - Waiting list display
-
-#### 4. UI Components
-- Event creation forms
-- QR code display
-- Map view for geolocation
-- Notification settings
-- Role selection
-    public void onMessageReceived(RemoteMessage remoteMessage) {
-        // Handle notification
+```java
+public class MainActivity extends AppCompatActivity {
+    private Profile currentProfile;
+    private View entrantSection, organizerSection, adminSection;
+    
+    private void setupRoleBasedUI() {
+        String role = currentProfile.getRole();
+        
+        // Hide all sections first
+        entrantSection.setVisibility(View.GONE);
+        organizerSection.setVisibility(View.GONE);
+        adminSection.setVisibility(View.GONE);
+        
+        // Show appropriate section
+        if (Profile.ROLE_ORGANIZER.equals(role)) {
+            setupOrganizerUI();
+        } else if (Profile.ROLE_ADMIN.equals(role)) {
+            setupAdminUI();
+        } else {
+            setupEntrantUI();
+        }
     }
     
     @Override
-    public void onNewToken(String token) {
-        // Save token to Firestore
+    protected void onResume() {
+        super.onResume();
+        // Reload profile to detect role changes
+        Profile cachedProfile = deviceAuth.getCachedProfile();
+        if (cachedProfile != null) {
+            currentProfile = cachedProfile;
+            setupRoleBasedUI();
+        } else {
+            reloadProfile(); // Fetch from Firestore
+        }
     }
 }
 ```
-Register in AndroidManifest.xml
 
-#### 6. Image Upload Service
-- Profile picture upload to Storage
-- Event poster upload
-- Image compression before upload
-- Caching with Glide
+### ProfileActivity
+**Path**: `ui/profile/ProfileActivity.java`
 
-#### 7. QR Code Features
-- QR code generation for events
-- QR code scanning for check-in
-- Integration with ZXing library
+User profile management with image upload and role selection.
 
-#### 8. Location Features
-- Event location selection (Google Maps)
-- User location tracking
-- Distance calculations
-
-#### 9. Firestore Security Rules
-Set in Firebase Console:
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+```java
+public class ProfileActivity extends AppCompatActivity {
+    private CircleImageView profileImage;
+    private Spinner spinnerRole;
+    private SwitchMaterial switchNotifications;
+    
+    private void saveProfile() {
+        String name = etName.getText().toString().trim();
+        String email = etEmail.getText().toString().trim();
+        String role = getSelectedRole(); // From spinner
+        boolean notifications = switchNotifications.isChecked();
+        
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("name", name);
+        updates.put("email", email);
+        updates.put("role", role);
+        updates.put("notificationEnabled", notifications);
+        
+        profileRepository.updateProfile(userId, updates, new OnSuccessListener() {
+            public void onSuccess(String id) {
+                // Update cached profile
+                currentProfile.setRole(role);
+                deviceAuth.updateCachedProfile(currentProfile);
+                finish(); // Return to main - will show new role UI
+            }
+        });
     }
-    match /events/{eventId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organizer';
-    }
-  }
 }
 ```
 
-#### 10. Testing
-- Unit tests for repositories
-- UI tests for Activities
-- Integration tests with Firebase emulator
+**Role Switcher**: Users can change between entrant/organizer/admin roles via spinner for testing.
 
-## Architecture Summary
+### EventBrowserActivity
+**Path**: `ui/events/EventBrowserActivity.java`
 
-### Design Patterns Used:
-1. **Singleton** - FirebaseManager (single instance)
-2. **Repository Pattern** - Data access abstraction
-3. **Observer Pattern** - Firebase snapshot listeners
-4. **Factory Pattern** - Can be added for object creation
-5. **MVVM** - Ready for ViewModels (already has LiveData deps)
+Browse and search events with QR code scanning.
 
-### Data Flow:
-```
-UI Layer (Activities/Fragments)
-    ↓
-ViewModel (optional, deps already added)
-    ↓
-Repository Layer (UserRepository, etc.)
-    ↓
-Service Layer (FirebaseManager)
-    ↓
-Firebase Services (Firestore, Storage, etc.)
-```
-
-### Offline-First Strategy:
-- Firestore offline persistence enabled
-- Unlimited cache size
-- Automatic sync when online
-- Network state monitoring available
-
-## Testing the Setup
-
-### 1. Verify Build
-```cmd
-cd c:\School\CMPUT301\Project\pickme
-.\gradlew.bat build
-```
-
-### 2. Check Firebase Initialization
-Run app and check LogCat for:
-```
-D/PickMeApplication: Application starting - initializing Firebase
-D/PickMeApplication: Firebase already initialized
-D/PickMeApplication: FirebaseManager initialized
-D/FirebaseManager: Firebase services initialized successfully
-D/FirebaseManager: Firestore initialized with offline persistence enabled
-D/FirebaseManager: FCM Token: <token>
-D/PickMeApplication: Anonymous authentication successful. User ID: <uid>
-```
-
-### 3. Test Offline Support
 ```java
-// In any Activity
-FirebaseManager.disableNetwork();
-// Try reading data - should use cache
-FirebaseManager.enableNetwork();
-```
-
-### 4. Test Permissions
-```java
-// In Activity onCreate
-if (!PermissionUtil.hasAllRequiredPermissions(this)) {
-    PermissionUtil.requestCameraPermission(this);
-    PermissionUtil.requestLocationPermission(this);
-    PermissionUtil.requestNotificationPermission(this);
+public class EventBrowserActivity extends AppCompatActivity {
+    private EventAdapter eventAdapter;
+    private List<Event> allEvents, filteredEvents;
+    private SearchView searchView;
+    private ChipGroup chipGroupFilter;
+    
+    private void loadEvents() {
+        eventRepository.getEventsForEntrant(new OnEventsLoadedListener() {
+            public void onEventsLoaded(List<Event> events) {
+                allEvents = events;
+                applyFilters();
+            }
+        });
+    }
+    
+    private void applyFilters() {
+        filteredEvents = allEvents.stream()
+            .filter(event -> matchesSearch(event, searchQuery))
+            .filter(event -> matchesFilter(event, currentFilter))
+            .collect(Collectors.toList());
+        
+        eventAdapter.setEvents(filteredEvents);
+    }
+    
+    // QR Code scanning
+    private void launchQRScanner() {
+        qrCodeScanner.launchScanner(this);
+    }
+    
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        IntentResult result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        String eventId = qrCodeScanner.handleScanResult(result);
+        if (eventId != null) {
+            navigateToEventDetails(eventId);
+        }
+    }
 }
 ```
 
-## Configuration Summary
-
-### SDK Versions:
-- **Min SDK**: 24 (Android 7.0) - 94% device coverage
-- **Target SDK**: 36 (Latest)
-- **Compile SDK**: 36
-- **Java Version**: 11
-
-### Package Structure:
-- **App Package**: `com.example.pickme`
-- **Application ID**: `com.example.pickme`
-
-### Key Dependencies:
-| Library | Version | Purpose |
-|---------|---------|---------|
-| Firebase BOM | 34.4.0 | Version management |
-| ZXing Core | 3.5.3 | QR code processing |
-| ZXing Android | 4.3.0 | QR scanner UI |
-| Play Services Location | 21.3.0 | Geolocation |
-| Glide | 4.16.0 | Image loading |
-| Material Design | Latest | UI components |
-
-## Build Status
-
-### Phase 1 (Infrastructure): ✅ COMPLETE
-- ✅ 7 Java infrastructure classes
-- ✅ 1 Application class
-- ✅ 2 initial model classes (User + structure)
-- ✅ 2 repository classes
-- ✅ 2 utility classes
-- ✅ 1 service class (FirebaseManager)
-- ✅ 4 comprehensive documentation files
-- ✅ Build configuration updated
-- ✅ Manifest permissions configured
-- ✅ Git security configured
-
-### Phase 2 (Data Models): ✅ COMPLETE
-- ✅ 10 data model classes (all Sessions 2.1 & 2.2)
-- ✅ 7 Entity models with full validation
-- ✅ 3 Collection/state models with lifecycle tracking
-- ✅ All Parcelable implementations
-- ✅ All Firebase serialization (toMap methods)
-- ✅ All helper and validation methods
-- ✅ EventStatus enum
-- ✅ EventHistoryItem helper class
-
-**Total Lines of Code**: ~5,500+ lines of fully documented Java code
-**Build Status**: ✅ BUILD SUCCESSFUL (107 tasks, 0 errors)
-**Last Verified**: October 30, 2025
-
-## Phase 2 Completion Checklist ✅
-
-### Session 2.1: Entity Models
-- [x] Event.java - Full event data with validation methods
-- [x] Profile.java - User profile with event history
-- [x] EventPoster.java - Poster metadata
-- [x] QRCode.java - QR code data with encoding utilities
-- [x] Geolocation.java - Location with distance calculation
-- [x] EventStatus enum - Event lifecycle states
-- [x] EventHistoryItem - User participation tracking
-
-### Session 2.2: Collection & State Models
-- [x] WaitingList.java - Initial entrant tracking
-- [x] ResponsePendingList.java - Selected entrants awaiting response
-- [x] InEventList.java - Confirmed participants with check-in
-
-### All Models Include:
-- [x] Empty constructors for Firebase
-- [x] Complete Parcelable implementation
-- [x] toMap() for Firestore serialization
-- [x] Comprehensive JavaDoc
-- [x] Validation methods
-- [x] Helper methods for business logic
-- [x] Duplicate prevention (collections)
-- [x] Geolocation tracking (collections)
-- [x] Timestamp tracking (collections)
-
-## Questions Answered
-
-### Q: Should we track google-services.json in git?
-**A**: ✅ NO - Added to .gitignore. Template provided instead.
-
-### Q: If we change project name, do we need new Firebase setup?
-**A**: ✅ Documented in FIREBASE_SETUP.md:
-- Change project folder/display name: NO action needed
-- Change package name/applicationId: YES - register new package in Firebase Console and download new JSON
-
-## Status: ✅ PHASE 1, 2, 3, 4 & 5.1 COMPLETE
-
-**Phase 1 - Firebase Infrastructure**: ✅ Complete  
-**Phase 2 - Core Data Models**: ✅ Complete  
-**Phase 3 - Repository Layer**: ✅ Complete  
-**Phase 4 - Service Layer (Business Logic)**: ✅ Complete  
-**Phase 5.1 - Profile Management UI**: ✅ Complete  
-
-Your Firebase project with complete models, repositories, business logic services, and profile UI is ready for continued UI development. Profile management screens are fully functional with device-based authentication.
-
-**What's Ready**:
-- ✅ Firebase integration (Firestore, Storage, Auth, FCM)
-- ✅ 12 fully-implemented data models (Event, Profile, NotificationLog, etc.)
-- ✅ 5 repository classes (Event, Profile, Image, User, Base)
-- ✅ 7 service classes (Lottery, Notification, QRCode, Device Auth, Geolocation, Firebase Manager)
-- ✅ **2 profile UI activities (ProfileActivity, CreateProfileActivity)**
-- ✅ **PickMe theme with pink color scheme**
-- ✅ **Material Design components integrated**
-- ✅ Complete entity lifecycle (Event, Profile, QRCode, etc.)
-- ✅ Collection state tracking (Waiting → Response Pending → In Event)
-- ✅ Lottery draw algorithm with SecureRandom
-- ✅ FCM notification system with audit logging
-- ✅ QR code generation and scanning (ZXing)
-- ✅ Device-based authentication (no username/password)
-- ✅ Geolocation capture with permissions
-- ✅ Role-based access control
-- ✅ **Profile viewing and editing UI**
-- ✅ **First-time profile creation UI**
-- ✅ **Image picker integration**
-- ✅ **Input validation (name, email)**
-- ✅ **Delete account with confirmation**
-- ✅ Parcelable support for all models
-- ✅ Firebase serialization ready
-- ✅ Geolocation and timestamp tracking
-- ✅ Validation and helper methods
-- ✅ Event CRUD operations with subcollections
-- ✅ Profile management with cascade deletion
-- ✅ Image upload/storage operations
-- ✅ Waiting list management
-- ✅ Async callback patterns (25+ custom listeners)
-- ✅ Deep link handling (eventlottery://)
-- ✅ BUILD SUCCESSFUL verification
-
----
-
-## Phase 6.1: Event Creation (Organizer Features) - COMPLETE ✅
-
-**Date**: October 30, 2025  
-**Status**: ✅ COMPLETE - Event creation UI for organizers fully implemented  
-**Build Status**: ✅ BUILD SUCCESSFUL (assembleDebug, 7s)
-
-### What Was Implemented
-
-#### 1. CreateEventActivity.java
-**Location**: `com.example.pickme.ui.events.CreateEventActivity`
-
 **Features**:
-- ✅ Comprehensive event creation form with validation
-- ✅ Event poster upload via ImageRepository
-- ✅ Date picker dialogs for event date and registration period
-- ✅ Capacity and price configuration
-- ✅ Optional waiting list limit (-1 for unlimited)
-- ✅ Geolocation requirement toggle (US 02.02.03)
-- ✅ Role-based access check (Organizer role required)
-- ✅ Auto-generate QR code on publish (US 02.01.01)
-- ✅ QR code display dialog with share/download options
-- ✅ FileProvider integration for QR code sharing
-- ✅ Async device authentication integration
-- ✅ Proper error handling and user feedback
+- Search by name/location
+- Filter: All / Open / Upcoming
+- QR code scanner (FloatingActionButton)
+- Click event → EventDetailsActivity
 
-**Validation Logic**:
-- All required fields (name, description, location, dates, capacity)
-- Capacity must be > 0
-- Price must be >= 0
-- Waiting list limit must be > capacity (if specified)
-- Registration end date > registration start date
-- Event date > registration end date
-- Access denied for non-organizer users
+### EventDetailsActivity
+**Path**: `ui/events/EventDetailsActivity.java`
 
-**Related User Stories**: US 02.01.01, US 02.01.04, US 02.03.01, US 02.04.01, US 02.02.03
+View event details and join waiting list.
 
-#### 2. activity_create_event.xml
-**Location**: `res/layout/activity_create_event.xml`
-
-**UI Components**:
-- ✅ Material Toolbar with back navigation
-- ✅ Event poster preview CardView with ImageView
-- ✅ Upload poster button
-- ✅ Event name TextInputEditText
-- ✅ Event description (multi-line) TextInputEditText
-- ✅ Event location TextInputEditText
-- ✅ Event date picker (non-editable, click to open dialog)
-- ✅ Registration start/end date pickers (side-by-side)
-- ✅ Capacity and price inputs (side-by-side)
-- ✅ Optional waiting list limit input with helper text
-- ✅ Geolocation requirement switch with icon and hint
-- ✅ Publish event button (primary action)
-- ✅ Progress bar for loading states
-- ✅ Proper scrolling with NestedScrollView
-- ✅ System window insets handling (fitsSystemWindows)
-
-#### 3. dialog_event_created.xml
-**Location**: `res/layout/dialog_event_created.xml`
-
-**Success Dialog Features**:
-- ✅ Event created title and message
-- ✅ QR code preview in MaterialCardView (256x256dp)
-- ✅ Share QR code button (primary)
-- ✅ Download QR code button (outlined)
-- ✅ Close button (text button)
-
-#### 4. String Resources Added
-**Location**: `res/values/strings.xml`
-
-**New Strings** (30+ new resources):
-- ✅ Form labels and hints
-- ✅ Validation error messages
-- ✅ Success dialog messages
-- ✅ Role check messages
-- ✅ Date picker labels
-- ✅ Geolocation hints
-
-#### 5. FileProvider Configuration
-**Files**:
-- ✅ `AndroidManifest.xml` - FileProvider declaration
-- ✅ `res/xml/file_paths.xml` - File path configurations
-
-**Purpose**: Enable secure sharing of QR code images via Intent
-
-#### 6. AndroidManifest.xml Updates
-- ✅ CreateEventActivity registered with NoActionBar theme
-- ✅ Parent activity set to MainActivity
-- ✅ FileProvider configured with proper authorities
-
-### Integration Points
-
-**Event Creation Flow**:
-1. Check user role (Organizer required)
-2. Collect event details from form
-3. Validate all inputs
-4. Upload event poster (optional)
-5. Create Event object and save to Firestore
-6. Generate QR code via QRCodeGenerator
-7. Update event with QR code ID
-8. Display success dialog with QR code
-9. Share/download QR code options
-
-**Repository Integrations**:
-- ✅ EventRepository.createEvent() - Save event to Firestore
-- ✅ EventRepository.updateEvent() - Update poster URL and QR code ID
-- ✅ ImageRepository.uploadEventPoster() - Upload poster to Firebase Storage
-- ✅ ProfileRepository.getProfile() - Verify organizer role
-- ✅ QRCodeGenerator.generateQRCode() - Create QR code bitmap
-
-**Service Integrations**:
-- ✅ DeviceAuthenticator - Get current user device ID
-- ✅ QRCodeGenerator - Generate and save QR codes
-- ✅ FirebaseManager - Firestore and Storage access
-
-### User Stories Covered
-
-- ✅ **US 02.01.01**: Organizers can create events and generate QR codes
-- ✅ **US 02.01.04**: Event details include registration period and dates
-- ✅ **US 02.03.01**: Optional waiting list limit configuration
-- ✅ **US 02.04.01**: Event poster upload functionality
-- ✅ **US 02.02.03**: Geolocation requirement toggle
-
-### Testing Notes
-
-**To Test Event Creation**:
-1. User must have Profile with role = "organizer"
-2. Open CreateEventActivity
-3. Fill all required fields
-4. Optionally upload event poster
-5. Configure waiting list and geolocation settings
-6. Click "Publish Event"
-7. Verify QR code generation and display
-8. Test share/download functionality
-
-**Role Check Test**:
-- Non-organizer users see access denied dialog
-- Activity closes after dismissing dialog
-
-**Validation Tests**:
-- Empty required fields show errors
-- Invalid dates show appropriate messages
-- Invalid numeric values show errors
-
-### Technical Details
-
-**Date Handling**:
-- Uses Calendar and DatePickerDialog
-- Stores timestamps as long values
-- SimpleDateFormat for display
-
-**Image Handling**:
-- ActivityResultLauncher for image picker
-- Glide for image loading and display
-- FileProvider for secure file sharing
-
-**Async Operations**:
-- Device ID retrieval (async)
-- Profile loading (async)
-- Event creation (async)
-- Image upload (async)
-- QR code generation (async)
-
-**Error Handling**:
-- Toast messages for user feedback
-- Dialog for critical errors
-- Progress bar for loading states
-- Input field error highlighting
-
-### Files Modified/Created
-
-**New Files**:
-- `CreateEventActivity.java` (~580 lines)
-- `activity_create_event.xml` (~410 lines)
-- `dialog_event_created.xml` (~60 lines)
-- `file_paths.xml` (~7 lines)
-
-**Modified Files**:
-- `AndroidManifest.xml` - Added activity and FileProvider
-- `strings.xml` - Added 30+ string resources
-
-**Total Implementation**:
-- ~10,790+ lines of documented Java code
-- 12 data models
-- 5 repository classes
-- 7 service classes
-- 3 profile UI activities
-- 3 event UI activities (browser, details, create)
-- 2 utility classes
-- 1 application class
-
-**Next Phase**: Phase 6.2 - View Organizer's Events
-
-**Last Build**: October 30, 2025 - BUILD SUCCESSFUL (assembleDebug, 7s)  
-**Min SDK**: 34 (Android 14.0)  
-**Target SDK**: 36
-
----
-
-## Phase 6.2: Organizer Dashboard - COMPLETE ✅
-
-**Date**: October 30, 2025  
-**Status**: ✅ COMPLETE - Organizer dashboard with event management fully implemented  
-**Build Status**: ✅ BUILD SUCCESSFUL (assembleDebug, 4s)
-
-### What Was Implemented
-
-#### 1. OrganizerDashboardActivity.java
-**Location**: `com.example.pickme.ui.events.OrganizerDashboardActivity`
-
-**Features**:
-- ✅ Load and display all events created by current organizer
-- ✅ RecyclerView with custom organizer event cards
-- ✅ FloatingActionButton to create new events
-- ✅ Click events to navigate to event management (placeholder)
-- ✅ Empty state for organizers with no events
-- ✅ Real-time loading of event metrics (waiting list, selected, enrolled)
-- ✅ Proper async data loading with callbacks
-- ✅ Progress bar for loading states
-- ✅ onResume() reload for updated data
-
-**Event Metrics Loading**:
-- Queries 3 subcollections per event:
-  - `waitingList` - Entrants who joined waiting list
-  - `responsePendingList` - Entrants selected for lottery
-  - `inEventList` - Entrants who accepted invitations
-- Parallel loading with synchronization
-- Updates UI when all metrics loaded
-
-**Related User Stories**: US 02.02.01, US 02.06.01
-
-#### 2. OrganizerEventAdapter.java
-**Location**: `com.example.pickme.ui.events.OrganizerEventAdapter`
-
-**Features**:
-- ✅ Custom RecyclerView adapter for organizer event cards
-- ✅ Displays event poster, name, date, location
-- ✅ Status badge (OPEN, CLOSED, DRAFT, CANCELLED, COMPLETED)
-- ✅ Three-column statistics display:
-  - Waiting list count (pink color)
-  - Selected count (green color)
-  - Enrolled count (accent color)
-- ✅ Click listener for event management navigation
-- ✅ EventMetrics data class for statistics
-- ✅ Glide image loading integration
-- ✅ Date formatting
-
-**Card Layout Design**:
-- Event poster (80x80dp) with status badge overlay
-- Event details (name, date, location) on right side
-- Horizontal divider
-- Three statistics columns with counts and labels
-
-#### 3. activity_organizer_dashboard.xml
-**Location**: `res/layout/activity_organizer_dashboard.xml`
-
-**UI Components**:
-- ✅ Material Toolbar with back navigation
-- ✅ RecyclerView for event list
-- ✅ Progress bar for loading states
-- ✅ Empty state layout with:
-  - Icon (add icon)
-  - Title: "No Events Yet"
-  - Message: "Tap the + button to create your first event"
-- ✅ FloatingActionButton (FAB) for creating new events
-- ✅ Proper CoordinatorLayout structure
-- ✅ System window insets handling
-
-#### 4. organizer_event_card_item.xml
-**Location**: `res/layout/organizer_event_card_item.xml`
-
-**Card Components**:
-- ✅ MaterialCardView with rounded corners (16dp)
-- ✅ Event poster ImageView (80x80dp)
-- ✅ Status badge TextView (overlay on poster)
-- ✅ Event name (bold, 18sp, 2 lines max)
-- ✅ Event date with calendar icon
-- ✅ Event location with map icon
-- ✅ Horizontal divider
-- ✅ Statistics row with 3 columns:
-  - Waiting list count
-  - Selected count
-  - Enrolled count
-- ✅ Vertical dividers between columns
-- ✅ Color-coded counts (pink, green, accent)
-
-#### 5. String Resources Added
-**Location**: `res/values/strings.xml`
-
-**New Strings** (8+ new resources):
-- ✅ `organizer_dashboard_title` - "My Events"
-- ✅ `create_event_fab` - "Create New Event"
-- ✅ `no_events_created` - "No Events Yet"
-- ✅ `no_events_created_message` - Instructions
-- ✅ `waiting_list_label_short` - "Waiting"
-- ✅ `selected_label` - "Selected"
-- ✅ `enrolled_label` - "Enrolled"
-- ✅ `manage_event` - "Manage Event"
-
-#### 6. AndroidManifest.xml Updates
-- ✅ OrganizerDashboardActivity registered
-- ✅ NoActionBar theme applied
-- ✅ Parent activity set to MainActivity
-
-### Integration Points
-
-**Dashboard Flow**:
-1. Load organizer ID via DeviceAuthenticator
-2. Query EventRepository.getEventsByOrganizer()
-3. Display events in RecyclerView
-4. For each event, query 3 subcollections for metrics
-5. Update adapter with metrics when all loaded
-6. FAB navigates to CreateEventActivity
-7. Event click navigates to ManageEventActivity (future)
-
-**Repository Integrations**:
-- ✅ EventRepository.getEventsByOrganizer() - Get organizer's events
-- ✅ Direct Firestore queries for subcollection counts
-- ✅ DeviceAuthenticator.getInstance() - Get current user ID
-
-**Adapter Pattern**:
-- Separate adapter from EventAdapter
-- Specialized for organizer view with metrics
-- EventMetrics inner class for data transfer
-
-### User Stories Covered
-
-- ✅ **US 02.02.01**: Organizers can view list of their events
-- ✅ **US 02.06.01**: View event statistics and entrant counts
-
-### Design Decisions
-
-**Why Separate Adapter?**
-- Organizer view needs different card layout
-- Different data (metrics vs. join status)
-- Cleaner separation of concerns
-
-**Why Three Metrics?**
-- Waiting list: Total interested entrants
-- Selected: Entrants chosen in lottery
-- Enrolled: Entrants who accepted invitations
-- Provides complete event status overview
-
-**Why Empty State?**
-- Guides new organizers
-- FAB is clear call-to-action
-- Better UX than blank screen
-
-**Parallel Loading**:
-- Loads all metrics simultaneously
-- Uses counter to track completion
-- Single UI update when all data ready
-- Better performance than sequential
-
-### Testing Notes
-
-**To Test Organizer Dashboard**:
-1. User must have Profile with role = "organizer"
-2. Create some events via CreateEventActivity
-3. Open OrganizerDashboardActivity
-4. Verify events display with correct information
-5. Verify metrics load (may be 0 initially)
-6. Click FAB to create new event
-7. Click event card (currently shows toast)
-
-**Empty State Test**:
-- New organizer with no events sees empty state
-- FAB is prominently displayed
-
-**Metrics Test**:
-- Add entrants to waiting list (via entrant flow)
-- Run lottery selection
-- Accept invitations
-- Verify counts update correctly
-
-### Technical Details
-
-**Async Loading**:
-- DeviceAuthenticator.getDeviceId() callback
-- EventRepository.getEventsByOrganizer() callback
-- 3 Firestore queries per event for metrics
-- runOnUiThread() for safe UI updates
-
-**Metrics Calculation**:
 ```java
-// For each event:
-// 1. Query events/{eventId}/waitingList
-// 2. Query events/{eventId}/responsePendingList  
-// 3. Query events/{eventId}/inEventList
-// 4. Count documents in each
+public class EventDetailsActivity extends AppCompatActivity {
+    private Button btnJoinWaitingList;
+    private Button btnLeaveWaitingList;
+    
+    private void joinWaitingList() {
+        if (event.isGeolocationRequired()) {
+            requestLocationAndJoin();
+        } else {
+            addToWaitingList(null);
+        }
+    }
+    
+    private void addToWaitingList(Geolocation location) {
+        eventRepository.addToWaitingList(eventId, currentUserId, location, 
+            new OnSuccessListener() {
+                public void onSuccess(String id) {
+                    // Send notification
+                    Notification notif = new Notification();
+                    notif.setRecipientId(currentUserId);
+                    notif.setTitle("Joined Waiting List");
+                    notif.setMessage("You joined " + event.getName());
+                    notificationRepository.sendNotification(notif);
+                    
+                    updateButtonState();
+                }
+            });
+    }
+}
 ```
 
-**Synchronization**:
-- Uses array counter for pending loads
-- Synchronized block prevents race conditions
-- Updates adapter when counter reaches 0
+### CreateEventActivity (Organizer)
+**Path**: `ui/events/CreateEventActivity.java`
 
-**Lifecycle Management**:
-- Loads data in onCreate()
-- Reloads data in onResume()
-- Ensures fresh data after returning from other activities
+Organizers create events with QR code generation.
 
-### Files Modified/Created
-
-**New Files**:
-- `OrganizerDashboardActivity.java` (~250 lines)
-- `OrganizerEventAdapter.java` (~220 lines)
-- `activity_organizer_dashboard.xml` (~120 lines)
-- `organizer_event_card_item.xml` (~200 lines)
-
-**Modified Files**:
-- `AndroidManifest.xml` - Added activity registration
-- `strings.xml` - Added 8+ string resources
-
-**Total Implementation**:
-- ~11,580+ lines of documented Java code
-- 12 data models
-- 5 repository classes
-- 7 service classes
-- 3 profile UI activities
-- 5 event UI activities (browser, details, create, organizer dashboard, manage)
-- 2 event adapters (EventAdapter, OrganizerEventAdapter)
-- 2 utility classes
-- 1 application class
-
-**Next Phase**: Phase 6.3 - Manage Event Activity (view/edit event, run lottery, send notifications)
-
-**Last Build**: October 30, 2025 - BUILD SUCCESSFUL (assembleDebug, 4s)  
-**Min SDK**: 34 (Android 14.0)  
-**Target SDK**: 36
-
----
-
-## Phase 6.3: Event Management & Lottery Execution - COMPLETE ✅
-
-**Date**: October 30, 2025  
-**Status**: ✅ COMPLETE - Comprehensive event management with lottery execution implemented  
-**Build Status**: ✅ BUILD SUCCESSFUL (assembleDebug, 2s)
-
-### What Was Implemented
-
-#### 1. ManageEventActivity.java
-**Location**: `com.example.pickme.ui.events.ManageEventActivity`
-
-**Core Features**:
-- ✅ Event details summary card display
-- ✅ TabLayout with 4 tabs (Waiting List, Selected, Confirmed, Cancelled)
-- ✅ ViewPager2 with fragment navigation
-- ✅ Floating Action Menu (FAB) with management actions
-- ✅ Execute lottery draw with winner selection dialog
-- ✅ Send notifications with message input and recipient group selection
-- ✅ Update event poster via image picker
-- ✅ Export lists dialog (CSV placeholder)
-- ✅ Proper lifecycle management and fragment refresh
-
-**Action Menu Options**:
-1. Execute Lottery Draw - Input number of winners, run LotteryService
-2. Send Notification - Compose message, select recipient group
-3. Update Poster - Pick new image, upload via ImageRepository
-4. Export Lists - Choose which list to export (waiting/selected/confirmed)
-
-**Related User Stories**: US 02.02.01-03, US 02.04.02, US 02.05.01-03, US 02.06.01-05, US 02.07.01-03
-
-#### 2. Fragment Classes (4 Tabs)
-
-**WaitingListFragment.java**
-- Display all entrants in waiting list subcollection
-- Load data from Firestore `events/{eventId}/waitingList`
-- Empty state for no entrants
-- View Map button placeholder (for US 02.02.02)
-- Refresh capability
-
-**SelectedEntrantsFragment.java**
-- Display entrants in responsePendingList (selected by lottery)
-- Show pending/accepted/declined status
-- Load from `events/{eventId}/responsePendingList`
-- Empty state handling
-
-**ConfirmedEntrantsFragment.java**
-- Display confirmed entrants (inEventList)
-- Load from `events/{eventId}/inEventList`
-- Long-press to cancel entrant (placeholder)
-- Triggers replacement draw when entrant cancelled
-
-**CancelledEntrantsFragment.java**
-- View-only list of cancelled entrants
-- Load from cancelled list subcollection
-- Empty state for no cancellations
-
-#### 3. UI Layouts
-
-**activity_manage_event.xml**
-- CoordinatorLayout with AppBarLayout
-- Material Toolbar with back navigation
-- Event summary card (name, date, location, status)
-- TabLayout for 4 tabs (scrollable mode)
-- ViewPager2 for fragment content
-- FAB for action menu
-- System window insets handling
-
-**fragment_entrant_list.xml** (Reusable)
-- RecyclerView for entrant cards
-- ProgressBar for loading states
-- Empty state layout with icon and message
-- Action button (e.g., View Map) - conditional visibility
-
-**entrant_card_item.xml**
-- MaterialCardView with entrant information
-- CircleImageView for profile picture
-- Entrant name (bold) and email
-- Status badge (for selected/confirmed tabs)
-- Join time display (for waiting list)
-- Compact design (48dp profile image)
-
-#### 4. Dialog Layouts
-
-**dialog_lottery_draw.xml**
-- Title and instructions
-- TextInputEditText for number of winners
-- Number input type
-- Material design styling
-
-**dialog_send_notification.xml**
-- TextInputEditText for message (multi-line)
-- Spinner for recipient group selection:
-  - All Entrants
-  - Waiting List Only
-  - Selected Only
-  - Confirmed Only
-- Material design styling
-
-#### 5. String Resources Added (60+ new strings)
-**Categories**:
-- Tab labels (waiting_list, selected, confirmed, cancelled)
-- Lottery draw messages and errors
-- Notification sending messages
-- Export CSV options
-- Cancel entrant confirmations
-- Status labels (pending, accepted, declined, cancelled)
-- Map-related strings
-- Empty state messages
-
-#### 6. Integration Points
-
-**Lottery Execution Flow**:
-1. Organizer clicks "Execute Lottery Draw"
-2. Dialog prompts for number of winners
-3. Validates input (not empty, sufficient entrants)
-4. Calls `LotteryService.executeLotteryDraw()`
-5. Shows progress dialog
-6. On success: displays winner count, refreshes fragments
-7. On error: shows error message
-
-**Notification Flow** (Placeholder):
-1. Organizer clicks "Send Notification"
-2. Dialog for message input and recipient selection
-3. Validates message not empty
-4. Would call NotificationService with recipient filter
-5. Shows sending progress
-6. Success/failure feedback
-
-**Poster Update Flow**:
-1. Organizer clicks "Update Poster"
-2. Image picker launches
-3. On image selected: uploads via ImageRepository
-4. Updates event document with new posterImageUrl
-5. Success/failure feedback
-
-**Fragment Data Loading**:
-- Each fragment queries its specific Firestore subcollection
-- Uses document snapshots to populate entrant lists
-- Empty states shown when no data
-- Refresh capability for dynamic updates
-
-### Service Integrations
-
-**LotteryService**:
-- ✅ `executeLotteryDraw(eventId, numberOfWinners, listener)`
-- Returns `LotteryResult` with winners/losers lists
-- Uses SecureRandom for fairness
-- Firestore transactions for atomicity
-
-**ImageRepository**:
-- ✅ `uploadEventPoster(eventId, imageUri, uploadedBy, listener)`
-- Returns download URL and poster ID
-- Compresses images before upload
-- Updates event document
-
-**EventRepository**:
-- ✅ `getEvent(eventId, listener)` - Load event details
-- ✅ Direct Firestore queries for subcollections
-- Collection paths: waitingList, responsePendingList, inEventList
-
-### User Stories Covered
-
-- ✅ **US 02.02.01**: View waiting list of entrants
-- ✅ **US 02.02.02**: View entrants on map (placeholder for future)
-- ✅ **US 02.04.02**: Update event poster
-- ✅ **US 02.05.01-03**: Execute lottery draw with notification triggers
-- ✅ **US 02.06.01**: View selected entrants list
-- ✅ **US 02.06.02**: View confirmed entrants list
-- ✅ **US 02.06.03**: View cancelled entrants list
-- ✅ **US 02.06.04**: Cancel entrants (trigger replacement - placeholder)
-- ✅ **US 02.06.05**: Export entrant lists to CSV (placeholder)
-- ✅ **US 02.07.01-03**: Send notifications to entrant groups (placeholder)
-
-### Technical Implementation Details
-
-**Fragment Pattern**:
-- Used Fragment + ViewPager2 + TabLayout pattern
-- FragmentStateAdapter for lifecycle management
-- TabLayoutMediator for automatic tab-fragment sync
-- newInstance() factory methods with event ID argument
-
-**Data Loading**:
-- Direct Firestore queries in fragments
-- Avoids repository overhead for simple list views
-- Progress indicators during loading
-- Error handling with Toast feedback
-
-**Dialogs**:
-- AlertDialog with custom views
-- Material design text inputs
-- Spinner for dropdown selections
-- Input validation before action execution
-
-**Refresh Mechanism**:
-- ManageEventActivity calls refresh() on fragments
-- Fragments check isAdded() before operations
-- Prevents crashes on fragment lifecycle issues
-
-**Image Picker**:
-- ActivityResultLauncher pattern (modern approach)
-- Replaces deprecated startActivityForResult
-- Handles URI permissions properly
-
-### Architecture Decisions
-
-**Why Fragments?**
-- Modular tab content
-- Independent lifecycle management
-- Easy data refresh per tab
-- Standard Material Design pattern
-
-**Why Direct Firestore Queries?**
-- Simple list displays don't need complex repository logic
-- Faster implementation
-- Can be refactored to use repository if needed
-
-**Why Placeholder Implementations?**
-- Map activity requires Google Maps SDK setup
-- CSV export needs storage permissions and file handling
-- Notification sending needs proper FCM topic management
-- Core structure in place for future implementation
-
-**ViewPager2 Benefits**:
-- RecyclerView-based (better performance)
-- Better RTL support
-- Vertical scrolling capability (if needed)
-- Fragment state preservation
-
-### Testing Notes
-
-**To Test Event Management**:
-1. Create an event as organizer
-2. Navigate from Organizer Dashboard to event
-3. Verify event details card displays correctly
-4. Check each tab loads empty states
-5. Add entrants to waiting list (via entrant flow)
-6. Test Execute Lottery:
-   - Enter number of winners
-   - Verify success message
-   - Check Selected tab populates
-7. Test other actions via FAB menu
-
-**Lottery Draw Test**:
-- Requires entrants in waiting list
-- Tests with various winner counts
-- Validates error for insufficient entrants
-- Checks fragments refresh after draw
-
-**Dialog Tests**:
-- Input validation (empty, invalid numbers)
-- Cancel button handling
-- Proper keyboard/focus behavior
-
-### Files Modified/Created
-
-**New Files**:
-- `ManageEventActivity.java` (~410 lines)
-- `WaitingListFragment.java` (~100 lines)
-- `SelectedEntrantsFragment.java` (~70 lines)
-- `ConfirmedEntrantsFragment.java` (~55 lines)
-- `CancelledEntrantsFragment.java` (~50 lines)
-- `activity_manage_event.xml` (~110 lines)
-- `fragment_entrant_list.xml` (~85 lines)
-- `entrant_card_item.xml` (~105 lines)
-- `dialog_lottery_draw.xml` (~30 lines)
-- `dialog_send_notification.xml` (~40 lines)
-
-**Modified Files**:
-- `AndroidManifest.xml` - Added ManageEventActivity
-- `strings.xml` - Added 60+ string resources
-- `OrganizerDashboardActivity.java` - Navigate to ManageEventActivity
-
-**Total Implementation**:
-- ~12,465+ lines of documented Java code
-- 12 data models
-- 5 repository classes
-- 7 service classes  
-- 3 profile UI activities
-- 6 event UI activities (browser, details, create, organizer dashboard, manage, 4 fragments)
-- 2 event adapters
-- 2 utility classes
-- 1 application class
-
-**Comprehensive Organizer Features**: Organizers can now create events, view their dashboard, and comprehensively manage events including lottery execution, notifications, poster updates, and entrant list management.
-
-**Next Phase**: Phase 6.4 - Additional features (Map Activity for geolocation visualization, CSV export implementation, enhanced notification system)
-
-**Last Build**: October 30, 2025 - BUILD SUCCESSFUL (assembleDebug, 2s)  
-**Min SDK**: 34 (Android 14.0)  
-**Target SDK**: 36
-
----
-
-## Navigation Integration & Role-Based Access - COMPLETE ✅
-
-**Date**: October 30, 2025  
-**Status**: ✅ COMPLETE - Role-based navigation fully integrated  
-**Build Status**: ✅ BUILD SUCCESSFUL (assembleDebug, 3s)
-
-### What Was Implemented
-
-#### 1. MainActivity Updates - Role-Based Navigation
-
-**Enhanced Features**:
-- ✅ Detects user role from Profile (entrant/organizer/admin)
-- ✅ Shows different navigation based on role
-- ✅ Role badge display on main screen
-- ✅ Separate UI sections for entrants vs organizers
-- ✅ Smooth role switching when profile updated
-
-**Entrant Navigation** (Default):
-- My Profile
-- Browse Events
-- My Invitations
-- Event History
-
-**Organizer Navigation**:
-- My Profile
-- Create New Event → CreateEventActivity
-- My Events Dashboard → OrganizerDashboardActivity
-- Browse All Events
-
-**Role Detection Logic**:
 ```java
-- Profile.ROLE_ENTRANT → Show entrant UI
-- Profile.ROLE_ORGANIZER → Show organizer UI
-- Profile.ROLE_ADMIN → Show organizer UI (for now)
+public class CreateEventActivity extends AppCompatActivity {
+    private void createEvent(String name, String description, ...) {
+        Event event = new Event();
+        event.setName(name);
+        event.setDescription(description);
+        event.setOrganizerId(currentUserId);
+        event.setStatusEnum(EventStatus.OPEN);
+        event.setRegistrationStartDate(regStartTimestamp);
+        event.setRegistrationEndDate(regEndTimestamp);
+        event.setCapacity(capacity);
+        event.setGeolocationRequired(switchGeolocation.isChecked());
+        
+        eventRepository.createEvent(event, eventId -> {
+            if (selectedPosterUri != null) {
+                uploadPosterImage(eventId, event);
+            } else {
+                generateQRCode(eventId, event);
+            }
+        });
+    }
+    
+    private void generateQRCode(String eventId, Event event) {
+        Bitmap qrBitmap = QRCodeGenerator.generateQRCode(eventId, 512);
+        showQRCodeDialog(qrBitmap);
+        
+        // Save QR to storage
+        imageRepository.uploadQRCode(eventId, qrBitmap, organizerId, ...)
+    }
+}
 ```
 
-#### 2. ProfileActivity Updates - Role Selection
+**Date Picker Fix**: Creates fresh Calendar instances to avoid timestamp contamination.
+```java
+private void showRegStartDatePicker() {
+    Calendar selectedCal = Calendar.getInstance();
+    selectedCal.set(Calendar.YEAR, year);
+    selectedCal.set(Calendar.MONTH, month);
+    selectedCal.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+    // Keeps current time for immediate registration
+}
 
-**New Features**:
-- ✅ Role selector Spinner added to profile
-- ✅ Three role options: Entrant, Organizer, Admin
-- ✅ Role saved with profile updates
-- ✅ Role persists across app sessions
-- ✅ Main screen updates automatically when role changes
+private void showRegEndDatePicker() {
+    Calendar selectedCal = Calendar.getInstance();
+    selectedCal.set(Calendar.HOUR_OF_DAY, 23);
+    selectedCal.set(Calendar.MINUTE, 59);
+    selectedCal.set(Calendar.SECOND, 59);
+    // Registration open until end of day
+}
+```
 
-**UI Components Added**:
-- Role container with label and description
-- Spinner with role dropdown
-- Helper text explaining role system
-- Integrated into existing profile flow
+### OrganizerDashboardActivity
+**Path**: `ui/events/OrganizerDashboardActivity.java`
 
-#### 3. Layout Updates
+View all organizer's events.
 
-**activity_main.xml**:
-- ✅ Two separate navigation sections (visibility controlled)
-- ✅ `entrantSection` - LinearLayout with 4 buttons
-- ✅ `organizerSection` - LinearLayout with 4 buttons
-- ✅ Role badge TextView with badge background
-- ✅ Consistent pink theme throughout
-- ✅ Material Design cards and buttons
+```java
+public class OrganizerDashboardActivity extends AppCompatActivity {
+    private RecyclerView recyclerView;
+    private FloatingActionButton fabCreateEvent;
+    
+    private void loadEvents() {
+        eventRepository.getEventsByOrganizer(currentUserId, events -> {
+            adapter.setEvents(events);
+        });
+    }
+    
+    // Click event → ManageEventActivity
+}
+```
 
-**activity_profile.xml**:
-- ✅ Role selection container added
-- ✅ Positioned between notifications and save button
-- ✅ Uses rounded_background drawable
-- ✅ Spinner with standard Android dropdown
-- ✅ Helper text for user guidance
+### ManageEventActivity (Organizer)
+**Path**: `ui/events/ManageEventActivity.java`
 
-#### 4. String Resources Added
+Comprehensive event management with tabs and lottery execution.
 
-**New Strings**:
-- `entrant_features` - "Entrant Features"
-- `organizer_features` - "Organizer Features"
-- `my_profile`, `browse_events`, `my_invitations`, `event_history`
-- `create_new_event` - "Create New Event"
-- `my_events_dashboard` - "My Events Dashboard"
-- `browse_all_events` - "Browse All Events"
-- `user_role` - "User Role"
-- `role_hint` - "Select your role to access different features"
-- `role_entrant`, `role_organizer`, `role_admin`
+```java
+public class ManageEventActivity extends AppCompatActivity {
+    private TabLayout tabLayout;
+    private ViewPager2 viewPager;
+    private FloatingActionButton fabMenu;
+    
+    private void setupTabs() {
+        FragmentAdapter adapter = new FragmentAdapter(this);
+        adapter.addFragment(new WaitingListFragment(), "Waiting");
+        adapter.addFragment(new SelectedEntrantsFragment(), "Selected");
+        adapter.addFragment(new ConfirmedEntrantsFragment(), "Confirmed");
+        adapter.addFragment(new CancelledEntrantsFragment(), "Cancelled");
+        viewPager.setAdapter(adapter);
+    }
+    
+    private void showActionMenu() {
+        // Options: Execute Lottery, Send Notification, Update Poster, Export Lists
+    }
+    
+    private void executeLottery() {
+        AlertDialog dialog = new AlertDialog.Builder(this)
+            .setTitle("Execute Lottery")
+            .setView(R.layout.dialog_lottery_input) // NumberPicker for winners
+            .setPositiveButton("Execute", (d, w) -> {
+                int numWinners = numberPicker.getValue();
+                lotteryService.executeLottery(eventId, numWinners, result -> {
+                    showSuccess("Lottery complete! " + result.getWinners().size() + " selected");
+                    refreshFragments();
+                });
+            })
+            .create();
+    }
+}
+```
 
-### Integration Flow
+### AdminDashboardActivity
+**Path**: `ui/admin/AdminDashboardActivity.java`
 
-**App Launch → Main Screen**:
-1. DeviceAuthenticator.initializeUser() loads profile
-2. Profile contains role field
-3. MainActivity checks role
-4. Shows appropriate navigation section
-5. User clicks button → Navigate to correct activity
+Admin panel with direct button access (no drawer).
 
-**Role Change Flow**:
-1. User opens ProfileActivity
-2. Selects different role from spinner
-3. Saves profile (role included in updates)
-4. Returns to MainActivity (onResume)
-5. MainActivity detects new role
-6. Updates UI to show new navigation options
+```java
+public class AdminDashboardActivity extends AppCompatActivity {
+    private void setupButtons() {
+        btnBrowseEvents.setOnClickListener(v -> 
+            startActivity(new Intent(this, AdminEventsActivity.class)));
+        
+        btnBrowseProfiles.setOnClickListener(v -> 
+            startActivity(new Intent(this, AdminProfilesActivity.class)));
+    }
+    
+    private void checkAdminAccess() {
+        Profile profile = deviceAuth.getCachedProfile();
+        if (!Profile.ROLE_ADMIN.equals(profile.getRole())) {
+            showAccessDenied();
+            finish();
+        }
+    }
+}
+```
 
-**Organizer Workflow**:
-1. User selects "Organizer" role in profile
-2. Returns to main screen
-3. Sees organizer navigation buttons
-4. "Create New Event" → CreateEventActivity
-5. "My Events Dashboard" → OrganizerDashboardActivity
-6. Click event → ManageEventActivity
-7. Full event management functionality
+### AdminEventsActivity
+**Path**: `ui/admin/AdminEventsActivity.java`
 
-### User Experience Improvements
+Browse and delete all events.
 
-**Role Visibility**:
-- Role badge clearly shows current role
-- Welcome message changes (e.g., "Welcome, Organizer!")
-- Navigation buttons use appropriate icons and labels
+```java
+public class AdminEventsActivity extends AppCompatActivity {
+    private void loadEvents() {
+        eventRepository.getAllEvents(events -> {
+            adapter.setEvents(events);
+        });
+    }
+    
+    // Click event → Delete confirmation dialog
+    private void deleteEvent(Event event) {
+        eventRepository.deleteEvent(event.getEventId(), 
+            id -> { loadEvents(); }
+        );
+    }
+}
+```
 
-**Seamless Navigation**:
-- Single tap to access any feature
-- Back button returns to main screen
-- Consistent pink theme across all screens
-- Material Design transitions
+---
 
-**Testing & Development**:
-- Easy role switching for testing
-- No authentication required (device-based)
-- All features accessible based on role
-- Clear separation of concerns
+## Adapters
 
-### Technical Details
+### EventAdapter
+**Path**: `adapters/EventAdapter.java`
 
-**Role Storage**:
-- Stored in Firestore `profiles/{userId}/role`
-- Default: "entrant"
-- Options: "entrant", "organizer", "admin"
-- Retrieved async on app launch
+RecyclerView adapter for event cards.
 
-**UI State Management**:
-- `entrantSection` visibility: VISIBLE/GONE
-- `organizerSection` visibility: VISIBLE/GONE
-- Mutually exclusive (only one visible at a time)
-- Updated in setupRoleBasedUI()
+```java
+public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> {
+    private List<Event> events;
+    private OnEventClickListener listener;
+    
+    @Override
+    public void onBindViewHolder(EventViewHolder holder, int position) {
+        Event event = events.get(position);
+        holder.tvEventName.setText(event.getName());
+        holder.tvLocation.setText(event.getLocation());
+        holder.tvPrice.setText(String.format("$%.2f", event.getPrice()));
+        
+        Glide.with(holder.itemView)
+            .load(event.getPosterImageUrl())
+            .placeholder(R.drawable.placeholder_event)
+            .into(holder.ivPoster);
+        
+        holder.itemView.setOnClickListener(v -> 
+            listener.onEventClick(event));
+    }
+}
+```
 
-**Backward Compatibility**:
-- Existing profiles without role → default to entrant
-- Profile model has default role in constructor
-- Graceful fallback if role detection fails
+### EntrantAdapter
+**Path**: `adapters/EntrantAdapter.java`
 
-### Theme Consistency Verified
+Display users in waiting lists with profile images.
 
-**Color Scheme**:
-- ✅ Primary Pink (#FF6B9D) - Headers, buttons, accents
-- ✅ Text on Primary (White) - Button text, header text
-- ✅ Background Light - Screen backgrounds
-- ✅ Text Primary/Secondary - Content text
+```java
+public class EntrantAdapter extends RecyclerView.Adapter<EntrantAdapter.EntrantViewHolder> {
+    class EntrantViewHolder extends RecyclerView.ViewHolder {
+        CircleImageView ivProfileImage;
+        TextView tvName, tvStatus;
+        
+        void bind(Profile profile) {
+            tvName.setText(profile.getName());
+            Glide.with(itemView)
+                .load(profile.getProfileImageUrl())
+                .placeholder(R.drawable.ic_profile_placeholder)
+                .into(ivProfileImage);
+        }
+    }
+}
+```
 
-**All Organizer Screens Using Theme**:
-- ✅ CreateEventActivity - Pink toolbar, themed buttons
-- ✅ OrganizerDashboardActivity - Pink toolbar, FAB
-- ✅ ManageEventActivity - Pink toolbar, tabs, FAB
-- ✅ All fragments - Consistent card design
-- ✅ All dialogs - Material design themed
+---
 
-**Button Styles**:
-- ✅ Widget.PickMe.Button - Primary pink buttons
-- ✅ Widget.PickMe.Button.Outlined - Outlined variant
-- ✅ Widget.PickMe.Button.Text - Text buttons
-- ✅ All using primary_pink color
+## Theme & Styling
 
-### Files Modified
+### colors.xml
+```xml
+<color name="primary_pink">#FF6B9D</color>
+<color name="primary_pink_dark">#E5578A</color>
+<color name="primary_pink_light">#FFB3C9</color>
+<color name="background_light">#F5F5F5</color>
+<color name="text_primary">#212121</color>
+<color name="text_secondary">#757575</color>
+<color name="text_on_primary">#FFFFFF</color>
+<color name="accent_color">#FF4081</color>
+```
 
-**Modified Files**:
-- `MainActivity.java` - Role-based navigation logic (~240 lines)
-- `activity_main.xml` - Dual navigation sections
-- `ProfileActivity.java` - Role spinner integration
-- `activity_profile.xml` - Role selection UI
-- `strings.xml` - Navigation and role strings
+### themes.xml
+```xml
+<style name="Theme.PickMe" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <item name="colorPrimary">@color/primary_pink</item>
+    <item name="colorPrimaryVariant">@color/primary_pink_dark</item>
+    <item name="colorSecondary">@color/primary_pink_light</item>
+</style>
 
-**No New Files** - Used existing infrastructure
+<style name="Widget.PickMe.Button" parent="Widget.MaterialComponents.Button">
+    <item name="android:textColor">@color/text_on_primary</item>
+    <item name="backgroundTint">@color/primary_pink</item>
+    <item name="cornerRadius">8dp</item>
+</style>
+```
 
-**Lines of Code**: ~12,705+ total project
+### Layout Patterns
 
-### Navigation Map
+**Standard Activity Layout**:
+```xml
+<androidx.coordinatorlayout.widget.CoordinatorLayout>
+    <com.google.android.material.appbar.AppBarLayout>
+        <MaterialToolbar 
+            android:background="@color/primary_pink"
+            app:titleTextColor="@color/text_on_primary" />
+    </com.google.android.material.appbar.AppBarLayout>
+    
+    <NestedScrollView app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        <!-- Content -->
+    </NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
+```
+
+---
+
+## Key Implementation Details
+
+### 1. Device Authentication Flow
+```
+App Launch → FirebaseManager.signInAnonymously()
+          → DeviceAuthenticator.initializeUser()
+          → Check Firestore for existing profile
+          → Create new profile if not found
+          → Cache profile in memory
+```
+
+### 2. Event Registration Flow
+```
+Browse Events → Select Event → Check Registration Status
+             → Join Waiting List → Store in waitingList subcollection
+             → Send Notification → User sees in My Invitations
+```
+
+### 3. Lottery Execution Flow
+```
+Organizer → Manage Event → Execute Lottery
+         → Select N winners from waiting list
+         → Move to responsePendingList
+         → Send notifications (winners + losers)
+         → Winners accept/decline
+         → Accepted → Move to inEventList
+         → Declined → Move to cancelledList + Replacement draw
+```
+
+### 4. Role-Based Access Control
+```
+User Role Check:
+- MainActivity.onResume() → Load profile → Check role
+- Show appropriate navigation (entrant/organizer/admin)
+- Admin activities check role in onCreate()
+- Access denied dialog if unauthorized
+```
+
+### 5. Firebase Serialization Rules
+- Use unique setter names (no method overloading)
+- Event uses `setStatus(String)` for Firebase, `setStatusEnum(EventStatus)` for code
+- All models implement Parcelable for intent passing
+- Default constructors required for Firestore deserialization
+
+---
+
+## Common Issues & Fixes
+
+### Issue 1: Events Not Appearing in Browse
+**Cause**: Registration dates set incorrectly (past or future).
+**Fix**: Date pickers now create fresh Calendar instances with proper time boundaries.
+```java
+// Registration start: Current time on selected day
+// Registration end: 23:59:59 on selected day
+```
+
+### Issue 2: Firebase Serialization Crash
+**Cause**: Multiple setter methods with same name (setStatus).
+**Fix**: Renamed enum version to setStatusEnum().
+
+### Issue 3: Role UI Not Updating
+**Cause**: MainActivity.onResume() not reloading profile.
+**Fix**: Check cached profile and call setupRoleBasedUI().
+
+### Issue 4: Toolbar Cut Off by Status Bar
+**Fix**: Add `android:fitsSystemWindows="true"` to root layout.
+
+---
+
+## Testing Guidelines
+
+### Creating Test Data
+
+**1. Create Organizer Profile**:
+```
+Profile → Select "Organizer" role → Save
+```
+
+**2. Create Test Event**:
+```
+Create Event → Fill details
+Registration Start: Today
+Registration End: Tomorrow
+Capacity: 50
+Status: Automatically set to OPEN
+```
+
+**3. Join as Entrant**:
+```
+Switch role to "Entrant"
+Browse Events → Find event → Join Waiting List
+```
+
+**4. Execute Lottery**:
+```
+Switch back to "Organizer"
+My Events → Select Event → Manage
+Execute Lottery → Select 10 winners
+```
+
+**5. Test Admin Features**:
+```
+Switch role to "Admin"
+Admin Dashboard → Browse Events/Profiles
+Delete test data
+```
+
+### Logcat Monitoring
+
+Key tags to watch:
+```
+EventRepository - Event queries and operations
+ProfileRepository - Profile operations
+LotteryService - Lottery execution
+DeviceAuthenticator - User initialization
+FirebaseManager - Connection status
+```
+
+---
+
+## Firestore Data Structure
 
 ```
-MainActivity (Role-Based)
-├─ ENTRANT ROLE
-│  ├─ ProfileActivity
-│  ├─ EventBrowserActivity
-│  ├─ EventInvitationsActivity
-│  └─ EventHistoryActivity
+pickme-database/
+├── profiles/
+│   └── {userId}/
+│       ├── name: String
+│       ├── email: String
+│       ├── role: String
+│       ├── notificationEnabled: Boolean
+│       └── profileImageUrl: String
 │
-└─ ORGANIZER ROLE
-   ├─ ProfileActivity
-   ├─ CreateEventActivity
-   │  └─ (Creates event with QR code)
-   ├─ OrganizerDashboardActivity
-   │  └─ Click event → ManageEventActivity
-   │     ├─ Tab: WaitingListFragment
-   │     ├─ Tab: SelectedEntrantsFragment
-   │     ├─ Tab: ConfirmedEntrantsFragment
-   │     ├─ Tab: CancelledEntrantsFragment
-   │     └─ FAB Menu:
-   │        ├─ Execute Lottery
-   │        ├─ Send Notification
-   │        ├─ Update Poster
-   │        └─ Export Lists
-   └─ EventBrowserActivity
-      └─ (Browse all events)
+├── events/
+│   └── {eventId}/
+│       ├── name: String
+│       ├── status: String (OPEN/CLOSED/etc)
+│       ├── organizerId: String
+│       ├── capacity: Number
+│       ├── registrationStartDate: Timestamp
+│       ├── registrationEndDate: Timestamp
+│       ├── posterImageUrl: String
+│       ├── qrCodeUrl: String
+│       │
+│       ├── waitingList/
+│       │   └── {userId}/
+│       │       ├── timestamp: Timestamp
+│       │       ├── latitude: Number (optional)
+│       │       └── longitude: Number (optional)
+│       │
+│       ├── responsePendingList/
+│       │   └── {userId}/
+│       │       ├── selectedTimestamp: Timestamp
+│       │       └── status: String (PENDING/ACCEPTED/DECLINED)
+│       │
+│       ├── inEventList/
+│       │   └── {userId}/
+│       │       └── confirmedTimestamp: Timestamp
+│       │
+│       └── cancelledList/
+│           └── {userId}/
+│               ├── cancelledTimestamp: Timestamp
+│               └── reason: String
+│
+└── notifications/
+    └── {userId}/
+        └── userNotifications/
+            └── {notificationId}/
+                ├── title: String
+                ├── message: String
+                ├── timestamp: Timestamp
+                ├── type: String
+                ├── eventId: String
+                └── isRead: Boolean
 ```
 
-### Testing Instructions
+---
 
-**To Test Role-Based Navigation**:
-1. Launch app → Default entrant navigation appears
-2. Click "My Profile"
-3. Scroll to "User Role" section
-4. Select "Organizer" from spinner
-5. Click "Save Changes"
-6. Press back to return to main screen
-7. Observe: Welcome message changes to "Welcome, Organizer!"
-8. Observe: Navigation shows organizer options
-9. Click "My Events Dashboard" → See dashboard
-10. Click "Create New Event" → See event creation form
+## Build & Run
 
-**To Test Organizer Features**:
-1. Set role to Organizer (see above)
-2. Click "Create New Event"
-3. Fill in event details and publish
-4. Return to main → Click "My Events Dashboard"
-5. See created event in list
-6. Click event → Opens ManageEventActivity
-7. Test lottery, notifications, etc.
+### Initial Setup
+```bash
+1. Clone repository
+2. Add google-services.json to app/ directory
+3. Sync Gradle
+4. Run on emulator (API 34+) or physical device
+```
 
-**To Switch Back to Entrant**:
-1. Go to Profile
-2. Change role to "Entrant"
-3. Save and return
-4. See entrant navigation
+### Build Commands
+```bash
+# Debug build
+./gradlew assembleDebug
 
-### User Stories Enabled
+# Clean build
+./gradlew clean assembleDebug
 
-Through this integration, ALL implemented user stories are now accessible:
+# Install on connected device
+./gradlew installDebug
+```
 
-**Entrant Stories**: US 01.01.01-03, US 01.02.01-04, US 01.03.01-02, US 01.04.01-03, US 01.05.01-03, US 01.06.01
+### Firebase Console Setup
+1. Create Firebase project
+2. Add Android app (package: com.example.pickme)
+3. Download google-services.json
+4. Enable Firestore, Storage, Authentication, FCM
 
-**Organizer Stories**: US 02.01.01-04, US 02.02.01-03, US 02.03.01, US 02.04.01-02, US 02.05.01-03, US 02.06.01-05, US 02.07.01-03
+---
 
-**Total**: 30+ user stories fully accessible through navigation!
+## Current Implementation Status
 
-**Next Phase**: Polish remaining features (Map activity, CSV export, enhanced notifications)
+**Phase 1-4**: Firebase setup, models, repositories, services - COMPLETE
+**Phase 5**: Entrant UI (Profile, Browse, Invitations, History) - COMPLETE
+**Phase 6**: Organizer UI (Create, Dashboard, Manage, Lottery) - COMPLETE
+**Phase 7.1**: Admin UI (Dashboard, Browse Events/Profiles) - COMPLETE
 
-**Last Build**: October 30, 2025 - BUILD SUCCESSFUL (assembleDebug, 3s)  
-**Min SDK**: 34 (Android 14.0)  
-**Target SDK**: 36
+**Total Lines of Code**: ~14,000+ documented Java code
+**Activities**: 15+ activities
+**Fragments**: 8+ fragments
+**Repositories**: 5 repositories
+**Services**: 6 service classes
+**Models**: 8+ data models
+
+---
+
+## Next Development Steps
+
+1. Complete AdminImagesFragment (browse/delete event posters)
+2. Implement AdminNotificationLogsFragment (view all notifications)
+3. Add RemoveOrganizerActivity (delete organizer + their events)
+4. Implement MapActivity for geolocation visualization
+5. Add CSV export for entrant lists
+6. Enhance notification system with FCM push notifications
+7. Add event analytics for organizers
+8. Implement waiting list limit enforcement
+
+---
+
+## Additional Resources
+
+**Firebase Documentation**: https://firebase.google.com/docs/android/setup
+**Material Design**: https://material.io/develop/android
+**ZXing QR Code**: https://github.com/journeyapps/zxing-android-embedded
+**Glide Image Loading**: https://github.com/bumptech/glide
+
+---
+
+**Document Version**: 2.0  
+**Last Updated**: October 31, 2025  
+**Maintained By**: CMPUT 301 Team - PickMe Development Team
 

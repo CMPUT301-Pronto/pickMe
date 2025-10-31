@@ -231,17 +231,27 @@ public class EventRepository extends BaseRepository {
     public void getEventsForEntrant(@NonNull OnEventsLoadedListener listener) {
         long currentTime = System.currentTimeMillis();
 
+        // Simplified query - just get OPEN events, filter rest in code
         db.collection(COLLECTION_EVENTS)
                 .whereEqualTo("status", "OPEN")
-                .whereLessThanOrEqualTo("registrationStartDate", currentTime)
-                .whereGreaterThanOrEqualTo("registrationEndDate", currentTime)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     List<Event> events = new ArrayList<>();
+                    Log.d(TAG, "Query returned " + querySnapshot.size() + " documents");
+
                     for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
                         Event event = doc.toObject(Event.class);
-                        if (event != null && event.isRegistrationOpen()) {
-                            events.add(event);
+                        if (event != null) {
+                            Log.d(TAG, "Event: " + event.getName() + ", Status: " + event.getStatus()
+                                + ", RegStart: " + event.getRegistrationStartDate()
+                                + ", RegEnd: " + event.getRegistrationEndDate()
+                                + ", IsOpen: " + event.isRegistrationOpen());
+
+                            // Filter in code to avoid complex Firestore query limitations
+                            if (event.isRegistrationOpen()) {
+                                events.add(event);
+                                Log.d(TAG, "Added event: " + event.getName());
+                            }
                         }
                     }
                     Log.d(TAG, "Retrieved " + events.size() + " events for entrant");

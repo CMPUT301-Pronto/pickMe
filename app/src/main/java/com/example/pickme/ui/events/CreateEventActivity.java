@@ -231,8 +231,17 @@ public class CreateEventActivity extends AppCompatActivity {
         Calendar calendar = Calendar.getInstance();
         new DatePickerDialog(this,
                 (view, year, month, dayOfMonth) -> {
-                    calendar.set(year, month, dayOfMonth);
-                    eventDateTimestamp = calendar.getTimeInMillis();
+                    // Get a fresh calendar instance
+                    Calendar selectedCal = Calendar.getInstance();
+                    // Set the selected date
+                    selectedCal.set(Calendar.YEAR, year);
+                    selectedCal.set(Calendar.MONTH, month);
+                    selectedCal.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                    // Set time to start of day (00:00:00)
+                    selectedCal.set(Calendar.HOUR_OF_DAY, 0);
+                    selectedCal.set(Calendar.MINUTE, 0);
+                    selectedCal.set(Calendar.SECOND, 0);
+                    eventDateTimestamp = selectedCal.getTimeInMillis();
                     etEventDate.setText(dateFormat.format(new Date(eventDateTimestamp)));
                 },
                 calendar.get(Calendar.YEAR),
@@ -248,8 +257,13 @@ public class CreateEventActivity extends AppCompatActivity {
         Calendar calendar = Calendar.getInstance();
         new DatePickerDialog(this,
                 (view, year, month, dayOfMonth) -> {
-                    calendar.set(year, month, dayOfMonth);
-                    regStartTimestamp = calendar.getTimeInMillis();
+                    // Get a fresh calendar instance with current time
+                    Calendar selectedCal = Calendar.getInstance();
+                    // Set the selected date but keep current time of day
+                    selectedCal.set(Calendar.YEAR, year);
+                    selectedCal.set(Calendar.MONTH, month);
+                    selectedCal.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                    regStartTimestamp = selectedCal.getTimeInMillis();
                     etRegStartDate.setText(dateFormat.format(new Date(regStartTimestamp)));
                 },
                 calendar.get(Calendar.YEAR),
@@ -265,8 +279,17 @@ public class CreateEventActivity extends AppCompatActivity {
         Calendar calendar = Calendar.getInstance();
         new DatePickerDialog(this,
                 (view, year, month, dayOfMonth) -> {
-                    calendar.set(year, month, dayOfMonth);
-                    regEndTimestamp = calendar.getTimeInMillis();
+                    // Get a fresh calendar instance
+                    Calendar selectedCal = Calendar.getInstance();
+                    // Set the selected date
+                    selectedCal.set(Calendar.YEAR, year);
+                    selectedCal.set(Calendar.MONTH, month);
+                    selectedCal.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                    // Set time to end of day (23:59:59) so registration is open all day
+                    selectedCal.set(Calendar.HOUR_OF_DAY, 23);
+                    selectedCal.set(Calendar.MINUTE, 59);
+                    selectedCal.set(Calendar.SECOND, 59);
+                    regEndTimestamp = selectedCal.getTimeInMillis();
                     etRegEndDate.setText(dateFormat.format(new Date(regEndTimestamp)));
                 },
                 calendar.get(Calendar.YEAR),
@@ -420,7 +443,7 @@ public class CreateEventActivity extends AppCompatActivity {
         event.setGeolocationRequired(switchGeolocation.isChecked());
 
         // Set status to OPEN (ready for registration)
-        event.setStatus(EventStatus.OPEN);
+        event.setStatusEnum(EventStatus.OPEN);
 
         // Save event to Firestore
         eventRepository.createEvent(event,

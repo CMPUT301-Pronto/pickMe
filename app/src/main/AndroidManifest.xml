@@ -111,6 +111,28 @@
             android:theme="@style/Theme.PickMe.NoActionBar"
             android:parentActivityName=".ui.events.OrganizerDashboardActivity" />
 
+        <!-- Admin Activities -->
+        <activity
+            android:name=".ui.admin.AdminDashboardActivity"
+            android:exported="false"
+            android:label="@string/admin_dashboard_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".ui.admin.AdminEventsActivity"
+            android:exported="false"
+            android:label="Browse Events"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".ui.admin.AdminDashboardActivity" />
+
+        <activity
+            android:name=".ui.admin.AdminProfilesActivity"
+            android:exported="false"
+            android:label="Browse Profiles"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".ui.admin.AdminDashboardActivity" />
+
         <!-- Invitation & History Activities -->
         <activity
             android:name=".ui.invitations.EventInvitationsActivity"

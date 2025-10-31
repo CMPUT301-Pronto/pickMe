@@ -239,6 +239,59 @@
 
             </LinearLayout>
 
+            <!-- Admin Section -->
+            <LinearLayout
+                android:id="@+id/adminSection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="gone">
+
+                <!-- Section Title -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/admin_features"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Admin Profile Button -->
+                <Button
+                    android:id="@+id/btnAdminProfile"
+                    style="@style/Widget.PickMe.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/my_profile"
+                    android:drawableStart="@android:drawable/ic_menu_myplaces"
+                    android:drawableTint="@color/text_on_primary"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Admin Dashboard Button -->
+                <Button
+                    android:id="@+id/btnAdminDashboard"
+                    style="@style/Widget.PickMe.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/admin_dashboard"
+                    android:drawableStart="@android:drawable/ic_menu_manage"
+                    android:drawableTint="@color/text_on_primary"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Browse Events Button (Admin) -->
+                <Button
+                    android:id="@+id/btnAdminBrowse"
+                    style="@style/Widget.PickMe.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/browse_all_events"
+                    android:drawableStart="@android:drawable/ic_menu_search"
+                    android:drawableTint="@color/text_on_primary" />
+
+            </LinearLayout>
+
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>    <!-- Loading Progress Bar -->
@@ -259,7 +312,7 @@
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="24dp"
         android:layout_marginTop="16dp"
-        android:text="Tap any button to explore the implemented features. Organizer and Admin features coming in later phases."
+        android:text="Tap any button to explore the implemented features."
         android:textSize="12sp"
         android:textColor="@color/text_secondary"
         android:gravity="center"

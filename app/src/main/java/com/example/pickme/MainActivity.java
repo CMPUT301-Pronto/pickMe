@@ -56,6 +56,12 @@ public class MainActivity extends AppCompatActivity {
     private Button btnMyEvents;
     private Button btnOrganizerBrowse;
 
+    // Admin buttons
+    private View adminSection;
+    private Button btnAdminProfile;
+    private Button btnAdminDashboard;
+    private Button btnAdminBrowse;
+
     private DeviceAuthenticator deviceAuth;
     private String userId;
     private Profile currentProfile;
@@ -133,6 +139,12 @@ public class MainActivity extends AppCompatActivity {
         btnCreateEvent = findViewById(R.id.btnCreateEvent);
         btnMyEvents = findViewById(R.id.btnMyEvents);
         btnOrganizerBrowse = findViewById(R.id.btnOrganizerBrowse);
+
+        // Admin section
+        adminSection = findViewById(R.id.adminSection);
+        btnAdminProfile = findViewById(R.id.btnAdminProfile);
+        btnAdminDashboard = findViewById(R.id.btnAdminDashboard);
+        btnAdminBrowse = findViewById(R.id.btnAdminBrowse);
     }
 
     /**
@@ -169,8 +181,7 @@ public class MainActivity extends AppCompatActivity {
         if (Profile.ROLE_ORGANIZER.equals(role)) {
             setupOrganizerUI();
         } else if (Profile.ROLE_ADMIN.equals(role)) {
-            // TODO: Setup admin UI in future
-            setupOrganizerUI(); // For now, admins get organizer UI
+            setupAdminUI();
         } else {
             setupEntrantUI();
         }
@@ -181,8 +192,14 @@ public class MainActivity extends AppCompatActivity {
      */
     private void setupEntrantUI() {
         tvWelcome.setText("Welcome, Entrant!");
-        entrantSection.setVisibility(View.VISIBLE);
+
+        // Hide all sections first
+        entrantSection.setVisibility(View.GONE);
         organizerSection.setVisibility(View.GONE);
+        adminSection.setVisibility(View.GONE);
+
+        // Show only entrant section
+        entrantSection.setVisibility(View.VISIBLE);
 
         btnProfile.setOnClickListener(v -> {
             Intent intent = new Intent(this, ProfileActivity.class);
@@ -210,7 +227,13 @@ public class MainActivity extends AppCompatActivity {
      */
     private void setupOrganizerUI() {
         tvWelcome.setText("Welcome, Organizer!");
+
+        // Hide all sections first
         entrantSection.setVisibility(View.GONE);
+        organizerSection.setVisibility(View.GONE);
+        adminSection.setVisibility(View.GONE);
+
+        // Show only organizer section
         organizerSection.setVisibility(View.VISIBLE);
 
         btnOrganizerProfile.setOnClickListener(v -> {
@@ -229,6 +252,36 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnOrganizerBrowse.setOnClickListener(v -> {
+            Intent intent = new Intent(this, EventBrowserActivity.class);
+            startActivity(intent);
+        });
+    }
+
+    /**
+     * Setup admin-specific UI and navigation
+     */
+    private void setupAdminUI() {
+        tvWelcome.setText("Welcome, Administrator!");
+
+        // Hide all sections first
+        entrantSection.setVisibility(View.GONE);
+        organizerSection.setVisibility(View.GONE);
+        adminSection.setVisibility(View.GONE);
+
+        // Show only admin section
+        adminSection.setVisibility(View.VISIBLE);
+
+        btnAdminProfile.setOnClickListener(v -> {
+            Intent intent = new Intent(this, ProfileActivity.class);
+            startActivity(intent);
+        });
+
+        btnAdminDashboard.setOnClickListener(v -> {
+            Intent intent = new Intent(this, com.example.pickme.ui.admin.AdminDashboardActivity.class);
+            startActivity(intent);
+        });
+
+        btnAdminBrowse.setOnClickListener(v -> {
             Intent intent = new Intent(this, EventBrowserActivity.class);
             startActivity(intent);
         });
