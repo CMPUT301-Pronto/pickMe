@@ -90,6 +90,20 @@
             android:theme="@style/Theme.PickMe.NoActionBar"
             android:parentActivityName=".ui.events.EventBrowserActivity" />
 
+        <activity
+            android:name=".ui.events.CreateEventActivity"
+            android:exported="false"
+            android:label="@string/create_event_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".ui.events.OrganizerDashboardActivity"
+            android:exported="false"
+            android:label="@string/organizer_dashboard_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".MainActivity" />
+
         <!-- Invitation & History Activities -->
         <activity
             android:name=".ui.invitations.EventInvitationsActivity"
@@ -104,6 +118,17 @@
             android:label="@string/event_history_title"
             android:theme="@style/Theme.PickMe.NoActionBar"
             android:parentActivityName=".MainActivity" />
+
+        <!-- FileProvider for sharing QR codes -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 

@@ -126,4 +126,63 @@
     <string name="event_status_cancelled">Cancelled</string>
     <string name="event_status_completed">Completed</string>
     <string name="view_event">View Event</string>
+
+    <!-- Create Event Strings -->
+    <string name="create_event_title">Create Event</string>
+    <string name="event_poster">Event Poster</string>
+    <string name="upload_poster">Upload Poster</string>
+    <string name="event_name">Event Name</string>
+    <string name="event_description_label">Description</string>
+    <string name="event_location_label">Location</string>
+    <string name="event_date_label">Event Date</string>
+    <string name="select_date">Select Date</string>
+    <string name="registration_period_label">Registration Period</string>
+    <string name="start_date">Start Date</string>
+    <string name="end_date">End Date</string>
+    <string name="event_capacity_label">Capacity &amp; Price</string>
+    <string name="max_participants">Max Participants</string>
+    <string name="event_price_label">Price</string>
+    <string name="waiting_list_label">Waiting List</string>
+    <string name="waiting_list_limit">Waiting List Limit (Optional)</string>
+    <string name="waiting_list_hint">Leave empty for unlimited waiting list</string>
+    <string name="geolocation_requirement">Require Geolocation</string>
+    <string name="geolocation_hint">When enabled, entrants must share their location to join</string>
+    <string name="geolocation_icon">Location icon</string>
+    <string name="publish_event">Publish Event</string>
+
+    <!-- Event Creation Validation -->
+    <string name="error_event_name_required">Event name is required</string>
+    <string name="error_description_required">Description is required</string>
+    <string name="error_location_required">Location is required</string>
+    <string name="error_event_date_required">Event date is required</string>
+    <string name="error_reg_dates_required">Registration dates are required</string>
+    <string name="error_capacity_required">Capacity is required</string>
+    <string name="error_capacity_invalid">Capacity must be greater than 0</string>
+    <string name="error_price_invalid">Please enter a valid price</string>
+    <string name="error_waiting_list_invalid">Waiting list limit must be greater than capacity</string>
+    <string name="error_reg_end_before_start">Registration end date must be after start date</string>
+    <string name="error_event_date_before_reg">Event date must be after registration period</string>
+
+    <!-- Event Creation Success -->
+    <string name="event_created_title">Event Published!</string>
+    <string name="event_created_message">Your event has been successfully created. Share the QR code with potential entrants.</string>
+    <string name="share_qr_code">Share QR Code</string>
+    <string name="download_qr_code">Download QR Code</string>
+    <string name="view_my_events">View My Events</string>
+    <string name="event_creation_failed">Failed to create event</string>
+    <string name="qr_code_generation_failed">Failed to generate QR code</string>
+
+    <!-- Role Check -->
+    <string name="access_denied_title">Access Denied</string>
+    <string name="organizer_only_message">Only users with Organizer role can create events</string>
+
+    <!-- Organizer Dashboard Strings -->
+    <string name="organizer_dashboard_title">My Events</string>
+    <string name="create_event_fab">Create New Event</string>
+    <string name="no_events_created">No Events Yet</string>
+    <string name="no_events_created_message">Tap the + button to create your first event</string>
+    <string name="waiting_list_label_short">Waiting</string>
+    <string name="selected_label">Selected</string>
+    <string name="enrolled_label">Enrolled</string>
+    <string name="manage_event">Manage Event</string>
 </resources>
