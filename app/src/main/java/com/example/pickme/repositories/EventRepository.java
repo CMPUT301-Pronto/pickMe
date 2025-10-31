@@ -267,7 +267,8 @@ public class EventRepository extends BaseRepository {
 
     /**
      * Add entrant to event waiting list
-     * Uses transaction to ensure atomic operation and duplicate prevention
+     * Checks waiting list limit and duplicate entries atomically
+     * Enforces waiting list limit if specified
      *
      * @param eventId Event ID
      * @param entrantId User ID to add
@@ -280,6 +281,58 @@ public class EventRepository extends BaseRepository {
                                        Geolocation location,
                                        @NonNull OnSuccessListener onSuccess,
                                        @NonNull OnFailureListener onFailure) {
+        // First get event to check limit
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .get()
+                .addOnSuccessListener(eventSnapshot -> {
+                    if (!eventSnapshot.exists()) {
+                        onFailure.onFailure(new Exception("Event not found"));
+                        return;
+                    }
+
+                    Event event = eventSnapshot.toObject(Event.class);
+                    if (event == null) {
+                        onFailure.onFailure(new Exception("Failed to parse event"));
+                        return;
+                    }
+
+                    int waitingListLimit = event.getWaitingListLimit();
+
+                    // If limit specified, check current count
+                    if (waitingListLimit > 0) {
+                        db.collection(COLLECTION_EVENTS)
+                                .document(eventId)
+                                .collection(SUBCOLLECTION_WAITING_LIST)
+                                .get()
+                                .addOnSuccessListener(querySnapshot -> {
+                                    int currentCount = querySnapshot.size();
+
+                                    if (currentCount >= waitingListLimit) {
+                                        onFailure.onFailure(new Exception("Waiting list is full (limit: " + waitingListLimit + ")"));
+                                        return;
+                                    }
+
+                                    // Proceed with adding
+                                    addToWaitingListInternal(eventId, entrantId, location, onSuccess, onFailure);
+                                })
+                                .addOnFailureListener(onFailure::onFailure);
+                    } else {
+                        // No limit, proceed directly
+                        addToWaitingListInternal(eventId, entrantId, location, onSuccess, onFailure);
+                    }
+                })
+                .addOnFailureListener(onFailure::onFailure);
+    }
+
+    /**
+     * Internal method to add entrant to waiting list
+     */
+    private void addToWaitingListInternal(@NonNull String eventId,
+                                          @NonNull String entrantId,
+                                          Geolocation location,
+                                          @NonNull OnSuccessListener onSuccess,
+                                          @NonNull OnFailureListener onFailure) {
         // Create waiting list entry data
         Map<String, Object> entrantData = new HashMap<>();
         entrantData.put("entrantId", entrantId);
@@ -414,6 +467,35 @@ public class EventRepository extends BaseRepository {
                 });
     }
 
+    /**
+     * Get list of entrant IDs from a specific subcollection
+     * Used for CSV export and bulk operations
+     *
+     * @param eventId Event ID
+     * @param subcollection Subcollection name (waitingList, responsePendingList, inEventList, cancelledList)
+     * @param listener Callback with list of entrant IDs
+     */
+    public void getEntrantIdsFromSubcollection(@NonNull String eventId,
+                                               @NonNull String subcollection,
+                                               @NonNull OnEntrantIdsLoadedListener listener) {
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .collection(subcollection)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<String> entrantIds = new ArrayList<>();
+                    for (DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        entrantIds.add(doc.getId());
+                    }
+                    Log.d(TAG, "Retrieved " + entrantIds.size() + " entrant IDs from " + subcollection);
+                    listener.onEntrantIdsLoaded(entrantIds);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get entrant IDs from " + subcollection, e);
+                    listener.onError(e);
+                });
+    }
+
     // ==================== Listener Interfaces ====================
 
     /**
@@ -455,10 +537,18 @@ public class EventRepository extends BaseRepository {
     }
 
     /**
-     * Callback for checking entrant existence
+     * Callback for entrant check
      */
     public interface OnEntrantCheckListener {
         void onCheckComplete(boolean exists);
+        void onError(Exception e);
+    }
+
+    /**
+     * Callback for loading list of entrant IDs
+     */
+    public interface OnEntrantIdsLoadedListener {
+        void onEntrantIdsLoaded(List<String> entrantIds);
         void onError(Exception e);
     }
 

@@ -31,9 +31,11 @@ import com.example.pickme.services.NotificationService;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import com.example.pickme.utils.CsvExporter;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -70,6 +72,7 @@ public class ManageEventActivity extends AppCompatActivity {
     private ImageRepository imageRepository;
     private LotteryService lotteryService;
     private NotificationService notificationService;
+    private CsvExporter csvExporter;
     private Event currentEvent;
     private String eventId;
 
@@ -127,6 +130,7 @@ public class ManageEventActivity extends AppCompatActivity {
         imageRepository = new ImageRepository();
         lotteryService = LotteryService.getInstance();
         notificationService = NotificationService.getInstance();
+        csvExporter = new CsvExporter(this);
     }
 
     private void setupImagePicker() {
@@ -367,10 +371,86 @@ public class ManageEventActivity extends AppCompatActivity {
     }
 
     private void exportList(int listType) {
-        Toast.makeText(this, R.string.exporting, Toast.LENGTH_SHORT).show();
-        // CSV export implementation would go here
-        // For now, just show placeholder
-        Toast.makeText(this, "Export feature coming soon", Toast.LENGTH_SHORT).show();
+        ProgressBar progressBar = new ProgressBar(this);
+        AlertDialog progressDialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.exporting)
+                .setView(progressBar)
+                .setCancelable(false)
+                .create();
+        progressDialog.show();
+
+        // Determine which list to export
+        String subcollection;
+        String listTypeName;
+
+        switch (listType) {
+            case 0: // Waiting list
+                subcollection = "waitingList";
+                listTypeName = "waiting";
+                break;
+            case 1: // Selected list
+                subcollection = "responsePendingList";
+                listTypeName = "selected";
+                break;
+            case 2: // Confirmed list
+                subcollection = "inEventList";
+                listTypeName = "confirmed";
+                break;
+            default:
+                progressDialog.dismiss();
+                return;
+        }
+
+        // Fetch entrant IDs from the subcollection
+        eventRepository.getEntrantIdsFromSubcollection(eventId, subcollection,
+                new EventRepository.OnEntrantIdsLoadedListener() {
+                    @Override
+                    public void onEntrantIdsLoaded(List<String> entrantIds) {
+                        if (entrantIds.isEmpty()) {
+                            progressDialog.dismiss();
+                            Toast.makeText(ManageEventActivity.this,
+                                    "No entrants to export", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        // Export to CSV
+                        csvExporter.exportEntrantList(currentEvent, entrantIds, listTypeName,
+                                new CsvExporter.OnExportCompleteListener() {
+                                    @Override
+                                    public void onExportComplete(Uri fileUri, String filePath) {
+                                        progressDialog.dismiss();
+                                        showExportSuccessDialog(fileUri, filePath);
+                                    }
+
+                                    @Override
+                                    public void onError(Exception e) {
+                                        progressDialog.dismiss();
+                                        Toast.makeText(ManageEventActivity.this,
+                                                "Export failed: " + e.getMessage(),
+                                                Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        progressDialog.dismiss();
+                        Toast.makeText(ManageEventActivity.this,
+                                "Failed to fetch entrants: " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void showExportSuccessDialog(Uri fileUri, String filePath) {
+        new AlertDialog.Builder(this)
+                .setTitle("Export Successful")
+                .setMessage("CSV file saved to: " + filePath)
+                .setPositiveButton("Share", (dialog, which) -> {
+                    CsvExporter.shareCSV(fileUri, this);
+                })
+                .setNegativeButton("Close", null)
+                .show();
     }
 
     private void updateEventPoster(Uri imageUri) {

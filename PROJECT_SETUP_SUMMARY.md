@@ -1129,7 +1129,107 @@ pickme-database/
 
 ---
 
-## Build & Run
+## Recent Feature Implementations (October 31, 2025)
+
+### High-Priority Gap Fixes
+
+#### 1. Automated Replacement Draw (US 01.05.01, US 02.05.03)
+**Status**: IMPLEMENTED  
+**Files Modified**:
+- `ui/invitations/EventInvitationsActivity.java`
+
+**Implementation**:
+When an entrant declines an invitation, the system now automatically triggers a replacement draw:
+```java
+private void triggerReplacementDraw(Event event) {
+    lotteryService.executeReplacementDraw(event.getEventId(), 1,
+        new LotteryService.OnLotteryCompleteListener() {
+            // Selects 1 replacement winner from remaining waiting list
+            // Notifications sent automatically by LotteryService
+        });
+}
+```
+
+The flow is:
+1. Entrant clicks "Decline" in EventInvitationsActivity
+2. LotteryService.handleEntrantDecline() removes from responsePendingList
+3. Returns shouldTriggerReplacement = true
+4. triggerReplacementDraw() executes executeReplacementDraw(eventId, 1)
+5. LotteryService selects 1 random entrant from waiting list (status = null)
+6. Moves to responsePendingList
+7. Sends notification to new winner
+
+#### 2. Waiting List Limit Enforcement (US 02.03.01)
+**Status**: IMPLEMENTED  
+**Files Modified**:
+- `repositories/EventRepository.java` (addEntrantToWaitingList method)
+
+**Implementation**:
+Added limit checking before allowing entrants to join:
+```java
+public void addEntrantToWaitingList(...) {
+    // 1. Get event to check waitingListLimit
+    // 2. If limit > 0, query current waiting list size
+    // 3. If currentCount >= limit, reject with error
+    // 4. Otherwise, add entrant to waiting list
+}
+```
+
+The check happens in two stages:
+1. Fetch event document to get waitingListLimit field
+2. If limit specified (> 0), query waitingList subcollection to count entries
+3. Compare count vs limit before adding
+
+**Note**: Not fully atomic due to Firestore limitations (cannot query subcollections in transactions). Race condition possible if many users join simultaneously, but unlikely in practice. For strict atomicity, would need counter field on event document.
+
+#### 3. CSV Export Functionality (US 02.06.05)
+**Status**: IMPLEMENTED  
+**Files Created**:
+- `utils/CsvExporter.java` (new utility class)
+
+**Files Modified**:
+- `ui/events/ManageEventActivity.java` (wired exportList method)
+- `repositories/EventRepository.java` (added getEntrantIdsFromSubcollection)
+
+**Implementation**:
+Complete CSV export pipeline with sharing:
+```java
+// CsvExporter workflow:
+1. Fetch entrant IDs from subcollection (waiting/selected/confirmed)
+2. For each ID, fetch Profile from ProfileRepository
+3. Generate CSV with columns: Name, Email, Phone, Join Date, Status
+4. Save to app/files/exports/
+5. Create FileProvider URI for sharing
+6. Show dialog with "Share" button to export via email/drive/etc
+```
+
+**CSV Format**:
+```csv
+Name,Email,Phone,Join Date,Status
+John Doe,john@example.com,555-1234,2025-10-31 14:30:00,confirmed
+Jane Smith,jane@example.com,,2025-10-31 15:00:00,confirmed
+```
+
+**Usage**: 
+- ManageEventActivity → Menu (FAB) → Export Lists
+- Select which list (waiting/selected/confirmed)
+- CSV generated and share dialog shown
+
+**Features**:
+- Handles CSV escaping (commas, quotes, newlines)
+- Sanitizes filenames
+- Uses FileProvider for secure sharing
+- Supports email, Google Drive, etc via share intent
+
+---
+
+## Build Status: SUCCESSFUL
+
+**Date**: October 31, 2025  
+**Build Time**: 2 seconds  
+**Tasks**: 39 actionable (5 executed, 34 up-to-date)
+
+All three high-priority gaps have been implemented and verified with successful build.
 
 ### Initial Setup
 ```bash

@@ -226,6 +226,11 @@ public class EventInvitationsActivity extends AppCompatActivity {
                         if (invitationAdapter.getItemCount() == 0) {
                             showEmptyState(true);
                         }
+
+                        // Trigger replacement draw if needed
+                        if (shouldTriggerReplacement) {
+                            triggerReplacementDraw(event);
+                        }
                     }
 
                     @Override
@@ -234,6 +239,28 @@ public class EventInvitationsActivity extends AppCompatActivity {
                         Toast.makeText(EventInvitationsActivity.this,
                                 getString(R.string.decline_failed) + ": " + e.getMessage(),
                                 Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    /**
+     * Trigger replacement draw to fill the declined spot
+     */
+    private void triggerReplacementDraw(Event event) {
+        lotteryService.executeReplacementDraw(event.getEventId(), 1,
+                new LotteryService.OnLotteryCompleteListener() {
+                    @Override
+                    public void onLotteryComplete(LotteryService.LotteryResult result) {
+                        if (!result.winners.isEmpty()) {
+                            // Replacement winner selected - notification handled by service
+                            android.util.Log.d(TAG, "Replacement winner selected for event: " + event.getName());
+                        }
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        // Log but don't show error to user (background operation)
+                        android.util.Log.w(TAG, "Failed to execute replacement draw", e);
                     }
                 });
     }
