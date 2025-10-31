@@ -66,6 +66,7 @@
             android:name=".ui.profile.ProfileActivity"
             android:exported="false"
             android:label="@string/profile_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
             android:parentActivityName=".MainActivity" />
 
         <activity
@@ -79,13 +80,14 @@
             android:name=".ui.events.EventBrowserActivity"
             android:exported="false"
             android:label="@string/event_browser_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
             android:parentActivityName=".MainActivity" />
 
         <activity
             android:name=".ui.events.EventDetailsActivity"
             android:exported="false"
             android:label="@string/event_details_title"
-            android:theme="@style/Theme.PickMe"
+            android:theme="@style/Theme.PickMe.NoActionBar"
             android:parentActivityName=".ui.events.EventBrowserActivity" />
 
         <!-- Invitation & History Activities -->
@@ -93,12 +95,14 @@
             android:name=".ui.invitations.EventInvitationsActivity"
             android:exported="false"
             android:label="@string/invitations_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
             android:parentActivityName=".MainActivity" />
 
         <activity
             android:name=".ui.history.EventHistoryActivity"
             android:exported="false"
             android:label="@string/event_history_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
             android:parentActivityName=".MainActivity" />
 
     </application>

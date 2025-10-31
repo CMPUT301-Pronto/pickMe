@@ -13,11 +13,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.pickme.R;
 import com.example.pickme.models.Event;
 import com.example.pickme.repositories.EventRepository;
+import com.example.pickme.repositories.OnEventsWithMetadataLoadedListener;
 import com.example.pickme.services.DeviceAuthenticator;
 import com.example.pickme.services.LotteryService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * EventInvitationsActivity - Display and handle lottery invitations
@@ -110,16 +112,35 @@ public class EventInvitationsActivity extends AppCompatActivity {
     private void loadInvitations() {
         showLoading(true);
 
-        // TODO: Implement proper Firestore query for events where user is in responsePendingList
-        // For now, using placeholder with empty list
-        // Proper implementation requires adding query methods to EventRepository:
-        // - getEventsWhereEntrantInResponsePending(String userId, OnEventsLoadedListener listener)
+        // Query Firestore for events where user is in responsePendingList subcollection
+        eventRepository.getEventsWhereEntrantInResponsePending(currentUserId,
+                new OnEventsWithMetadataLoadedListener() {
+                    @Override
+                    public void onEventsLoaded(List<Event> events, Map<String, Object> metadata) {
+                        // Extract deadlines from metadata
+                        List<Long> deadlines = new ArrayList<>();
+                        for (Event event : events) {
+                            Object deadlineObj = metadata.get(event.getEventId() + "_deadline");
+                            if (deadlineObj instanceof Long) {
+                                deadlines.add((Long) deadlineObj);
+                            } else {
+                                // Default: 7 days from now if no deadline found
+                                deadlines.add(System.currentTimeMillis() + (7 * 24 * 60 * 60 * 1000L));
+                            }
+                        }
 
-        List<Event> invitations = new ArrayList<>();
-        List<Long> deadlines = new ArrayList<>();
+                        updateInvitationsList(events, deadlines);
+                    }
 
-        // Placeholder: Load would query Firestore for events where user is in responsePendingList subcollection
-        updateInvitationsList(invitations, deadlines);
+                    @Override
+                    public void onError(Exception e) {
+                        showLoading(false);
+                        Toast.makeText(EventInvitationsActivity.this,
+                                getString(R.string.error_occurred) + ": " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                        showEmptyState(true);
+                    }
+                });
     }
 
     /**

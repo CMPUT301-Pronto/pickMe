@@ -13,12 +13,14 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.example.pickme.R;
 import com.example.pickme.models.Event;
 import com.example.pickme.repositories.EventRepository;
+import com.example.pickme.repositories.OnEventsWithMetadataLoadedListener;
 import com.example.pickme.services.DeviceAuthenticator;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * EventHistoryActivity - Display user's event history
@@ -125,50 +127,94 @@ public class EventHistoryActivity extends AppCompatActivity {
         waitingFragment.showLoading(true);
         pastFragment.showLoading(true);
 
-        // Load all events and categorize them
+        // Track completion of all three queries
+        final boolean[] queriesComplete = {false, false, false};
+
+        // Query 1: Upcoming events (user in inEventList)
+        eventRepository.getEventsWhereEntrantInEventList(currentUserId,
+                new OnEventsWithMetadataLoadedListener() {
+                    @Override
+                    public void onEventsLoaded(List<Event> events, Map<String, Object> metadata) {
+                        // Filter out completed/cancelled events
+                        List<Event> upcomingEvents = new ArrayList<>();
+                        for (Event event : events) {
+                            if (!event.isCompleted() && !event.isCancelled()) {
+                                upcomingEvents.add(event);
+                            }
+                        }
+
+                        upcomingFragment.setEvents(upcomingEvents);
+                        upcomingFragment.showLoading(false);
+                        queriesComplete[0] = true;
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        upcomingFragment.setEvents(new ArrayList<>());
+                        upcomingFragment.showLoading(false);
+                        queriesComplete[0] = true;
+                        Toast.makeText(EventHistoryActivity.this,
+                                "Error loading upcoming events: " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+        // Query 2: Waiting list events (user in waitingList)
+        eventRepository.getEventsWhereEntrantInWaitingList(currentUserId,
+                new OnEventsWithMetadataLoadedListener() {
+                    @Override
+                    public void onEventsLoaded(List<Event> events, Map<String, Object> metadata) {
+                        // Filter out completed/cancelled events
+                        List<Event> waitingEvents = new ArrayList<>();
+                        for (Event event : events) {
+                            if (!event.isCompleted() && !event.isCancelled()) {
+                                waitingEvents.add(event);
+                            }
+                        }
+
+                        waitingFragment.setEvents(waitingEvents);
+                        waitingFragment.showLoading(false);
+                        queriesComplete[1] = true;
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        waitingFragment.setEvents(new ArrayList<>());
+                        waitingFragment.showLoading(false);
+                        queriesComplete[1] = true;
+                        Toast.makeText(EventHistoryActivity.this,
+                                "Error loading waiting list: " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+        // Query 3: Past events (completed or cancelled)
+        // Note: This requires additional logic - for now, load from all events
         eventRepository.getAllEvents(new EventRepository.OnEventsLoadedListener() {
             @Override
             public void onEventsLoaded(List<Event> allEvents) {
-                categorizeEvents(allEvents);
+                List<Event> pastEvents = new ArrayList<>();
+                for (Event event : allEvents) {
+                    if (event.isCompleted() || event.isCancelled()) {
+                        pastEvents.add(event);
+                    }
+                }
+
+                pastFragment.setEvents(pastEvents);
+                pastFragment.showLoading(false);
+                queriesComplete[2] = true;
             }
 
             @Override
             public void onError(Exception e) {
-                upcomingFragment.showLoading(false);
-                waitingFragment.showLoading(false);
+                pastFragment.setEvents(new ArrayList<>());
                 pastFragment.showLoading(false);
-
+                queriesComplete[2] = true;
                 Toast.makeText(EventHistoryActivity.this,
-                        getString(R.string.error_occurred) + ": " + e.getMessage(),
+                        "Error loading past events: " + e.getMessage(),
                         Toast.LENGTH_SHORT).show();
             }
         });
-    }
-
-    /**
-     * Categorize events into upcoming, waiting, and past
-     */
-    private void categorizeEvents(List<Event> allEvents) {
-        // TODO: Implement proper Firestore queries for event categorization
-        // Proper implementation requires adding query methods to EventRepository:
-        // - getEventsWhereEntrantInEventList(String userId, OnEventsLoadedListener listener)
-        // - getEventsWhereEntrantInWaitingList(String userId, OnEventsLoadedListener listener)
-
-        List<Event> upcomingEvents = new ArrayList<>();
-        List<Event> waitingEvents = new ArrayList<>();
-        List<Event> pastEvents = new ArrayList<>();
-
-        // Placeholder implementation - would query specific subcollections in production
-        // For now, just show empty lists
-
-        upcomingFragment.setEvents(upcomingEvents);
-        upcomingFragment.showLoading(false);
-
-        waitingFragment.setEvents(waitingEvents);
-        waitingFragment.showLoading(false);
-
-        pastFragment.setEvents(pastEvents);
-        pastFragment.showLoading(false);
     }
 
     @Override

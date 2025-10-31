@@ -343,9 +343,14 @@ public class InEventList implements Parcelable {
     
     protected InEventList(Parcel in) {
         eventId = in.readString();
-        entrantIds = new ArrayList<>();
-        in.readList(entrantIds, String.class.getClassLoader());
-        
+
+        // Read entrantIds list (avoiding deprecated readList)
+        int entrantIdsSize = in.readInt();
+        entrantIds = new ArrayList<>(entrantIdsSize);
+        for (int i = 0; i < entrantIdsSize; i++) {
+            entrantIds.add(in.readString());
+        }
+
         // Read geolocation data
         int geoSize = in.readInt();
         geolocationData = new HashMap<>();
@@ -394,8 +399,13 @@ public class InEventList implements Parcelable {
     @Override
     public void writeToParcel(@NonNull Parcel dest, int flags) {
         dest.writeString(eventId);
-        dest.writeList(entrantIds);
-        
+
+        // Write entrantIds list (avoiding deprecated writeList)
+        dest.writeInt(entrantIds.size());
+        for (String entrantId : entrantIds) {
+            dest.writeString(entrantId);
+        }
+
         // Write geolocation data
         dest.writeInt(geolocationData.size());
         for (Map.Entry<String, Geolocation> entry : geolocationData.entrySet()) {

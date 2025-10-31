@@ -1611,10 +1611,12 @@ event_posters/{posterId}
 - Ready for testing
 
 **Code Quality Improvements**:
-- ✅ Fixed deprecated Parcel.writeList() in Event.java (replaced with writeInt/writeLong loop)
-- ✅ Fixed deprecated Parcel.readList() in Event.java (replaced with readInt/readLong loop)
+- ✅ Fixed deprecated Parcel.writeList() in Event.java (replaced with writeInt/writeString loop)
+- ✅ Fixed deprecated Parcel.readList() in Event.java (replaced with readInt/readString loop)
+- ✅ Fixed deprecated Parcel.writeList() in InEventList.java (replaced with writeInt/writeString loop)
+- ✅ Fixed deprecated Parcel.readList() in InEventList.java (replaced with readInt/readString loop)
 - ✅ Improved type safety in Parcelable implementation
-- ✅ No deprecation warnings in compilation
+- ✅ **No deprecation warnings in compilation**
 
 **Integration Points**:
 - EventRepository (getEventsForEntrant, addEntrantToWaitingList, removeEntrantFromWaitingList, isEntrantInWaitingList)
@@ -1818,12 +1820,25 @@ event_posters/{posterId}
 - assembleDebug: SUCCESS (9s)
 - 39 tasks executed
 - All activities compile correctly
-- Ready for testing
+- ✅ **Collection group queries implemented**
+- Ready for testing with Firestore data
 
-**Placeholders & TODOs**:
-⚠️ **EventInvitationsActivity**: Needs Firestore query method `getEventsWhereEntrantInResponsePending()`
-⚠️ **EventHistoryActivity**: Needs Firestore query methods `getEventsWhereEntrantInEventList()` and `getEventsWhereEntrantInWaitingList()`
-⚠️ Currently shows empty lists - requires EventRepository enhancements for production use
+**Repository Enhancements** ✅:
+- ✅ Created `OnEventsWithMetadataLoadedListener` interface
+- ✅ Added `getEventsWhereEntrantInResponsePending()` method
+- ✅ Added `getEventsWhereEntrantInEventList()` method
+- ✅ Added `getEventsWhereEntrantInWaitingList()` method
+- ✅ All methods use Firestore collection group queries
+- ✅ Metadata extraction (deadlines, timestamps)
+- ✅ Parallel parent document fetching
+- ✅ Thread-safe result aggregation
+
+**UI Integration** ✅:
+- ✅ EventInvitationsActivity now loads real data
+- ✅ EventHistoryActivity now loads real data
+- ✅ Proper error handling with user feedback
+- ✅ Loading states during queries
+- ✅ Empty states when no data
 
 **Integration Points**:
 - LotteryService.handleEntrantAcceptance()

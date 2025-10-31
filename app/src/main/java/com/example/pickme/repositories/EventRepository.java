@@ -451,5 +451,245 @@ public class EventRepository extends BaseRepository {
         void onCheckComplete(boolean exists);
         void onError(Exception e);
     }
+
+    // ==================== Collection Group Queries ====================
+
+    /**
+     * Get all events where the specified user is in the responsePendingList subcollection.
+     * Uses Firestore collection group query for efficiency.
+     *
+     * @param userId the entrant's user ID
+     * @param listener callback with events and metadata (deadlines)
+     */
+    public void getEventsWhereEntrantInResponsePending(@NonNull String userId,
+                                                       @NonNull OnEventsWithMetadataLoadedListener listener) {
+        Log.d(TAG, "Querying events where entrant " + userId + " is in responsePendingList");
+
+        db.collectionGroup(SUBCOLLECTION_RESPONSE_PENDING)
+                .whereEqualTo("entrantId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot.isEmpty()) {
+                        Log.d(TAG, "No response pending invitations found for user " + userId);
+                        listener.onEventsLoaded(new ArrayList<>(), new HashMap<>());
+                        return;
+                    }
+
+                    Log.d(TAG, "Found " + querySnapshot.size() + " response pending entries");
+
+                    List<Event> events = new ArrayList<>();
+                    Map<String, Object> metadata = new HashMap<>();
+                    int[] remainingFetches = {querySnapshot.size()};
+
+                    for (DocumentSnapshot subDoc : querySnapshot.getDocuments()) {
+                        // Extract deadline from subcollection document
+                        Long deadline = subDoc.getLong("deadline");
+                        Long timestamp = subDoc.getLong("timestamp");
+
+                        // Get parent event reference
+                        String eventId = subDoc.getReference().getParent().getParent().getId();
+
+                        // Store metadata
+                        if (deadline != null) {
+                            metadata.put(eventId + "_deadline", deadline);
+                        } else if (timestamp != null) {
+                            // Fallback: calculate deadline as 7 days from timestamp
+                            metadata.put(eventId + "_deadline", timestamp + (7 * 24 * 60 * 60 * 1000L));
+                        }
+
+                        // Fetch parent event document
+                        subDoc.getReference().getParent().getParent().get()
+                                .addOnSuccessListener(eventDoc -> {
+                                    if (eventDoc.exists()) {
+                                        Event event = eventDoc.toObject(Event.class);
+                                        if (event != null) {
+                                            event.setEventId(eventDoc.getId());
+                                            synchronized (events) {
+                                                events.add(event);
+                                            }
+                                        }
+                                    }
+
+                                    // Check if all fetches complete
+                                    synchronized (remainingFetches) {
+                                        remainingFetches[0]--;
+                                        if (remainingFetches[0] == 0) {
+                                            Log.d(TAG, "Successfully loaded " + events.size() + " events with pending responses");
+                                            listener.onEventsLoaded(events, metadata);
+                                        }
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Error fetching parent event", e);
+                                    synchronized (remainingFetches) {
+                                        remainingFetches[0]--;
+                                        if (remainingFetches[0] == 0) {
+                                            listener.onEventsLoaded(events, metadata);
+                                        }
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error querying responsePendingList collection group", e);
+                    listener.onError(e);
+                });
+    }
+
+    /**
+     * Get all events where the specified user is in the inEventList subcollection (accepted invitations).
+     * Uses Firestore collection group query for efficiency.
+     *
+     * @param userId the entrant's user ID
+     * @param listener callback with events and metadata
+     */
+    public void getEventsWhereEntrantInEventList(@NonNull String userId,
+                                                 @NonNull OnEventsWithMetadataLoadedListener listener) {
+        Log.d(TAG, "Querying events where entrant " + userId + " is in inEventList");
+
+        db.collectionGroup(SUBCOLLECTION_IN_EVENT)
+                .whereEqualTo("entrantId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot.isEmpty()) {
+                        Log.d(TAG, "No accepted events found for user " + userId);
+                        listener.onEventsLoaded(new ArrayList<>(), new HashMap<>());
+                        return;
+                    }
+
+                    Log.d(TAG, "Found " + querySnapshot.size() + " accepted event entries");
+
+                    List<Event> events = new ArrayList<>();
+                    Map<String, Object> metadata = new HashMap<>();
+                    int[] remainingFetches = {querySnapshot.size()};
+
+                    for (DocumentSnapshot subDoc : querySnapshot.getDocuments()) {
+                        // Extract metadata from subcollection document
+                        Long acceptedAt = subDoc.getLong("acceptedAt");
+
+                        // Get parent event reference
+                        String eventId = subDoc.getReference().getParent().getParent().getId();
+
+                        // Store metadata
+                        if (acceptedAt != null) {
+                            metadata.put(eventId + "_acceptedAt", acceptedAt);
+                        }
+
+                        // Fetch parent event document
+                        subDoc.getReference().getParent().getParent().get()
+                                .addOnSuccessListener(eventDoc -> {
+                                    if (eventDoc.exists()) {
+                                        Event event = eventDoc.toObject(Event.class);
+                                        if (event != null) {
+                                            event.setEventId(eventDoc.getId());
+                                            synchronized (events) {
+                                                events.add(event);
+                                            }
+                                        }
+                                    }
+
+                                    // Check if all fetches complete
+                                    synchronized (remainingFetches) {
+                                        remainingFetches[0]--;
+                                        if (remainingFetches[0] == 0) {
+                                            Log.d(TAG, "Successfully loaded " + events.size() + " accepted events");
+                                            listener.onEventsLoaded(events, metadata);
+                                        }
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Error fetching parent event", e);
+                                    synchronized (remainingFetches) {
+                                        remainingFetches[0]--;
+                                        if (remainingFetches[0] == 0) {
+                                            listener.onEventsLoaded(events, metadata);
+                                        }
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error querying inEventList collection group", e);
+                    listener.onError(e);
+                });
+    }
+
+    /**
+     * Get all events where the specified user is in the waitingList subcollection.
+     * Uses Firestore collection group query for efficiency.
+     *
+     * @param userId the entrant's user ID
+     * @param listener callback with events and metadata (joined timestamps)
+     */
+    public void getEventsWhereEntrantInWaitingList(@NonNull String userId,
+                                                   @NonNull OnEventsWithMetadataLoadedListener listener) {
+        Log.d(TAG, "Querying events where entrant " + userId + " is in waitingList");
+
+        db.collectionGroup(SUBCOLLECTION_WAITING_LIST)
+                .whereEqualTo("entrantId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot.isEmpty()) {
+                        Log.d(TAG, "No waiting list entries found for user " + userId);
+                        listener.onEventsLoaded(new ArrayList<>(), new HashMap<>());
+                        return;
+                    }
+
+                    Log.d(TAG, "Found " + querySnapshot.size() + " waiting list entries");
+
+                    List<Event> events = new ArrayList<>();
+                    Map<String, Object> metadata = new HashMap<>();
+                    int[] remainingFetches = {querySnapshot.size()};
+
+                    for (DocumentSnapshot subDoc : querySnapshot.getDocuments()) {
+                        // Extract metadata from subcollection document
+                        Long joinedAt = subDoc.getLong("joinedAt");
+
+                        // Get parent event reference
+                        String eventId = subDoc.getReference().getParent().getParent().getId();
+
+                        // Store metadata
+                        if (joinedAt != null) {
+                            metadata.put(eventId + "_joinedAt", joinedAt);
+                        }
+
+                        // Fetch parent event document
+                        subDoc.getReference().getParent().getParent().get()
+                                .addOnSuccessListener(eventDoc -> {
+                                    if (eventDoc.exists()) {
+                                        Event event = eventDoc.toObject(Event.class);
+                                        if (event != null) {
+                                            event.setEventId(eventDoc.getId());
+                                            synchronized (events) {
+                                                events.add(event);
+                                            }
+                                        }
+                                    }
+
+                                    // Check if all fetches complete
+                                    synchronized (remainingFetches) {
+                                        remainingFetches[0]--;
+                                        if (remainingFetches[0] == 0) {
+                                            Log.d(TAG, "Successfully loaded " + events.size() + " waiting list events");
+                                            listener.onEventsLoaded(events, metadata);
+                                        }
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Error fetching parent event", e);
+                                    synchronized (remainingFetches) {
+                                        remainingFetches[0]--;
+                                        if (remainingFetches[0] == 0) {
+                                            listener.onEventsLoaded(events, metadata);
+                                        }
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error querying waitingList collection group", e);
+                    listener.onError(e);
+                });
+    }
 }
 

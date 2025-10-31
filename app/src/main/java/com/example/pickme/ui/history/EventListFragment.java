@@ -101,6 +101,14 @@ public class EventListFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(eventAdapter);
 
+        // If events were set before view was created, apply them now
+        if (events != null && !events.isEmpty()) {
+            eventAdapter.setEvents(events);
+            showEmptyState(false);
+        } else {
+            showEmptyState(true);
+        }
+
         eventAdapter.setOnEventClickListener(event -> {
             // Navigate to event details
             Intent intent = new Intent(getContext(), EventDetailsActivity.class);
@@ -131,20 +139,25 @@ public class EventListFragment extends Fragment {
      */
     public void setEvents(List<Event> events) {
         this.events = events;
-        eventAdapter.setEvents(events);
 
-        if (events.isEmpty()) {
-            showEmptyState(true);
-        } else {
-            showEmptyState(false);
+        // If adapter is not initialized yet, events will be set when view is created
+        if (eventAdapter != null) {
+            eventAdapter.setEvents(events);
+
+            if (events.isEmpty()) {
+                showEmptyState(true);
+            } else {
+                showEmptyState(false);
+            }
         }
+        // Otherwise, events are stored in this.events and will be used when adapter is created
     }
 
     /**
      * Show/hide loading indicator
      */
     public void showLoading(boolean show) {
-        if (progressBar != null) {
+        if (progressBar != null && recyclerView != null) {
             progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
             recyclerView.setVisibility(show ? View.GONE : View.VISIBLE);
         }
@@ -154,8 +167,10 @@ public class EventListFragment extends Fragment {
      * Show/hide empty state
      */
     private void showEmptyState(boolean show) {
-        emptyStateLayout.setVisibility(show ? View.VISIBLE : View.GONE);
-        recyclerView.setVisibility(show ? View.GONE : View.VISIBLE);
+        if (emptyStateLayout != null && recyclerView != null) {
+            emptyStateLayout.setVisibility(show ? View.VISIBLE : View.GONE);
+            recyclerView.setVisibility(show ? View.GONE : View.VISIBLE);
+        }
     }
 
     /**

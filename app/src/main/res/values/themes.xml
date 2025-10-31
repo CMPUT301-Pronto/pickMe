@@ -68,5 +68,11 @@
         <item name="thumbTint">@color/primary_pink</item>
         <item name="trackTint">@color/primary_pink_light</item>
     </style>
+
+    <!-- NoActionBar theme for activities with custom Toolbar -->
+    <style name="Theme.PickMe.NoActionBar" parent="Theme.PickMe">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
 </resources>
 
