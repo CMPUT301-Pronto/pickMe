@@ -7,8 +7,10 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Patterns;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -52,6 +54,7 @@ public class ProfileActivity extends AppCompatActivity {
     private TextInputEditText etEmail;
     private TextInputEditText etPhone;
     private SwitchMaterial switchNotifications;
+    private Spinner spinnerRole;
     private Button btnSave;
     private Button btnViewHistory;
     private Button btnDeleteAccount;
@@ -96,10 +99,22 @@ public class ProfileActivity extends AppCompatActivity {
         etEmail = findViewById(R.id.etEmail);
         etPhone = findViewById(R.id.etPhone);
         switchNotifications = findViewById(R.id.switchNotifications);
+        spinnerRole = findViewById(R.id.spinnerRole);
         btnSave = findViewById(R.id.btnSave);
         btnViewHistory = findViewById(R.id.btnViewHistory);
         btnDeleteAccount = findViewById(R.id.btnDeleteAccount);
         progressBar = findViewById(R.id.progressBar);
+
+        // Setup role spinner
+        String[] roles = {
+                getString(R.string.role_entrant),
+                getString(R.string.role_organizer),
+                getString(R.string.role_admin)
+        };
+        ArrayAdapter<String> roleAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, roles);
+        roleAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerRole.setAdapter(roleAdapter);
     }
 
     /**
@@ -183,6 +198,16 @@ public class ProfileActivity extends AppCompatActivity {
         etPhone.setText(profile.getPhoneNumber());
         switchNotifications.setChecked(profile.isNotificationEnabled());
 
+        // Set role spinner
+        String role = profile.getRole();
+        int rolePosition = 0; // Default to entrant
+        if (Profile.ROLE_ORGANIZER.equals(role)) {
+            rolePosition = 1;
+        } else if (Profile.ROLE_ADMIN.equals(role)) {
+            rolePosition = 2;
+        }
+        spinnerRole.setSelection(rolePosition);
+
         // Load profile image if available
         if (profile.getProfileImageUrl() != null && !profile.getProfileImageUrl().isEmpty()) {
             Glide.with(this)
@@ -209,6 +234,15 @@ public class ProfileActivity extends AppCompatActivity {
         String phone = etPhone.getText() != null ? etPhone.getText().toString().trim() : "";
         boolean notificationsEnabled = switchNotifications.isChecked();
 
+        // Get selected role
+        int rolePosition = spinnerRole.getSelectedItemPosition();
+        String role = Profile.ROLE_ENTRANT; // Default
+        if (rolePosition == 1) {
+            role = Profile.ROLE_ORGANIZER;
+        } else if (rolePosition == 2) {
+            role = Profile.ROLE_ADMIN;
+        }
+
         // Validate name (required)
         if (TextUtils.isEmpty(name)) {
             etName.setError(getString(R.string.error_name_required));
@@ -229,6 +263,7 @@ public class ProfileActivity extends AppCompatActivity {
         updates.put("email", email);
         updates.put("phoneNumber", phone);
         updates.put("notificationEnabled", notificationsEnabled);
+        updates.put("role", role);
 
         // TODO: If image was selected, upload to Storage and add profileImageUrl to updates
 

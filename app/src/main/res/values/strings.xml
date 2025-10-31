@@ -11,6 +11,11 @@
     <string name="profile_email">Email</string>
     <string name="profile_phone">Phone Number (Optional)</string>
     <string name="profile_notifications">Enable Notifications</string>
+    <string name="user_role">User Role</string>
+    <string name="role_hint">Select your role to access different features</string>
+    <string name="role_entrant">Entrant</string>
+    <string name="role_organizer">Organizer</string>
+    <string name="role_admin">Admin</string>
     <string name="profile_save">Save Changes</string>
     <string name="profile_view_history">View Event History</string>
     <string name="profile_delete_account">Delete Account</string>
@@ -254,4 +259,15 @@
     <!-- Map -->
     <string name="map_title">Entrant Locations</string>
     <string name="geolocation_not_enabled">Geolocation is not enabled for this event</string>
+
+    <!-- Main Navigation -->
+    <string name="entrant_features">Entrant Features</string>
+    <string name="organizer_features">Organizer Features</string>
+    <string name="my_profile">My Profile</string>
+    <string name="browse_events">Browse Events</string>
+    <string name="my_invitations">My Invitations</string>
+    <string name="event_history">Event History</string>
+    <string name="create_new_event">Create New Event</string>
+    <string name="my_events_dashboard">My Events Dashboard</string>
+    <string name="browse_all_events">Browse All Events</string>
 </resources>

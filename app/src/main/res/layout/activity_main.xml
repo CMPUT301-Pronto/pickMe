@@ -73,6 +73,25 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Role Badge -->
+    <TextView
+        android:id="@+id/tvRoleBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="ENTRANT"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_on_primary"
+        android:background="@drawable/badge_background"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="6dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/tvUserId"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:visibility="visible" />
+
     <!-- Content Card -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/contentCard"
@@ -92,64 +111,137 @@
             android:orientation="vertical"
             android:padding="24dp">
 
-            <!-- Section Title -->
-            <TextView
-                android:layout_width="wrap_content"
+            <!-- Entrant Section -->
+            <LinearLayout
+                android:id="@+id/entrantSection"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Phase 5: Entrant Features"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginBottom="16dp" />
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
 
-            <!-- Profile Button -->
-            <Button
-                android:id="@+id/btnProfile"
-                style="@style/Widget.PickMe.Button"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="My Profile"
-                android:drawableStart="@android:drawable/ic_menu_myplaces"
-                android:drawableTint="@color/text_on_primary"
-                android:layout_marginBottom="12dp" />
+                <!-- Section Title -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/entrant_features"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="16dp" />
 
-            <!-- Browse Events Button -->
-            <Button
-                android:id="@+id/btnBrowseEvents"
-                style="@style/Widget.PickMe.Button"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="Browse Events"
-                android:drawableStart="@android:drawable/ic_menu_search"
-                android:drawableTint="@color/text_on_primary"
-                android:layout_marginBottom="12dp" />
+                <!-- Profile Button -->
+                <Button
+                    android:id="@+id/btnProfile"
+                    style="@style/Widget.PickMe.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/my_profile"
+                    android:drawableStart="@android:drawable/ic_menu_myplaces"
+                    android:drawableTint="@color/text_on_primary"
+                    android:layout_marginBottom="12dp" />
 
-            <!-- Invitations Button -->
-            <Button
-                android:id="@+id/btnInvitations"
-                style="@style/Widget.PickMe.Button"
-                android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="My Invitations"
-                android:drawableStart="@android:drawable/ic_dialog_email"
-                android:drawableTint="@color/text_on_primary"
-                android:layout_marginBottom="12dp" />
+                <!-- Browse Events Button -->
+                <Button
+                    android:id="@+id/btnBrowseEvents"
+                    style="@style/Widget.PickMe.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/browse_events"
+                    android:drawableStart="@android:drawable/ic_menu_search"
+                    android:drawableTint="@color/text_on_primary"
+                    android:layout_marginBottom="12dp" />
 
-            <!-- Event History Button -->
-            <Button
-                android:id="@+id/btnHistory"
-                style="@style/Widget.PickMe.Button"
+                <!-- Invitations Button -->
+                <Button
+                    android:id="@+id/btnInvitations"
+                    style="@style/Widget.PickMe.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/my_invitations"
+                    android:drawableStart="@android:drawable/ic_dialog_email"
+                    android:drawableTint="@color/text_on_primary"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Event History Button -->
+                <Button
+                    android:id="@+id/btnHistory"
+                    style="@style/Widget.PickMe.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/event_history"
+                    android:drawableStart="@android:drawable/ic_menu_recent_history"
+                    android:drawableTint="@color/text_on_primary" />
+
+            </LinearLayout>
+
+            <!-- Organizer Section -->
+            <LinearLayout
+                android:id="@+id/organizerSection"
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:text="Event History"
-                android:drawableStart="@android:drawable/ic_menu_recent_history"
-                android:drawableTint="@color/text_on_primary" />
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="gone">
+
+                <!-- Section Title -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/organizer_features"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Organizer Profile Button -->
+                <Button
+                    android:id="@+id/btnOrganizerProfile"
+                    style="@style/Widget.PickMe.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/my_profile"
+                    android:drawableStart="@android:drawable/ic_menu_myplaces"
+                    android:drawableTint="@color/text_on_primary"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Create Event Button -->
+                <Button
+                    android:id="@+id/btnCreateEvent"
+                    style="@style/Widget.PickMe.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/create_new_event"
+                    android:drawableStart="@android:drawable/ic_menu_add"
+                    android:drawableTint="@color/text_on_primary"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- My Events Dashboard Button -->
+                <Button
+                    android:id="@+id/btnMyEvents"
+                    style="@style/Widget.PickMe.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/my_events_dashboard"
+                    android:drawableStart="@android:drawable/ic_menu_agenda"
+                    android:drawableTint="@color/text_on_primary"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Browse Events Button (Organizer) -->
+                <Button
+                    android:id="@+id/btnOrganizerBrowse"
+                    style="@style/Widget.PickMe.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="@string/browse_all_events"
+                    android:drawableStart="@android:drawable/ic_menu_search"
+                    android:drawableTint="@color/text_on_primary" />
+
+            </LinearLayout>
 
         </LinearLayout>
 
-    </com.google.android.material.card.MaterialCardView>
-
-    <!-- Loading Progress Bar -->
+    </com.google.android.material.card.MaterialCardView>    <!-- Loading Progress Bar -->
     <ProgressBar
         android:id="@+id/progressBar"
         style="?android:attr/progressBarStyle"

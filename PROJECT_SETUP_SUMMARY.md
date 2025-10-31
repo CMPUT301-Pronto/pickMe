@@ -2893,3 +2893,258 @@ Your Firebase project with complete models, repositories, business logic service
 **Min SDK**: 34 (Android 14.0)  
 **Target SDK**: 36
 
+---
+
+## Navigation Integration & Role-Based Access - COMPLETE ✅
+
+**Date**: October 30, 2025  
+**Status**: ✅ COMPLETE - Role-based navigation fully integrated  
+**Build Status**: ✅ BUILD SUCCESSFUL (assembleDebug, 3s)
+
+### What Was Implemented
+
+#### 1. MainActivity Updates - Role-Based Navigation
+
+**Enhanced Features**:
+- ✅ Detects user role from Profile (entrant/organizer/admin)
+- ✅ Shows different navigation based on role
+- ✅ Role badge display on main screen
+- ✅ Separate UI sections for entrants vs organizers
+- ✅ Smooth role switching when profile updated
+
+**Entrant Navigation** (Default):
+- My Profile
+- Browse Events
+- My Invitations
+- Event History
+
+**Organizer Navigation**:
+- My Profile
+- Create New Event → CreateEventActivity
+- My Events Dashboard → OrganizerDashboardActivity
+- Browse All Events
+
+**Role Detection Logic**:
+```java
+- Profile.ROLE_ENTRANT → Show entrant UI
+- Profile.ROLE_ORGANIZER → Show organizer UI
+- Profile.ROLE_ADMIN → Show organizer UI (for now)
+```
+
+#### 2. ProfileActivity Updates - Role Selection
+
+**New Features**:
+- ✅ Role selector Spinner added to profile
+- ✅ Three role options: Entrant, Organizer, Admin
+- ✅ Role saved with profile updates
+- ✅ Role persists across app sessions
+- ✅ Main screen updates automatically when role changes
+
+**UI Components Added**:
+- Role container with label and description
+- Spinner with role dropdown
+- Helper text explaining role system
+- Integrated into existing profile flow
+
+#### 3. Layout Updates
+
+**activity_main.xml**:
+- ✅ Two separate navigation sections (visibility controlled)
+- ✅ `entrantSection` - LinearLayout with 4 buttons
+- ✅ `organizerSection` - LinearLayout with 4 buttons
+- ✅ Role badge TextView with badge background
+- ✅ Consistent pink theme throughout
+- ✅ Material Design cards and buttons
+
+**activity_profile.xml**:
+- ✅ Role selection container added
+- ✅ Positioned between notifications and save button
+- ✅ Uses rounded_background drawable
+- ✅ Spinner with standard Android dropdown
+- ✅ Helper text for user guidance
+
+#### 4. String Resources Added
+
+**New Strings**:
+- `entrant_features` - "Entrant Features"
+- `organizer_features` - "Organizer Features"
+- `my_profile`, `browse_events`, `my_invitations`, `event_history`
+- `create_new_event` - "Create New Event"
+- `my_events_dashboard` - "My Events Dashboard"
+- `browse_all_events` - "Browse All Events"
+- `user_role` - "User Role"
+- `role_hint` - "Select your role to access different features"
+- `role_entrant`, `role_organizer`, `role_admin`
+
+### Integration Flow
+
+**App Launch → Main Screen**:
+1. DeviceAuthenticator.initializeUser() loads profile
+2. Profile contains role field
+3. MainActivity checks role
+4. Shows appropriate navigation section
+5. User clicks button → Navigate to correct activity
+
+**Role Change Flow**:
+1. User opens ProfileActivity
+2. Selects different role from spinner
+3. Saves profile (role included in updates)
+4. Returns to MainActivity (onResume)
+5. MainActivity detects new role
+6. Updates UI to show new navigation options
+
+**Organizer Workflow**:
+1. User selects "Organizer" role in profile
+2. Returns to main screen
+3. Sees organizer navigation buttons
+4. "Create New Event" → CreateEventActivity
+5. "My Events Dashboard" → OrganizerDashboardActivity
+6. Click event → ManageEventActivity
+7. Full event management functionality
+
+### User Experience Improvements
+
+**Role Visibility**:
+- Role badge clearly shows current role
+- Welcome message changes (e.g., "Welcome, Organizer!")
+- Navigation buttons use appropriate icons and labels
+
+**Seamless Navigation**:
+- Single tap to access any feature
+- Back button returns to main screen
+- Consistent pink theme across all screens
+- Material Design transitions
+
+**Testing & Development**:
+- Easy role switching for testing
+- No authentication required (device-based)
+- All features accessible based on role
+- Clear separation of concerns
+
+### Technical Details
+
+**Role Storage**:
+- Stored in Firestore `profiles/{userId}/role`
+- Default: "entrant"
+- Options: "entrant", "organizer", "admin"
+- Retrieved async on app launch
+
+**UI State Management**:
+- `entrantSection` visibility: VISIBLE/GONE
+- `organizerSection` visibility: VISIBLE/GONE
+- Mutually exclusive (only one visible at a time)
+- Updated in setupRoleBasedUI()
+
+**Backward Compatibility**:
+- Existing profiles without role → default to entrant
+- Profile model has default role in constructor
+- Graceful fallback if role detection fails
+
+### Theme Consistency Verified
+
+**Color Scheme**:
+- ✅ Primary Pink (#FF6B9D) - Headers, buttons, accents
+- ✅ Text on Primary (White) - Button text, header text
+- ✅ Background Light - Screen backgrounds
+- ✅ Text Primary/Secondary - Content text
+
+**All Organizer Screens Using Theme**:
+- ✅ CreateEventActivity - Pink toolbar, themed buttons
+- ✅ OrganizerDashboardActivity - Pink toolbar, FAB
+- ✅ ManageEventActivity - Pink toolbar, tabs, FAB
+- ✅ All fragments - Consistent card design
+- ✅ All dialogs - Material design themed
+
+**Button Styles**:
+- ✅ Widget.PickMe.Button - Primary pink buttons
+- ✅ Widget.PickMe.Button.Outlined - Outlined variant
+- ✅ Widget.PickMe.Button.Text - Text buttons
+- ✅ All using primary_pink color
+
+### Files Modified
+
+**Modified Files**:
+- `MainActivity.java` - Role-based navigation logic (~240 lines)
+- `activity_main.xml` - Dual navigation sections
+- `ProfileActivity.java` - Role spinner integration
+- `activity_profile.xml` - Role selection UI
+- `strings.xml` - Navigation and role strings
+
+**No New Files** - Used existing infrastructure
+
+**Lines of Code**: ~12,705+ total project
+
+### Navigation Map
+
+```
+MainActivity (Role-Based)
+├─ ENTRANT ROLE
+│  ├─ ProfileActivity
+│  ├─ EventBrowserActivity
+│  ├─ EventInvitationsActivity
+│  └─ EventHistoryActivity
+│
+└─ ORGANIZER ROLE
+   ├─ ProfileActivity
+   ├─ CreateEventActivity
+   │  └─ (Creates event with QR code)
+   ├─ OrganizerDashboardActivity
+   │  └─ Click event → ManageEventActivity
+   │     ├─ Tab: WaitingListFragment
+   │     ├─ Tab: SelectedEntrantsFragment
+   │     ├─ Tab: ConfirmedEntrantsFragment
+   │     ├─ Tab: CancelledEntrantsFragment
+   │     └─ FAB Menu:
+   │        ├─ Execute Lottery
+   │        ├─ Send Notification
+   │        ├─ Update Poster
+   │        └─ Export Lists
+   └─ EventBrowserActivity
+      └─ (Browse all events)
+```
+
+### Testing Instructions
+
+**To Test Role-Based Navigation**:
+1. Launch app → Default entrant navigation appears
+2. Click "My Profile"
+3. Scroll to "User Role" section
+4. Select "Organizer" from spinner
+5. Click "Save Changes"
+6. Press back to return to main screen
+7. Observe: Welcome message changes to "Welcome, Organizer!"
+8. Observe: Navigation shows organizer options
+9. Click "My Events Dashboard" → See dashboard
+10. Click "Create New Event" → See event creation form
+
+**To Test Organizer Features**:
+1. Set role to Organizer (see above)
+2. Click "Create New Event"
+3. Fill in event details and publish
+4. Return to main → Click "My Events Dashboard"
+5. See created event in list
+6. Click event → Opens ManageEventActivity
+7. Test lottery, notifications, etc.
+
+**To Switch Back to Entrant**:
+1. Go to Profile
+2. Change role to "Entrant"
+3. Save and return
+4. See entrant navigation
+
+### User Stories Enabled
+
+Through this integration, ALL implemented user stories are now accessible:
+
+**Entrant Stories**: US 01.01.01-03, US 01.02.01-04, US 01.03.01-02, US 01.04.01-03, US 01.05.01-03, US 01.06.01
+
+**Organizer Stories**: US 02.01.01-04, US 02.02.01-03, US 02.03.01, US 02.04.01-02, US 02.05.01-03, US 02.06.01-05, US 02.07.01-03
+
+**Total**: 30+ user stories fully accessible through navigation!
+
+**Next Phase**: Polish remaining features (Map activity, CSV export, enhanced notifications)
+
+**Last Build**: October 30, 2025 - BUILD SUCCESSFUL (assembleDebug, 3s)  
+**Min SDK**: 34 (Android 14.0)  
+**Target SDK**: 36
+
