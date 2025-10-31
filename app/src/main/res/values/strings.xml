@@ -185,4 +185,73 @@
     <string name="selected_label">Selected</string>
     <string name="enrolled_label">Enrolled</string>
     <string name="manage_event">Manage Event</string>
+
+    <!-- Manage Event Strings -->
+    <string name="manage_event_title">Manage Event</string>
+    <string name="manage_actions">Manage Actions</string>
+    <string name="tab_waiting_list">Waiting List</string>
+    <string name="tab_selected">Selected</string>
+    <string name="tab_confirmed">Confirmed</string>
+    <string name="tab_cancelled">Cancelled</string>
+    <string name="no_entrants">No entrants</string>
+    <string name="view_map">View Entrants on Map</string>
+
+    <!-- Entrant Status -->
+    <string name="pending_status">Pending</string>
+    <string name="accepted_status">Accepted</string>
+    <string name="declined_status">Declined</string>
+    <string name="cancelled_status">Cancelled</string>
+
+    <!-- Lottery Draw -->
+    <string name="execute_lottery_title">Execute Lottery Draw</string>
+    <string name="execute_lottery_message">Enter the number of winners to select from the waiting list:</string>
+    <string name="number_of_winners">Number of Winners</string>
+    <string name="execute_lottery_button">Draw Winners</string>
+    <string name="lottery_executing">Executing lottery draw…</string>
+    <string name="lottery_success">Lottery draw completed! %d winners selected.</string>
+    <string name="lottery_failed">Failed to execute lottery draw</string>
+    <string name="lottery_no_entrants">No entrants in waiting list</string>
+    <string name="lottery_insufficient">Not enough entrants for this draw</string>
+    <string name="lottery_invalid_number">Please enter a valid number</string>
+
+    <!-- Send Notification -->
+    <string name="send_notification_title">Send Notification</string>
+    <string name="notification_message">Notification Message</string>
+    <string name="notification_recipient_group">Send to:</string>
+    <string name="recipients_all">All Entrants</string>
+    <string name="recipients_waiting">Waiting List</string>
+    <string name="recipients_selected">Selected Only</string>
+    <string name="recipients_confirmed">Confirmed Only</string>
+    <string name="send_notification_button">Send</string>
+    <string name="notification_sending">Sending notifications…</string>
+    <string name="notification_sent">Notifications sent successfully</string>
+    <string name="notification_failed">Failed to send notifications</string>
+    <string name="notification_message_required">Please enter a message</string>
+
+    <!-- Update Poster -->
+    <string name="update_poster_title">Update Event Poster</string>
+    <string name="poster_updated">Event poster updated successfully</string>
+    <string name="poster_update_failed">Failed to update poster</string>
+
+    <!-- Export CSV -->
+    <string name="export_csv_title">Export List</string>
+    <string name="export_csv_message">Export entrant list to CSV file:</string>
+    <string name="export_waiting_list">Waiting List</string>
+    <string name="export_selected_list">Selected List</string>
+    <string name="export_confirmed_list">Confirmed List</string>
+    <string name="export_button">Export</string>
+    <string name="exporting">Exporting…</string>
+    <string name="export_success">List exported to: %s</string>
+    <string name="export_failed">Failed to export list</string>
+
+    <!-- Cancel Entrant -->
+    <string name="cancel_entrant_title">Cancel Entrant</string>
+    <string name="cancel_entrant_message">Are you sure you want to cancel this entrant? This will trigger a replacement draw if available.</string>
+    <string name="cancel_entrant_button">Cancel Entrant</string>
+    <string name="entrant_cancelled">Entrant cancelled successfully</string>
+    <string name="cancel_entrant_failed">Failed to cancel entrant</string>
+
+    <!-- Map -->
+    <string name="map_title">Entrant Locations</string>
+    <string name="geolocation_not_enabled">Geolocation is not enabled for this event</string>
 </resources>

@@ -107,8 +107,10 @@ public class OrganizerDashboardActivity extends AppCompatActivity {
 
         // Set click listener for events
         eventAdapter.setOnEventClickListener(event -> {
-            // TODO: Navigate to ManageEventActivity when implemented
-            Toast.makeText(this, "Manage: " + event.getName(), Toast.LENGTH_SHORT).show();
+            // Navigate to ManageEventActivity
+            Intent intent = new Intent(this, ManageEventActivity.class);
+            intent.putExtra(ManageEventActivity.EXTRA_EVENT_ID, event.getEventId());
+            startActivity(intent);
         });
     }
 

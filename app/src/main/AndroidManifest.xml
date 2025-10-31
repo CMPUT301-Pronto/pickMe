@@ -104,6 +104,13 @@
             android:theme="@style/Theme.PickMe.NoActionBar"
             android:parentActivityName=".MainActivity" />
 
+        <activity
+            android:name=".ui.events.ManageEventActivity"
+            android:exported="false"
+            android:label="@string/manage_event_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".ui.events.OrganizerDashboardActivity" />
+
         <!-- Invitation & History Activities -->
         <activity
             android:name=".ui.invitations.EventInvitationsActivity"
