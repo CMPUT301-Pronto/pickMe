@@ -6,6 +6,7 @@
     <color name="primary_pink_dark">#E56B68</color>
     <color name="primary_pink_light">#F5B5B3</color>
 
+
     <!-- Shadow and Background -->
     <color name="element_shadow">#F5F4F4</color>
     <color name="background_light">#FFFFFF</color>

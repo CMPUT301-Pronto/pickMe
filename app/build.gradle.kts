@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)
+    implementation(libs.firebase.common)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
@@ -84,4 +85,6 @@ dependencies {
 
     // CircleImageView for rounded profile images
     implementation("de.hdodenhof:circleimageview:3.1.0")
+    // Material UI Elements
+    implementation("com.google.android.material:material:1.12.0")
 }
