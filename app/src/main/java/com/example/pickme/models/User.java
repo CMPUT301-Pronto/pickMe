@@ -45,6 +45,12 @@ public class User {
     private long createdAt;
     private String role;
 
+    // password security
+    private String passwordHash; // base64-encoded PBKDF hash
+    private String passwordSalt; // base64-encoded random salt
+    private String passwordAlgo;
+
+
     /**
      * Default constructor required for Firestore deserialization
      * Firestore uses reflection to create objects from documents
@@ -57,10 +63,13 @@ public class User {
      * Constructor with all fields
      */
     public User(String userId, String name, String email, String profileImageUrl,
-                String phoneNumber, String deviceId, long createdAt, String role) {
+                String phoneNumber, String deviceId, long createdAt, String role, String passwordHash, String passwordSalt, String passwordAlgo) {
         this.userId = userId;
         this.name = name;
         this.email = email;
+        this.passwordHash = passwordHash;
+        this.passwordSalt = passwordSalt;
+        this.passwordAlgo = passwordAlgo;
         this.profileImageUrl = profileImageUrl;
         this.phoneNumber = phoneNumber;
         this.deviceId = deviceId;
@@ -105,6 +114,15 @@ public class User {
     public void setEmail(String email) {
         this.email = email;
     }
+
+
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public String getPasswordSalt() { return passwordSalt; }
+    public void setPasswordSalt(String passwordSalt) { this.passwordSalt = passwordSalt; }
+
+    public String getPasswordAlgo() { return passwordAlgo; }
+    public void setPasswordAlgo(String passwordAlgo) { this.passwordAlgo = passwordAlgo; }
 
     public String getProfileImageUrl() {
         return profileImageUrl;
@@ -162,6 +180,10 @@ public class User {
         map.put("deviceId", deviceId);
         map.put("createdAt", createdAt);
         map.put("role", role);
+        // security fields
+        map.put("passwordHash", passwordHash);
+        map.put("passwordSalt", passwordSalt);
+        map.put("passwordAlgo", passwordAlgo);
         return map;
     }
 
