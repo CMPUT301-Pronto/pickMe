@@ -137,7 +137,7 @@ public class PickMeApplication extends Application {
      * Called when the overall system is running low on memory.
      * This is a good opportunity to release caches or other unnecessary resources.
      *
-     * @param level The context of the trim (TRIM_MEMORY_* constants)
+     * @paramlevel The context of the trim (TRIM_MEMORY_* constants)
      */
     @Override
     public void onLowMemory() {
