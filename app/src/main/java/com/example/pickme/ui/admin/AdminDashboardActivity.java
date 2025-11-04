@@ -137,8 +137,13 @@ public class AdminDashboardActivity extends AppCompatActivity {
         });
 
         btnRemoveOrganizer.setOnClickListener(v -> {
-            Toast.makeText(this, "Remove Organizer - Coming soon", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, RemoveOrganizerActivity.class);
+            startActivity(intent);
         });
+
+//        btnRemoveOrganizer.setOnClickListener(v -> {
+//            Toast.makeText(this, "Remove Organizer - Coming soon", Toast.LENGTH_SHORT).show();
+//        });
     }
 
     @Override

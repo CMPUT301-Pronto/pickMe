@@ -158,6 +158,20 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <!-- Admin Remove Organizer screens -->
+        <activity
+            android:name=".ui.admin.AdminRemoveOrganizer"
+            android:exported="false"
+            android:label="Admin - Remove Organizer"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".ui.admin.AdminDashboardActivity" />
+
+        <activity
+            android:name=".ui.admin.RemoveOrganizerActivity"
+            android:exported="false"
+            android:label="Remove Organizer"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".ui.admin.AdminRemoveOrganizer" />
 
     </application>
 
