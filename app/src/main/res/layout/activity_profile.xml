@@ -216,6 +216,13 @@
                 android:background="@drawable/rounded_background"
                 android:padding="12dp" />
 
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switchBiometric"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="false"
+                android:text="Enable biometric login" />
+
         </LinearLayout>
 
         <!-- Save Button -->

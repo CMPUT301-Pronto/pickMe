@@ -87,4 +87,6 @@ dependencies {
     implementation("de.hdodenhof:circleimageview:3.1.0")
     // Material UI Elements
     implementation("com.google.android.material:material:1.12.0")
+    // Biometric authenitcation for device-based authentication
+    implementation("androidx.biometric:biometric:1.1.0")
 }

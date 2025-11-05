@@ -27,6 +27,12 @@ import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.HashMap;
 import java.util.Map;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
+import com.example.pickme.utils.BioAuthUtil;
+import com.example.pickme.utils.BioPrefsUtil;
+import com.example.pickme.services.DeviceAuthenticator;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -63,9 +69,11 @@ public class ProfileActivity extends AppCompatActivity {
     // Data
     private ProfileRepository profileRepository;
     private DeviceAuthenticator deviceAuthenticator;
+    private SwitchMaterial switchBiometric;
     private Profile currentProfile;
     private String userId;
     private Uri selectedImageUri;
+
 
     // Image picker
     private ActivityResultLauncher<String> imagePickerLauncher;
@@ -87,6 +95,13 @@ public class ProfileActivity extends AppCompatActivity {
         setupImagePicker();
         setupListeners();
         loadProfile();
+        switchBiometric = findViewById(R.id.switchBiometric);
+        switchBiometric.setChecked(BioPrefsUtil.isEnabled(this));
+
+        switchBiometric.setOnCheckedChangeListener((btn, enabled) -> {
+            if (enabled) enableBiometricFlow();
+            else BioPrefsUtil.disable(getApplicationContext());
+        });
     }
 
     /**
@@ -347,6 +362,62 @@ public class ProfileActivity extends AppCompatActivity {
                     }
                 }
         );
+    }
+    private void enableBiometricFlow() {
+        int can = BiometricManager.from(this)
+                .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
+        if (can != BiometricManager.BIOMETRIC_SUCCESS) {
+            switchBiometric.setChecked(false);
+            // optionally show a toast that biometrics not enrolled/available
+            return;
+        }
+
+        try {
+            BioAuthUtil.ensureKeyExists();
+            final javax.crypto.Cipher enc = BioAuthUtil.getEncryptCipher();
+
+            BiometricPrompt.PromptInfo info = new BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("Enable biometric login")
+                    .setSubtitle("Authenticate to secure your login")
+                    .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+                    .setConfirmationRequired(false)
+                    .build();
+
+            BiometricPrompt prompt = new BiometricPrompt(
+                    this,
+                    ContextCompat.getMainExecutor(this),
+                    new BiometricPrompt.AuthenticationCallback() {
+                        @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                            try {
+                                // Use a tiny token; device/user id is perfect
+                                String token = DeviceAuthenticator.getInstance(ProfileActivity.this).getStoredUserId();
+                                if (token == null) token = "OK";
+
+                                javax.crypto.Cipher c = result.getCryptoObject().getCipher();
+                                byte[] blob = c.doFinal(token.getBytes());
+                                byte[] iv = c.getIV();
+                                BioPrefsUtil.save(getApplicationContext(), true, iv, blob);
+                                switchBiometric.setChecked(true);
+                            } catch (Exception e) {
+                                BioPrefsUtil.disable(getApplicationContext());
+                                switchBiometric.setChecked(false);
+                            }
+                        }
+                        @Override public void onAuthenticationError(int code, CharSequence err) {
+                            BioPrefsUtil.disable(getApplicationContext());
+                            switchBiometric.setChecked(false);
+                        }
+                        @Override public void onAuthenticationFailed() {
+                            // do nothing; prompt stays
+                        }
+                    });
+
+            prompt.authenticate(info, new BiometricPrompt.CryptoObject(enc));
+
+        } catch (Exception e) {
+            BioPrefsUtil.disable(this);
+            switchBiometric.setChecked(false);
+        }
     }
 
     /**
