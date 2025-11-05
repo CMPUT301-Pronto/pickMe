@@ -36,6 +36,9 @@ public class Profile implements Parcelable {
     private String userId; // Device ID or Firebase Auth UID
     private String name;
     private String email;
+    private String passwordHash;
+    private String passwordSalt;
+    private String passwordAlgo;
     private String phoneNumber; // Optional
     private boolean notificationEnabled;
     private List<EventHistoryItem> eventHistory;
@@ -106,10 +109,14 @@ public class Profile implements Parcelable {
     public void setEmail(String email) {
         this.email = email;
     }
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String v) { this.passwordHash = v; }
 
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
+    public String getPasswordSalt() { return passwordSalt; }
+    public void setPasswordSalt(String v) { this.passwordSalt = v; }
+
+    public String getPasswordAlgo() { return passwordAlgo; }
+    public void setPasswordAlgo(String v) { this.passwordAlgo = v; }
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
@@ -232,6 +239,9 @@ public class Profile implements Parcelable {
         map.put("userId", userId);
         map.put("name", name);
         map.put("email", email);
+        map.put("passwordHash", passwordHash);
+        map.put("passwordSalt", passwordSalt);
+        map.put("passwordAlgo", passwordAlgo);
         map.put("phoneNumber", phoneNumber);
         map.put("notificationEnabled", notificationEnabled);
         map.put("role", role);
