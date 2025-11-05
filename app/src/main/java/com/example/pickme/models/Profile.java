@@ -35,11 +35,11 @@ public class Profile implements Parcelable {
 
     private String userId; // Device ID or Firebase Auth UID
     private String name;
+    private String phoneNumber;
     private String email;
     private String passwordHash;
     private String passwordSalt;
     private String passwordAlgo;
-    private String phoneNumber; // Optional
     private boolean notificationEnabled;
     private List<EventHistoryItem> eventHistory;
     private String profileImageUrl;
@@ -117,6 +117,10 @@ public class Profile implements Parcelable {
 
     public String getPasswordAlgo() { return passwordAlgo; }
     public void setPasswordAlgo(String v) { this.passwordAlgo = v; }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
@@ -272,6 +276,7 @@ public class Profile implements Parcelable {
                 ", email='" + email + '\'' +
                 ", notificationEnabled=" + notificationEnabled +
                 ", eventCount=" + getEventCount() +
+                ", phoneNumber='" + phoneNumber + '\'' +
                 '}';
     }
 
