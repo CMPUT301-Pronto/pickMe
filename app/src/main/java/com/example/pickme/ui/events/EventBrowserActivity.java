@@ -127,7 +127,7 @@ public class EventBrowserActivity extends AppCompatActivity {
      * Setup RecyclerView with adapter
      */
     private void setupRecyclerView() {
-        eventAdapter = new EventAdapter();
+        eventAdapter = new EventAdapter(0);
         recyclerViewEvents.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewEvents.setAdapter(eventAdapter);
 

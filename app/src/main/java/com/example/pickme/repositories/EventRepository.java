@@ -48,7 +48,7 @@ public class EventRepository extends BaseRepository {
     private static final String SUBCOLLECTION_WAITING_LIST = "waitingList";
     private static final String SUBCOLLECTION_RESPONSE_PENDING = "responsePendingList";
     private static final String SUBCOLLECTION_IN_EVENT = "inEventList";
-
+    private static final String SUBCOLLECTION_CANCELLED = "cancelledList";
     private FirebaseFirestore db;
 
     /**
@@ -552,6 +552,11 @@ public class EventRepository extends BaseRepository {
         void onError(Exception e);
     }
 
+    public interface OnEventsWithMetadataLoadedListener {
+        void onEventsLoaded(List<Event> events, Map<String, Object> metadata);
+        void onError(Exception e);
+    }
+
     // ==================== Collection Group Queries ====================
 
     /**
@@ -788,6 +793,75 @@ public class EventRepository extends BaseRepository {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error querying waitingList collection group", e);
+                    listener.onError(e);
+                });
+    }
+    /**
+     * Get all events where user has declined invitation (in cancelledList)
+     */
+    public void getEventsWhereEntrantDeclined(@NonNull String userId,
+                                              @NonNull OnEventsWithMetadataLoadedListener listener) {
+        Log.d(TAG, "Querying events where entrant " + userId + " declined invitation");
+
+        db.collectionGroup("cancelledList")
+                .whereEqualTo("entrantId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (querySnapshot.isEmpty()) {
+                        Log.d(TAG, "No declined events found for user " + userId);
+                        listener.onEventsLoaded(new ArrayList<>(), new HashMap<>());
+                        return;
+                    }
+
+                    List<Event> events = new ArrayList<>();
+                    Map<String, Object> metadata = new HashMap<>();
+                    int[] remainingFetches = {querySnapshot.size()};
+
+                    for (DocumentSnapshot subDoc : querySnapshot.getDocuments()) {
+                        // Extract metadata
+                        Long declinedAt = subDoc.getLong("declinedTimestamp");
+
+                        // Get parent event
+                        String eventId = subDoc.getReference().getParent().getParent().getId();
+
+                        if (declinedAt != null) {
+                            metadata.put(eventId + "_declinedAt", declinedAt);
+                        }
+
+                        // Fetch parent event document
+                        subDoc.getReference().getParent().getParent().get()
+                                .addOnSuccessListener(eventDoc -> {
+                                    if (eventDoc.exists()) {
+                                        Event event = eventDoc.toObject(Event.class);
+                                        if (event != null) {
+                                            event.setEventId(eventDoc.getId());
+                                            synchronized (events) {
+                                                events.add(event);
+                                            }
+                                        }
+                                    }
+
+                                    synchronized (remainingFetches) {
+                                        remainingFetches[0]--;
+                                        if (remainingFetches[0] == 0) {
+                                            Log.d(TAG, "Successfully loaded " + events.size() + " declined events");
+                                            listener.onEventsLoaded(events, metadata);
+                                        }
+                                    }
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "Error fetching parent event", e);
+                                    synchronized (remainingFetches) {
+                                        remainingFetches[0]--;
+                                        if (remainingFetches[0] == 0) {
+                                            listener.onEventsLoaded(events, metadata);
+                                        }
+                                    }
+                                });
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error querying cancelledList collection group", e);
                     listener.onError(e);
                 });
     }

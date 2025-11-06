@@ -29,14 +29,17 @@ import java.util.List;
  * - Upcoming events (accepted invitations)
  * - Waiting list events (currently joined)
  * - Past events (completed/cancelled)
+ * - Cancelled events (declined invitations)
  */
 public class EventListFragment extends Fragment {
 
     private static final String ARG_TAB_TYPE = "tab_type";
 
+    // Use consistent integer constants for all tab types
     public static final int TAB_UPCOMING = 0;
     public static final int TAB_WAITING = 1;
     public static final int TAB_PAST = 2;
+    public static final int TAB_CANCELLED = 3;  // CHANGED: Now an integer
 
     // UI Components
     private RecyclerView recyclerView;
@@ -97,7 +100,7 @@ public class EventListFragment extends Fragment {
      * Setup RecyclerView with adapter
      */
     private void setupRecyclerView() {
-        eventAdapter = new EventAdapter();
+        eventAdapter = new EventAdapter(0);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(eventAdapter);
 
@@ -113,6 +116,16 @@ public class EventListFragment extends Fragment {
             // Navigate to event details
             Intent intent = new Intent(getContext(), EventDetailsActivity.class);
             intent.putExtra("event_id", event.getEventId());
+
+            // Pass tab type to show appropriate status in details
+            intent.putExtra("tab_type", tabType);
+
+            // For cancelled tab, show as read-only (user already declined)
+            if (tabType == TAB_CANCELLED) {
+                intent.putExtra("status", "DECLINED");
+                intent.putExtra("read_only", true);
+            }
+
             startActivity(intent);
         });
     }
@@ -130,6 +143,12 @@ public class EventListFragment extends Fragment {
                 break;
             case TAB_PAST:
                 tvEmptyMessage.setText(R.string.no_past_events);
+                break;
+            case TAB_CANCELLED:
+                tvEmptyMessage.setText(R.string.no_declined_events);
+                break;
+            default:
+                tvEmptyMessage.setText(R.string.no_events);
                 break;
         }
     }
@@ -180,4 +199,3 @@ public class EventListFragment extends Fragment {
         return tabType;
     }
 }
-

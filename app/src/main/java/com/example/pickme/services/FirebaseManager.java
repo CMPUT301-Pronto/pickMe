@@ -1,5 +1,6 @@
 package com.example.pickme.services;
 
+import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -124,7 +125,7 @@ public class FirebaseManager {
             if (task.isSuccessful() && task.getResult() != null) {
                 String token = task.getResult();
                 Log.d(TAG, "FCM Token: " + token);
-                // TODO: Send token to your server or store in Firestore
+                storeFcmTokenIfPossible(token);
             } else {
                 Log.w(TAG, "Failed to get FCM token", task.getException());
             }
@@ -132,12 +133,30 @@ public class FirebaseManager {
 
         Log.d(TAG, "Firebase Cloud Messaging initialized");
     }
+    /** Try to store the FCM token if we already know the userId. Safe to call anytime. */
+    private void storeFcmTokenIfPossible(@NonNull String token) {
+        Context context = FirebaseApp.getInstance().getApplicationContext();
+        String userId = DeviceAuthenticator.getInstance(context).getStoredUserId();
 
-    /**
-     * Get Firestore instance for database operations
-     *
-     * @return FirebaseFirestore instance
-     */
+        if (userId == null || userId.isEmpty()) {
+            Log.d(TAG, "No userId yet; deferring FCM token store");
+            return;
+        }
+
+        new com.example.pickme.repositories.ProfileRepository().setFcmToken(userId, token);
+    }
+    public static void refreshAndStoreFcmToken() {
+        getInstance().messaging.getToken().addOnSuccessListener(token -> {
+            Log.d(TAG, "Refreshed FCM token: " + token);
+            getInstance().storeFcmTokenIfPossible(token);
+        });
+    }
+
+        /**
+         * Get Firestore instance for database operations
+         *
+         * @return FirebaseFirestore instance
+         */
     public static FirebaseFirestore getFirestore() {
         return getInstance().firestore;
     }

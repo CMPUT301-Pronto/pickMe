@@ -26,6 +26,11 @@ import com.google.firebase.FirebaseApp;
  * onCreate() → called when app process starts (before any Activity)
  */
 public class PickMeApplication extends Application {
+    private static PickMeApplication instance;
+
+    public static PickMeApplication getInstance() {
+        return instance;
+    }
 
     private static final String TAG = "PickMeApplication";
 
@@ -38,7 +43,7 @@ public class PickMeApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-
+        instance = this;
         Log.d(TAG, "Application starting - initializing Firebase");
 
         // Initialize Firebase

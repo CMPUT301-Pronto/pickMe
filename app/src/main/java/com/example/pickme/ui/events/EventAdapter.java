@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.pickme.R;
 import com.example.pickme.models.Event;
+import com.example.pickme.ui.history.EventListFragment;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -35,8 +36,10 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     private List<String> joinedEventIds; // Events user has joined
     private OnEventClickListener listener;
     private SimpleDateFormat dateFormat;
+    private int tabType;
 
-    public EventAdapter() {
+    public EventAdapter(int tabType) {
+        this.tabType = tabType;
         this.events = new ArrayList<>();
         this.joinedEventIds = new ArrayList<>();
         this.dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
@@ -76,7 +79,8 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     @Override
     public void onBindViewHolder(@NonNull EventViewHolder holder, int position) {
         Event event = events.get(position);
-        holder.bind(event);
+        holder.bind(event, tabType);
+
     }
 
     @Override
@@ -117,9 +121,17 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             });
         }
 
-        public void bind(Event event) {
+        public void bind(Event event, int tabType) {
             // Event name
             tvEventName.setText(event.getName());
+            if (tabType == EventListFragment.TAB_CANCELLED) {
+                // Show a status TextView or badge if you have one
+                if (tvEventName != null) {
+                    tvEventName.setVisibility(View.VISIBLE);
+                    tvEventName.setText("Declined");
+                    tvEventName.setTextColor(itemView.getContext().getColor(R.color.status_declined));
+                }
+            }
 
             // Event date
             if (event.getEventDates() != null && !event.getEventDates().isEmpty()) {
@@ -174,6 +186,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
                 tvEventPrice.setText(R.string.free_event);
             }
         }
+
     }
 
     /**

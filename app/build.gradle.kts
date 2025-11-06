@@ -89,4 +89,8 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     // Biometric authenitcation for device-based authentication
     implementation("androidx.biometric:biometric:1.1.0")
+    // Firebase messagining
+    implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
+    implementation("com.google.firebase:firebase-functions")
+
 }

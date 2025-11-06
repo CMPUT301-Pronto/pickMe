@@ -13,7 +13,6 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.example.pickme.R;
 import com.example.pickme.models.Event;
 import com.example.pickme.repositories.EventRepository;
-import com.example.pickme.repositories.OnEventsWithMetadataLoadedListener;
 import com.example.pickme.services.DeviceAuthenticator;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -25,12 +24,13 @@ import java.util.Map;
 /**
  * EventHistoryActivity - Display user's event history
  *
- * Shows three tabs:
+ * Shows four tabs:
  * 1. Upcoming Events - Accepted invitations (user in inEventList)
  * 2. Waiting Lists - Currently joined (user in waitingList)
  * 3. Past Events - Completed/cancelled events
+ * 4. Cancelled - Declined invitations (user in cancelledList)
  *
- * Related User Stories: US 01.02.03
+ * Related User Stories: US 01.02.03, US 01.05.03
  */
 public class EventHistoryActivity extends AppCompatActivity {
 
@@ -49,6 +49,7 @@ public class EventHistoryActivity extends AppCompatActivity {
     private EventListFragment upcomingFragment;
     private EventListFragment waitingFragment;
     private EventListFragment pastFragment;
+    private EventListFragment cancelledFragment; // NEW: For declined invitations
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,6 +91,8 @@ public class EventHistoryActivity extends AppCompatActivity {
         upcomingFragment = EventListFragment.newInstance(EventListFragment.TAB_UPCOMING);
         waitingFragment = EventListFragment.newInstance(EventListFragment.TAB_WAITING);
         pastFragment = EventListFragment.newInstance(EventListFragment.TAB_PAST);
+        cancelledFragment = EventListFragment.newInstance(EventListFragment.TAB_CANCELLED); // NEW
+        cancelledFragment = EventListFragment.newInstance(EventListFragment.TAB_CANCELLED);
     }
 
     /**
@@ -113,6 +116,9 @@ public class EventHistoryActivity extends AppCompatActivity {
                         case 2:
                             tab.setText(R.string.tab_past);
                             break;
+                        case 3: // NEW
+                            tab.setText(R.string.tab_cancelled);
+                            break;
                     }
                 }
         ).attach();
@@ -126,13 +132,14 @@ public class EventHistoryActivity extends AppCompatActivity {
         upcomingFragment.showLoading(true);
         waitingFragment.showLoading(true);
         pastFragment.showLoading(true);
+        cancelledFragment.showLoading(true); // NEW
 
-        // Track completion of all three queries
-        final boolean[] queriesComplete = {false, false, false};
+        // Track completion of all queries
+        final boolean[] queriesComplete = {false, false, false, false}; // Updated to 4
 
         // Query 1: Upcoming events (user in inEventList)
         eventRepository.getEventsWhereEntrantInEventList(currentUserId,
-                new OnEventsWithMetadataLoadedListener() {
+                new EventRepository.OnEventsWithMetadataLoadedListener() {
                     @Override
                     public void onEventsLoaded(List<Event> events, Map<String, Object> metadata) {
                         // Filter out completed/cancelled events
@@ -161,7 +168,7 @@ public class EventHistoryActivity extends AppCompatActivity {
 
         // Query 2: Waiting list events (user in waitingList)
         eventRepository.getEventsWhereEntrantInWaitingList(currentUserId,
-                new OnEventsWithMetadataLoadedListener() {
+                new EventRepository.OnEventsWithMetadataLoadedListener() {
                     @Override
                     public void onEventsLoaded(List<Event> events, Map<String, Object> metadata) {
                         // Filter out completed/cancelled events
@@ -189,7 +196,6 @@ public class EventHistoryActivity extends AppCompatActivity {
                 });
 
         // Query 3: Past events (completed or cancelled)
-        // Note: This requires additional logic - for now, load from all events
         eventRepository.getAllEvents(new EventRepository.OnEventsLoadedListener() {
             @Override
             public void onEventsLoaded(List<Event> allEvents) {
@@ -215,6 +221,35 @@ public class EventHistoryActivity extends AppCompatActivity {
                         Toast.LENGTH_SHORT).show();
             }
         });
+
+        // Query 4: Cancelled/Declined events (user in cancelledList) - NEW
+        eventRepository.getEventsWhereEntrantDeclined(currentUserId,
+                new EventRepository.OnEventsWithMetadataLoadedListener() {
+                    @Override
+                    public void onEventsLoaded(List<Event> events, Map<String, Object> metadata) {
+                        // These are events the user declined
+                        cancelledFragment.setEvents(events);
+                        cancelledFragment.showLoading(false);
+
+                        // Optionally, you can add metadata like when they declined
+                        for (Event event : events) {
+                            Object declinedAt = metadata.get(event.getEventId() + "_declinedAt");
+                            // You could pass this to the fragment if needed
+                        }
+
+                        queriesComplete[3] = true;
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        cancelledFragment.setEvents(new ArrayList<>());
+                        cancelledFragment.showLoading(false);
+                        queriesComplete[3] = true;
+                        Toast.makeText(EventHistoryActivity.this,
+                                "Error loading declined events: " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     @Override
@@ -242,6 +277,8 @@ public class EventHistoryActivity extends AppCompatActivity {
                     return waitingFragment;
                 case 2:
                     return pastFragment;
+                case 3: // NEW
+                    return cancelledFragment;
                 default:
                     return upcomingFragment;
             }
@@ -249,8 +286,7 @@ public class EventHistoryActivity extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
-            return 3;
+            return 4; // CHANGED from 3 to 4
         }
     }
 }
-

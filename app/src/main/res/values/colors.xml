@@ -22,6 +22,11 @@
     <color name="error_red">#F44336</color>
     <color name="success_green">#4CAF50</color>
     <color name="warning_orange">#FF9800</color>
+    <color name="status_cancelled">#E56B68</color>
+    <color name="status_accepted">#4CAF50</color>
+    <color name="status_declined">#F44336</color>
+
+
 
     <!-- Standard Colors -->
     <color name="black">#FF000000</color>

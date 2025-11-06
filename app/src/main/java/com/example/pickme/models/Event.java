@@ -50,7 +50,7 @@ public class Event implements Parcelable {
     private String qrCodeId;
     private String posterImageUrl;
     private String status; // Stored as String for Firebase, use EventStatus enum
-
+    private long invitationDeadlineMillis;
     /**
      * Default constructor required for Firebase deserialization
      */
@@ -310,6 +310,9 @@ public class Event implements Parcelable {
      *
      * @return Map representation of Event
      */
+
+    public long getInvitationDeadlineMillis() { return invitationDeadlineMillis; }
+    public void setInvitationDeadlineMillis(long v) { this.invitationDeadlineMillis = v; }
     public Map<String, Object> toMap() {
         Map<String, Object> map = new HashMap<>();
         map.put("eventId", eventId);

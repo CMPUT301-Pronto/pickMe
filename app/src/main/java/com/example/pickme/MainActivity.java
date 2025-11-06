@@ -342,4 +342,29 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleInviteIntent(intent);
+    }
+
+    @Override protected void onStart() {
+        super.onStart();
+        handleInviteIntent(getIntent());
+    }
+
+    private void handleInviteIntent(Intent i) {
+        if (i == null) return;
+        if (!"com.example.pickme.ACTION_OPEN_INVITATION".equals(i.getAction())) return;
+
+        String eventId = i.getStringExtra("eventId");
+        String invId   = i.getStringExtra("invitationId");
+        long deadline  = 0L;
+        try { deadline = Long.parseLong(i.getStringExtra("deadline")); } catch (Exception ignored) {}
+
+        com.example.pickme.ui.invitations.InvitationDialogFragment
+                .newInstance(eventId, invId, deadline)
+                .show(getSupportFragmentManager(), "invite");
+    }
 }

@@ -19,6 +19,8 @@
             app:title="@string/event_history_title"
             app:titleTextColor="@color/text_on_primary" />
 
+
+
         <com.google.android.material.tabs.TabLayout
             android:id="@+id/tabLayout"
             android:layout_width="match_parent"

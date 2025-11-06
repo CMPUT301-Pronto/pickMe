@@ -221,6 +221,13 @@ public class ProfileRepository extends BaseRepository {
                     listener.onError(e);
                 });
     }
+    public void setFcmToken(@NonNull String userId, @NonNull String token) {
+        FirebaseManager.getFirestore()
+                .collection("users").document(userId)
+                .update("fcmToken", token)
+                .addOnSuccessListener(v -> {})
+                .addOnFailureListener(e -> android.util.Log.w("ProfileRepository", "Failed to store FCM token", e));
+    }
 
     /**
      * Get a profile by user ID

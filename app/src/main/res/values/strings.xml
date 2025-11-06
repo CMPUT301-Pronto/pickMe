@@ -115,6 +115,11 @@
     <string name="decline_failed">Failed to decline invitation</string>
     <string name="confirm_decline_invitation">Are you sure you want to decline this invitation?</string>
     <string name="invitation_expired">This invitation has expired</string>
+    <string name="no_declined_events">No declined invitations</string>
+    <string name="no_events">No events to display</string>
+    <string name="invitation_body_with_deadline">You’ve been chosen from the waiting list. Please respond before %1$s.</string>
+    <string name="invitation_deadline_unknown">(no deadline)</string>
+    <string name="view_more">View</string>
 
     <!-- Event History Strings -->
     <string name="event_history_title">My Event History</string>
@@ -232,6 +237,9 @@
     <string name="notification_sent">Notifications sent successfully</string>
     <string name="notification_failed">Failed to send notifications</string>
     <string name="notification_message_required">Please enter a message</string>
+    <string name="invite_notification_body">You were selected for %1$s. Tap to respond.</string>
+    <string name="channel_invites_name">Invitations</string>
+    <string name="channel_invites_desc">Notifications when you’re selected from a waitlist</string>
 
     <!-- Update Poster -->
     <string name="update_poster_title">Update Event Poster</string>

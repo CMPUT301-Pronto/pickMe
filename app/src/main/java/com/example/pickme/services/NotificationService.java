@@ -13,6 +13,9 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.RemoteMessage;
 
+import com.google.firebase.functions.FirebaseFunctions;
+import com.google.firebase.functions.HttpsCallableResult;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -300,39 +303,7 @@ public class NotificationService {
      * Note: In production, use FCM HTTP API or Admin SDK for batch sending
      * This implementation shows the structure for notification payloads
      */
-    private void sendFCMMessages(@NonNull List<String> recipientIds,
-                                @NonNull String message,
-                                @NonNull Event event,
-                                @NonNull String notificationType,
-                                @NonNull OnNotificationSentListener listener) {
-        // Build FCM payload
-        Map<String, String> data = new HashMap<>();
-        data.put("type", notificationType);
-        data.put("eventId", event.getEventId());
-        data.put("eventName", event.getName());
-        data.put("message", message);
-        data.put("timestamp", String.valueOf(System.currentTimeMillis()));
 
-        Log.d(TAG, "FCM payload prepared for " + recipientIds.size() + " recipients");
-
-        // In production, send via FCM Admin SDK or HTTP API
-        // For now, log success (actual implementation would use FCM topics or token-based sending)
-        int sentCount = recipientIds.size();
-
-        Log.d(TAG, "Notifications sent successfully: " + sentCount);
-        listener.onNotificationSent(sentCount);
-
-        /* Production implementation would look like:
-        for (String recipientId : recipientIds) {
-            // Get FCM token for user from Firestore
-            // Send individual notification or use topic subscription
-            RemoteMessage message = new RemoteMessage.Builder(recipientId)
-                    .setData(data)
-                    .build();
-            // Send via FCM Admin SDK
-        }
-        */
-    }
 
     /**
      * Get entrant IDs from event subcollection
@@ -399,6 +370,41 @@ public class NotificationService {
     private interface OnEntrantIdsLoadedListener {
         void onEntrantIdsLoaded(List<String> entrantIds, Event event);
         void onError(Exception e);
+    }
+
+    private void sendFCMMessages(@NonNull List<String> recipientIds,
+                                 @NonNull String messageBody,
+                                 @NonNull Event event,
+                                 @NonNull String notificationType,
+                                 @NonNull OnNotificationSentListener listener) {
+
+        // Data payload consumed on-device by MyFirebaseMessagingService
+        Map<String, Object> data = new HashMap<>();
+        data.put("type", notificationType);
+        data.put("eventId", event.getEventId());
+        data.put("eventName", event.getName());
+        data.put("message", messageBody);
+        // include invitation info if you have it (invitationId/deadline)
+        if (event.getInvitationDeadlineMillis() != 0L) {
+            data.put("invitationDeadline", String.valueOf(event.getInvitationDeadlineMillis()));
+        }
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("userIds", recipientIds);
+        payload.put("data", data);
+
+        FirebaseFunctions.getInstance()
+                .getHttpsCallable("sendBatchNotifications")
+                .call(payload)
+                .addOnSuccessListener((HttpsCallableResult r) -> {
+                    Object res = r.getData();
+                    // optional: parse {sent:n}
+                    listener.onNotificationSent(recipientIds.size());
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "sendBatchNotifications failed", e);
+                    listener.onError(e);
+                });
     }
 }
 
