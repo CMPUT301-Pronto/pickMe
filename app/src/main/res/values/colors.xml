@@ -25,6 +25,7 @@
     <color name="status_cancelled">#E56B68</color>
     <color name="status_accepted">#4CAF50</color>
     <color name="status_declined">#F44336</color>
+    <color name="nav_item_color">#E56B68</color>
 
 
 
