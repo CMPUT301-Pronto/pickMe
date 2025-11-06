@@ -21,15 +21,31 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+
 /**
- * EventHistoryActivity - Display user's event history
+ * JAVADOCS LLM GENERATED
  *
- * Shows four tabs:
- * 1. Upcoming Events - Accepted invitations (user in inEventList)
- * 2. Waiting Lists - Currently joined (user in waitingList)
- * 3. Past Events - Completed/cancelled events
- * 4. Cancelled - Declined invitations (user in cancelledList)
+ * # EventHistoryActivity
+ * Hosts a 4-tab history dashboard for the current user:
+ * <ol>
+ *   <li><b>Upcoming</b> — accepted invitations (user in {@code inEventList})</li>
+ *   <li><b>Waiting</b> — events joined but not yet drawn (user in {@code waitingList})</li>
+ *   <li><b>Past</b> — completed or organizer-cancelled events</li>
+ *   <li><b>Cancelled</b> — invitations the user declined ({@code cancelledList})</li>
+ * </ol>
  *
+ * <p><b>Design</b>:
+ * Uses a ViewPager2 + TabLayout with four {@link EventListFragment} instances. Data loads via
+ * {@link EventRepository} and user id is provided by {@link DeviceAuthenticator}.</p>
+ *
+ * <p><b>Notes</b>:
+ * <ul>
+ *   <li>Past tab uses {@link EventRepository#getAllEvents} and filters client-side.</li>
+ *   <li>Other tabs rely on collection-group queries exposed by the repository.</li>
+ *   <li>Error handling is per-tab; failures do not block other tabs.</li>
+ * </ul>
+ *
+ * <p><b>Related US</b>: US 01.02.03, US 01.05.03</p>
  * Related User Stories: US 01.02.03, US 01.05.03
  */
 public class EventHistoryActivity extends AppCompatActivity {
@@ -40,17 +56,19 @@ public class EventHistoryActivity extends AppCompatActivity {
     private TabLayout tabLayout;
     private ViewPager2 viewPager;
 
-    // Data
+    // Data/services
     private EventRepository eventRepository;
     private DeviceAuthenticator deviceAuthenticator;
     private String currentUserId;
 
-    // Fragments
+    // Fragments per tab
     private EventListFragment upcomingFragment;
     private EventListFragment waitingFragment;
     private EventListFragment pastFragment;
     private EventListFragment cancelledFragment; // NEW: For declined invitations
-
+    /**
+     * Activity entry point: initializes UI, data dependencies, pager, and triggers loads.
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -80,14 +98,15 @@ public class EventHistoryActivity extends AppCompatActivity {
     }
 
     /**
-     * Initialize data components
+     * Initializes repository/auth, grabs current user id, and constructs tab fragments.
+     * <p>Preconditions: DeviceAuthenticator must have stored a user id earlier in app flow.</p>
      */
     private void initializeData() {
         eventRepository = new EventRepository();
         deviceAuthenticator = DeviceAuthenticator.getInstance(this);
         currentUserId = deviceAuthenticator.getStoredUserId();
 
-        // Create fragments
+        // Create 4 tabs fragments
         upcomingFragment = EventListFragment.newInstance(EventListFragment.TAB_UPCOMING);
         waitingFragment = EventListFragment.newInstance(EventListFragment.TAB_WAITING);
         pastFragment = EventListFragment.newInstance(EventListFragment.TAB_PAST);
@@ -262,7 +281,10 @@ public class EventHistoryActivity extends AppCompatActivity {
      * ViewPager2 adapter for event history tabs
      */
     private class EventHistoryPagerAdapter extends FragmentStateAdapter {
-
+        /**
+         * Pager adapter binding the four tab fragments.
+         * <p>Positions: 0=Upcoming, 1=Waiting, 2=Past, 3=Cancelled.</p>
+         */
         public EventHistoryPagerAdapter(@NonNull FragmentActivity fragmentActivity) {
             super(fragmentActivity);
         }
@@ -283,7 +305,7 @@ public class EventHistoryActivity extends AppCompatActivity {
                     return upcomingFragment;
             }
         }
-
+        // Number of taps/pages
         @Override
         public int getItemCount() {
             return 4; // CHANGED from 3 to 4

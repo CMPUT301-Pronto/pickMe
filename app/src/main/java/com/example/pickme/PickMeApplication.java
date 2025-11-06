@@ -7,27 +7,51 @@ import com.example.pickme.services.FirebaseManager;
 import com.google.firebase.FirebaseApp;
 
 /**
- * PickMeApplication - Custom Application class
+ * Application entry point for the PickMe app.
  *
- * This class extends Application and is instantiated before any other component
- * (Activity, Service, etc.) in the app. Perfect for one-time initialization tasks.
+ * <p><b>Role / Pattern:</b> Custom {@link Application} used to perform one-time,
+ * process-wide initialization before any Activity/Service/Receiver is created.
+ * Centralizes bootstrapping of Firebase and app-scoped singletons.</p>
  *
- * Responsibilities:
- * - Initialize Firebase when the app starts
- * - Setup FirebaseManager singleton
- * - Perform anonymous authentication for device-based user tracking
- * - Configure app-wide settings
+ * <p><b>Responsibilities:</b>
+ * <ul>
+ *   <li>Ensures Firebase is initialized early.</li>
+ *   <li>Bootstraps {@link FirebaseManager} (Firestore/Storage/Auth/FCM).</li>
+ *   <li>Kicks off anonymous authentication to establish a device identity.</li>
+ *   <li>Provides a lightweight app-context accessor via {@link #getInstance()}.</li>
+ * </ul>
+ * </p>
  *
- * Configuration:
- * - Must be declared in AndroidManifest.xml with android:name=".PickMeApplication"
- * - Runs once per app process, not per activity
+ * <p><b>Configuration:</b> Declare in {@code AndroidManifest.xml}:
+ * <pre>{@code
+ * <application
+ *     android:name=".PickMeApplication"
+ *     ... >
+ *     ...
+ * </application>
+ * }</pre>
+ * </p>
  *
- * Lifecycle:
- * onCreate() → called when app process starts (before any Activity)
+ * <p><b>Lifecycle:</b> {@link #onCreate()} is invoked once per app process. Avoid heavy
+ * synchronous work here; prefer async where possible to keep startup snappy.</p>
+ *
+ * <p><b>Outstanding issues / TODOs:</b>
+ * <ul>
+ *   <li>Persist the anonymous UID (or create a profile) on first sign-in.</li>
+ *   <li>Consider adding crash/reporting and strict-mode configuration here.</li>
+ * </ul>
+ * </p>
  */
 public class PickMeApplication extends Application {
-    private static PickMeApplication instance;
 
+    /** Process-wide application instance (initialized in {@link #onCreate()}). */
+    private static PickMeApplication instance;
+    /**
+     * Returns the current {@link PickMeApplication} instance.
+     * Useful for places where a Context is needed and an Activity is not available.
+     *
+     * @return the singleton application instance, or {@code null} before {@link #onCreate()}.
+     */
     public static PickMeApplication getInstance() {
         return instance;
     }
@@ -46,25 +70,25 @@ public class PickMeApplication extends Application {
         instance = this;
         Log.d(TAG, "Application starting - initializing Firebase");
 
-        // Initialize Firebase
+        // 1. Initialize Firebase
         // FirebaseApp.initializeApp() is called automatically by the Firebase SDK
         // when google-services.json is present, but we can call it explicitly for clarity
         initializeFirebase();
 
-        // Initialize FirebaseManager singleton
+        // 2. Initialize FirebaseManager singleton
         // This ensures all Firebase services are ready before any Activity uses them
         initializeFirebaseManager();
 
-        // Setup anonymous authentication for device-based user tracking
+        // 3. Setup anonymous authentication for device-based user tracking
         setupAuthentication();
 
         Log.d(TAG, "Application initialization complete");
     }
 
     /**
-     * Initialize Firebase
-     * The Firebase SDK auto-initializes using google-services.json configuration,
-     * but explicit initialization provides better control and error handling
+     * Ensures {@link FirebaseApp} has been initialized. The Firebase plugin will usually
+     * auto-init when {@code google-services.json} is present, but calling explicitly adds
+     * safety and logging.
      */
     private void initializeFirebase() {
         try {
@@ -80,10 +104,10 @@ public class PickMeApplication extends Application {
         }
     }
 
+
     /**
-     * Initialize FirebaseManager singleton
-     * This creates the FirebaseManager instance and initializes all Firebase services
-     * (Firestore, Storage, Auth, Cloud Messaging)
+     * Triggers creation of the {@link FirebaseManager} singleton and underlying Firebase clients
+     * (Firestore, Storage, Auth, FCM). Any failures are logged.
      */
     private void initializeFirebaseManager() {
         try {
@@ -95,10 +119,12 @@ public class PickMeApplication extends Application {
         }
     }
 
+
     /**
-     * Setup device-based authentication
-     * Signs in the user anonymously if not already authenticated
-     * This provides a unique user ID for each device without requiring user accounts
+     * Starts/ensures an anonymous Firebase Authentication session so the device has
+     * a stable identity before user profile creation. If already signed in, logs the UID.
+     *
+     * <p><b>Note:</b> Persisting or acting upon the UID is left as a TODO.</p>
      */
     private void setupAuthentication() {
         // Check if user is already authenticated
@@ -132,17 +158,20 @@ public class PickMeApplication extends Application {
      * Note: This is NOT guaranteed to be called - don't rely on it for critical cleanup.
      * Use onPause() or onStop() in Activities for important cleanup tasks.
      */
+    /**
+     * Called when the app process is about to terminate in emulated environments.
+     * <b>Not</b> guaranteed on real devices—avoid critical cleanup here.
+     */
     @Override
     public void onTerminate() {
         super.onTerminate();
         Log.d(TAG, "Application terminating");
     }
 
+
     /**
      * Called when the overall system is running low on memory.
-     * This is a good opportunity to release caches or other unnecessary resources.
-     *
-     * @param level The context of the trim (TRIM_MEMORY_* constants)
+     * Release caches and trim non-essential resources here.
      */
     @Override
     public void onLowMemory() {

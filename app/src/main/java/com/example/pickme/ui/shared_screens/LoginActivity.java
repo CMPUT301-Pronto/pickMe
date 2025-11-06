@@ -27,8 +27,34 @@ import com.example.pickme.utils.PasswordUtil;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
-
-
+/**
+ * JAVADOCS LLM GENERATED
+ *
+ * # LoginActivity
+ *
+ * Email+password login screen with an optional biometric “quick login” flow.
+ * This screen verifies credentials against a stored PBKDF2 password hash in Firestore
+ * (collection: <code>profiles</code>), then ensures an anonymous Firebase session
+ * for app access. If biometric is enabled, users can unlock without re-typing credentials.
+ *
+ * ## Role in architecture
+ * - UI/Presentation for authentication.
+ * - Reads from Firestore for credential verification; does not write.
+ * - Hands off session establishment to {@link FirebaseManager#signInAnonymously}.
+ *
+ * ## Key behaviors
+ * - Validates email format and basic password rules.
+ * - Verifies password via {@link PasswordUtil#verify(char[], String, String)}.
+ * - Offers to encrypt and store a login token for biometric unlock (AES key in Android Keystore).
+ * - Supports a separate biometric unlock path when previously enabled.
+ *
+ * ## Outstanding items / notes
+ * - Consider throttling/lockout on repeated failures.
+ * - Consider migrating credentials to a dedicated <code>users</code> collection if profiles diverge.
+ * - Network errors currently surfaced via Toast; consider a persistent UI surface.
+ *
+ * @since 1.0
+ */
 public class LoginActivity extends AppCompatActivity {
 
     private TextInputLayout emailLayout, passwordLayout;
@@ -38,6 +64,12 @@ public class LoginActivity extends AppCompatActivity {
 
     private final FirebaseFirestore db = FirebaseManager.getFirestore();
 
+    /**
+     * Android lifecycle entry point. Wires up UI controls, click handlers,
+     * and configures the biometric login CTA visibility based on {@link BioPrefsUtil}.
+     *
+     * @param savedInstanceState saved state if the activity is re-created
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -60,12 +92,19 @@ public class LoginActivity extends AppCompatActivity {
         btnBiometricLogin.setOnClickListener(v -> biometricLogin());
 
     }
-
+    /** Toggle progress UI and prevent double-submits while network work is in flight. */
     private void setLoading(boolean b) {
         progress.setVisibility(b ? View.VISIBLE : View.GONE);
         loginBtn.setEnabled(!b);
         registerBtn.setEnabled(!b);
     }
+    /**
+     * After a successful password login, optionally offer to enable biometric quick login:
+     * - Generates/ensures a Keystore key.
+     * - Encrypts a short token (anonymous UID) with user presence.
+     * - Stores IV + ciphertext via {@link BioPrefsUtil}.
+     * Falls back to main navigation if biometric is unavailable or user cancels.
+     */
     private void offerEnableBiometricsThenNavigate(String token) {
         BiometricManager bm = BiometricManager.from(this);
         int status = bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
@@ -109,6 +148,17 @@ public class LoginActivity extends AppCompatActivity {
             navigateToMain();
         }
     }
+
+    /**
+     * Main email+password login flow:
+     * <ol>
+     *   <li>Validate inputs (email format and basic password length).</li>
+     *   <li>Fetch profile document by email (collection: <code>profiles</code>).</li>
+     *   <li>Verify PBKDF2 hash with {@link PasswordUtil}.</li>
+     *   <li>Establish anonymous Firebase session and optionally offer biometric setup.</li>
+     * </ol>
+     * Error cases are surfaced inline via TextInputLayout errors or Toasts.
+     */
     private void login() {
         String email = text(emailInput);
         String pass  = text(passwordInput);
@@ -127,7 +177,7 @@ public class LoginActivity extends AppCompatActivity {
 
         setLoading(true);
 
-        // Change "profiles" to "users"
+        // using profiles collection for credential lookip
         Query q = db.collection("profiles").whereEqualTo("email", email).limit(1);
         q.get().addOnCompleteListener(task -> {
             setLoading(false);
@@ -155,7 +205,7 @@ public class LoginActivity extends AppCompatActivity {
             FirebaseManager.signInAnonymously(new FirebaseManager.AuthCallback() {
                 @Override public void onSuccess(String uid) {
                     String token = uid != null ? uid : "OK";
-                    // Quick check: if already enabled, just go
+                    // if biomertrics already enabled, just go
                     if (BioPrefsUtil.isEnabled(LoginActivity.this)) {
                         navigateToMain();
                         return;
@@ -169,14 +219,24 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
 
+    /** Helper to trim text from a TextInputEditText safely. */
     private String text(TextInputEditText et) {
         return et.getText() == null ? "" : et.getText().toString().trim();
     }
-
+    /** Navigate to the main activity and finish this one. */
     private void navigateToMain() {
         startActivity(new Intent(this, MainActivity.class));
         finish();
     }
+    /**
+     * Biometric quick-login path:
+     * <ul>
+     *   <li>Reads IV+ciphertext from {@link BioPrefsUtil}.</li>
+     *   <li>Prompts for biometric auth and attempts AES decryption.</li>
+     *   <li>Ensures an anonymous Firebase session exists, then navigates.</li>
+     * </ul>
+     * If anything is missing/invalid, biometric is disabled and the user is prompted to re-enable it later.
+     */
     private void biometricLogin() {
         if (!BioPrefsUtil.isEnabled(this)) {
             Toast.makeText(this, "Biometric login not enabled on this device yet.", Toast.LENGTH_SHORT).show();

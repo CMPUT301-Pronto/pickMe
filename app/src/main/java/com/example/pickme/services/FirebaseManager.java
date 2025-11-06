@@ -13,23 +13,46 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+
 /**
- * FirebaseManager - Singleton class for managing Firebase services
+ * JAVADOCS LLM GENERATED
  *
- * This class provides centralized access to all Firebase services used in the app:
- * - Firestore: NoSQL database for storing events, users, and lottery data
- * - Storage: Cloud storage for images (profile pictures, event posters)
- * - Cloud Messaging (FCM): Push notifications for event updates
- * - Authentication: Device-based authentication
+ * Centralized access point for Firebase services (Firestore, Storage, Auth, FCM).
  *
- * Singleton Pattern ensures:
- * - Only one instance exists throughout the app lifecycle
- * - Consistent Firebase configuration across all components
- * - Efficient resource management
+ * <p><b>Role / Pattern:</b> Application-scoped Singleton that encapsulates SDK
+ * initialization and exposes a minimal, cohesive API for other layers. Simplifies
+ * dependency wiring and keeps Firebase usage consistent across the app.</p>
  *
- * Usage:
- *   FirebaseFirestore db = FirebaseManager.getFirestore();
- *   StorageReference storage = FirebaseManager.getStorageReference();
+ * <p><b>Lifecycle:</b> Lazily initialized on first call to {@link #getInstance()}.
+ * You should ensure {@code FirebaseApp} is initialized (e.g., via
+ * {@code PickMeApplication}) before first use.</p>
+ *
+ * <p><b>Thread-safety:</b> Lazy init is guarded by {@code synchronized} in {@link #getInstance()}.
+ * Thereafter, Firebase clients are thread-safe as per SDK guarantees.</p>
+ *
+ * <p><b>Offline:</b> Firestore is configured with persistence enabled and an unlimited local cache.
+ * Adjust cache policy for production if necessary.</p>
+ *
+ * <p><b>FCM tokens:</b> On startup, an FCM token is fetched and conditionally stored if a userId
+ * is already known. You can trigger a fresh fetch via {@link #refreshAndStoreFcmToken()} once
+ * identity is available.</p>
+ *
+ * <p><b>Outstanding issues / TODOs:</b>
+ * <ul>
+ *   <li>Consider injecting repositories (for token storage) to avoid direct new-calls.</li>
+ *   <li>Evaluate Firestore cache size policy (unlimited may grow without bound).</li>
+ *   <li>Replace {@link #monitorConnectionState(ConnectionStateListener)} stub with a proper
+ *       connectivity strategy (e.g., Android {@code ConnectivityManager} or retry policies).</li>
+ * </ul>
+ * </p>
+ *
+ * <p><b>Typical usage:</b></p>
+ * <pre>{@code
+ * FirebaseFirestore db = FirebaseManager.getFirestore();
+ * StorageReference storage = FirebaseManager.getStorageReference();
+ * FirebaseAuth auth = FirebaseManager.getAuth();
+ * FirebaseMessaging fcm = FirebaseManager.getMessaging();
+ * }</pre>
  */
 public class FirebaseManager {
 
@@ -77,9 +100,12 @@ public class FirebaseManager {
     }
 
     /**
-     * Initialize Firestore with optimal settings
-     * - Enables offline persistence for better user experience
-     * - Configures cache size for offline data
+     * Configures Firestore:
+     * <ul>
+     *   <li>Offline persistence enabled</li>
+     *   <li>Unlimited cache</li>
+     * </ul>
+     * Adjust these settings if you need stronger bounds on disk usage.
      */
     private void initializeFirestore() {
         firestore = FirebaseFirestore.getInstance();
@@ -114,8 +140,9 @@ public class FirebaseManager {
     }
 
     /**
-     * Initialize Firebase Cloud Messaging
-     * Used for push notifications (event updates, lottery results)
+     * Initializes Firebase Cloud Messaging client and attempts to fetch the current FCM token.
+     * If a userId is already known, the token is stored immediately via {@code ProfileRepository}.
+     * Use {@link #refreshAndStoreFcmToken()} after login/first-run if userId was not yet available.
      */
     private void initializeMessaging() {
         messaging = FirebaseMessaging.getInstance();
@@ -133,7 +160,13 @@ public class FirebaseManager {
 
         Log.d(TAG, "Firebase Cloud Messaging initialized");
     }
-    /** Try to store the FCM token if we already know the userId. Safe to call anytime. */
+
+    /**
+     * Attempts to persist the FCM token if a stored userId is already available.
+     * Safe to call at any time; does nothing if userId is not yet known.
+     *
+     * @param token current FCM registration token
+     */
     private void storeFcmTokenIfPossible(@NonNull String token) {
         Context context = FirebaseApp.getInstance().getApplicationContext();
         String userId = DeviceAuthenticator.getInstance(context).getStoredUserId();
@@ -145,6 +178,11 @@ public class FirebaseManager {
 
         new com.example.pickme.repositories.ProfileRepository().setFcmToken(userId, token);
     }
+
+    /**
+     * Forces a fresh token fetch and attempts to store it if a userId is known.
+     * Useful after sign-in or profile creation.
+     */
     public static void refreshAndStoreFcmToken() {
         getInstance().messaging.getToken().addOnSuccessListener(token -> {
             Log.d(TAG, "Refreshed FCM token: " + token);
@@ -152,11 +190,11 @@ public class FirebaseManager {
         });
     }
 
-        /**
-         * Get Firestore instance for database operations
-         *
-         * @return FirebaseFirestore instance
-         */
+    /**
+     * Get Firestore instance for database operations
+     *
+     * @return App wide FirebaseFirestore instance
+     */
     public static FirebaseFirestore getFirestore() {
         return getInstance().firestore;
     }
@@ -223,7 +261,8 @@ public class FirebaseManager {
     }
 
     /**
-     * Disable Firestore network (useful for testing offline scenarios)
+     * Disables Firestore network access (useful to simulate offline).
+     * Updates {@link #isConnected} and logs outcome.
      */
     public static void disableNetwork() {
         getInstance().firestore.disableNetwork()
@@ -237,10 +276,11 @@ public class FirebaseManager {
     }
 
     /**
-     * Setup connection state monitoring
-     * Monitors .info/connected path in Firestore to detect connection changes
+     * Registers a best-effort listener for connectivity changes.
+     * <p><b>Note:</b> Firestore has no official <code>.info/connected</code> like RTDB.
+     * This is a placeholder pattern—consider OS network callbacks or retry strategies instead.</p>
      *
-     * @param listener Callback for connection state changes
+     * @param listener callback invoked when connectivity is believed to change
      */
     public static void monitorConnectionState(ConnectionStateListener listener) {
         // Firestore doesn't have a built-in connection listener like Realtime Database

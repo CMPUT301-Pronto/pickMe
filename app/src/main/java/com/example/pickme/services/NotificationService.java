@@ -22,26 +22,49 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * NotificationService - Handles all FCM notifications
+ * JAVADOCS LLM GENERATED
  *
- * Manages notification sending with:
- * - User preference checking (notificationEnabled)
- * - Notification logging for admin review (US 03.08.01)
- * - Firebase Cloud Messaging integration
- * - Batch sending support
+ * Centralized service for preparing and dispatching push notifications via
+ * Firebase Cloud Messaging (FCM), with user-preference checks and audit logging.
  *
- * Notification Types:
- * - lottery_win: Selected in lottery
- * - lottery_loss: Not selected
- * - organizer_message: Custom broadcast
- * - replacement_draw: Selected as replacement
+ * <p><b>Role / Pattern:</b> Process-wide singleton (Service Object) that
+ * orchestrates notification fan-out to entrants for lottery outcomes or
+ * organizer messages. It encapsulates:
+ * <ul>
+ *   <li>Preference filtering (respects {@code Profile.notificationEnabled}).</li>
+ *   <li>Audit logging to Firestore (US 03.08.01).</li>
+ *   <li>Delegation to a Cloud Function for batch sends (scalable dispatch).</li>
+ * </ul>
+ * </p>
  *
- * Related User Stories: US 01.04.01, US 01.04.02, US 01.04.03, US 02.05.01,
- *                       US 02.07.01-03, US 03.08.01
+ * <p><b>Supported Types:</b> {@code lottery_win}, {@code lottery_loss},
+ * {@code replacement_draw}, {@code organizer_message}.</p>
+ *
+ * <p><b>Data Flow:</b>
+ * <ol>
+ *   <li>Caller provides recipient userIds and an {@link Event}.</li>
+ *   <li>Service filters recipients by profile preferences.</li>
+ *   <li>Creates a {@link NotificationLog} document in Firestore.</li>
+ *   <li>Invokes HTTPS callable Cloud Function {@code sendBatchNotifications} with
+ *       userIds and a data payload. Device side handling is performed by
+ *       {@code MyFirebaseMessagingService}.</li>
+ * </ol>
+ * </p>
+ *
+ * <p><b>Outstanding / Notes:</b>
+ * <ul>
+ *   <li>Relies on a deployed Cloud Function named {@code sendBatchNotifications} that
+ *       accepts {@code { userIds: string[], data: object }} and returns success metadata.</li>
+ *   <li>{@link Event} optionally exposes an invitation deadline via
+ *       {@code getInvitationDeadlineMillis()}—ensure the model is populated when needed.</li>
+ *   <li>If audit log creation fails, dispatch still proceeds (best-effort logging).</li>
+ * </ul>
+ * </p>
  */
 public class NotificationService {
 
     private static final String TAG = "NotificationService";
+    // Firestore collections / subcollections
     private static final String COLLECTION_NOTIFICATION_LOGS = "notification_logs";
     private static final String COLLECTION_EVENTS = "events";
     private static final String SUBCOLLECTION_WAITING_LIST = "waitingList";
@@ -58,7 +81,10 @@ public class NotificationService {
         this.fcm = FirebaseManager.getMessaging();
         this.profileRepository = new ProfileRepository();
     }
-
+    /**
+     * Private constructor; use {@link #getInstance()}.
+     * Wires Firebase clients via {@link FirebaseManager}.
+     */
     public static synchronized NotificationService getInstance() {
         if (instance == null) {
             instance = new NotificationService();
@@ -200,6 +226,15 @@ public class NotificationService {
 
     /**
      * Core notification sending logic with preference checking and logging
+     *
+     *      Orchestrates preference filtering, audit logging, and invocation of the Cloud Function
+     *      to fan-out FCM messages to recipients.
+     *      @param entrantIds       candidate recipients (unfiltered).
+     *      @param message          user-visible message body.
+     *      @param notificationType semantic type (e.g., {@code lottery_win}).
+     *      @param event            event context used in payload and logging.
+     *      @param listener         completion/error callback.
+     *
      */
     private void sendNotifications(@NonNull List<String> entrantIds,
                                    @NonNull String message,
@@ -259,8 +294,13 @@ public class NotificationService {
         });
     }
 
+
     /**
-     * Filter recipients based on notificationEnabled preference
+     * Filters a set of candidate userIds to those with notifications enabled,
+     * by loading each user's {@link Profile} and checking {@code notificationEnabled}.
+     *
+     * @param entrantIds candidate userIds.
+     * @param listener   callback with filtered list or error.
      */
     private void filterEnabledRecipients(@NonNull List<String> entrantIds,
                                          @NonNull OnRecipientsFilteredListener listener) {
@@ -297,16 +337,15 @@ public class NotificationService {
         }
     }
 
+    // ------------------- Firestore helpers -------------------
+
     /**
-     * Send FCM messages to recipients
+     * Loads all entrant document IDs from a given event subcollection (e.g., waitingList,
+     * responsePendingList, inEventList) and returns them along with the parent {@link Event}.
      *
-     * Note: In production, use FCM HTTP API or Admin SDK for batch sending
-     * This implementation shows the structure for notification payloads
-     */
-
-
-    /**
-     * Get entrant IDs from event subcollection
+     * @param eventId       parent event id.
+     * @param subcollection one of the {@code SUBCOLLECTION_*} constants.
+     * @param listener      callback with entrantIds and event or error.
      */
     private void getEntrantIdsFromSubcollection(@NonNull String eventId,
                                                @NonNull String subcollection,
@@ -348,11 +387,22 @@ public class NotificationService {
                 });
     }
 
+    // ------------------- Callbacks -------------------
+
     /**
-     * Callback for notification sent
+     * Callback for notification send operations.
      */
     public interface OnNotificationSentListener {
+        /**
+         * Called when messages were (attempted to be) sent.
+         * @param sentCount number of intended recipients successfully handed off to dispatch.
+         */
         void onNotificationSent(int sentCount);
+        /**
+         * Called when an error occurred prior to, or during, dispatch.
+         * (e.g., preference filtering, logging, or Cloud Function failure)
+         * @param e the underlying error.
+         */
         void onError(Exception e);
     }
 
@@ -371,7 +421,21 @@ public class NotificationService {
         void onEntrantIdsLoaded(List<String> entrantIds, Event event);
         void onError(Exception e);
     }
+    // ------------------- Dispatch (Cloud Function) -------------------
 
+    /**
+     * Dispatches a data payload to a set of recipient userIds by calling the HTTPS Cloud Function
+     * {@code sendBatchNotifications}. This function is expected to resolve userIds to FCM tokens
+     * server-side and send the push messages.
+     *
+     * <p>The device-side display behavior is handled in {@code MyFirebaseMessagingService}.</p>
+     *
+     * @param recipientIds    filtered recipient userIds.
+     * @param messageBody     user-visible body text.
+     * @param event           event context for payload (id/name; optional deadline).
+     * @param notificationType semantic type string.
+     * @param listener        completion/error callback.
+     */
     private void sendFCMMessages(@NonNull List<String> recipientIds,
                                  @NonNull String messageBody,
                                  @NonNull Event event,

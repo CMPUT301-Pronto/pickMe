@@ -21,15 +21,28 @@ import com.example.pickme.ui.events.EventDetailsActivity;
 
 import java.util.ArrayList;
 import java.util.List;
-
 /**
- * EventListFragment - Reusable fragment for displaying event lists
+ * JAVADOCS LLM GENERATED
  *
- * Used in EventHistoryActivity's ViewPager2 to show:
- * - Upcoming events (accepted invitations)
- * - Waiting list events (currently joined)
- * - Past events (completed/cancelled)
- * - Cancelled events (declined invitations)
+ * # EventListFragment
+ * Reusable fragment responsible for displaying lists of events in various states.
+ *
+ * <p>Used in {@link EventHistoryActivity}'s ViewPager2 to show:</p>
+ * <ul>
+ *     <li><b>Upcoming</b> — Accepted invitations (user in {@code inEventList})</li>
+ *     <li><b>Waiting</b> — Joined events awaiting lottery draw ({@code waitingList})</li>
+ *     <li><b>Past</b> — Completed or cancelled events</li>
+ *     <li><b>Cancelled</b> — Declined invitations ({@code cancelledList})</li>
+ * </ul>
+ *
+ * <p><b>Responsibilities:</b></p>
+ * <ul>
+ *     <li>Inflates list layout with empty and loading states</li>
+ *     <li>Binds {@link EventAdapter} for displaying events</li>
+ *     <li>Handles item click navigation to {@link EventDetailsActivity}</li>
+ * </ul>
+ *
+ * <p>Related User Stories: US 01.02.03, US 01.05.03</p>
  */
 public class EventListFragment extends Fragment {
 
@@ -39,7 +52,7 @@ public class EventListFragment extends Fragment {
     public static final int TAB_UPCOMING = 0;
     public static final int TAB_WAITING = 1;
     public static final int TAB_PAST = 2;
-    public static final int TAB_CANCELLED = 3;  // CHANGED: Now an integer
+    public static final int TAB_CANCELLED = 3;
 
     // UI Components
     private RecyclerView recyclerView;
@@ -53,7 +66,11 @@ public class EventListFragment extends Fragment {
     private List<Event> events;
 
     /**
-     * Create new fragment instance
+     * Factory method for creating a new {@link EventListFragment} instance for a given tab type.
+     *
+     * @param tabType One of {@link #TAB_UPCOMING}, {@link #TAB_WAITING},
+     *                {@link #TAB_PAST}, or {@link #TAB_CANCELLED}.
+     * @return Configured fragment instance.
      */
     public static EventListFragment newInstance(int tabType) {
         EventListFragment fragment = new EventListFragment();
@@ -63,6 +80,7 @@ public class EventListFragment extends Fragment {
         return fragment;
     }
 
+    /** Initializes data from arguments. */
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -71,14 +89,14 @@ public class EventListFragment extends Fragment {
         }
         events = new ArrayList<>();
     }
-
+    /** Inflates the fragment layout. */
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_event_list, container, false);
     }
-
+    /** Called when view hierarchy is created, initializes views and adapter. */
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -154,7 +172,10 @@ public class EventListFragment extends Fragment {
     }
 
     /**
-     * Update events list
+     * Sets or updates the list of events displayed in this fragment.
+     * Automatically toggles the empty state view.
+     *
+     * @param events List of {@link Event} objects to display.
      */
     public void setEvents(List<Event> events) {
         this.events = events;

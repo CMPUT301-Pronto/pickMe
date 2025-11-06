@@ -12,23 +12,43 @@ import com.example.pickme.repositories.ProfileRepository;
 import com.google.firebase.installations.FirebaseInstallations;
 
 /**
- * DeviceAuthenticator - Device-based authentication service
+ * JAVADOCS LLM GENERATED
  *
- * Implements no-username/password authentication (US 01.07.01).
- * Uses Firebase Installation ID as unique device identifier.
+ * Manages device-based authentication and user initialization.
  *
- * On first app launch:
- * 1. Get device ID (Firebase Installation ID)
- * 2. Check if Profile exists
- * 3. If not, create default profile
- * 4. Store device ID in SharedPreferences
+ * <p><b>Role / Pattern:</b> Singleton service responsible for implementing
+ * the “no username or password” login flow (US 01.07.01). This replaces
+ * traditional account creation by using a unique device identifier
+ * (Firebase Installation ID or Android ID fallback) to bind a {@link Profile}
+ * to a specific installation.</p>
  *
- * User roles:
- * - entrant: Default for all new users
- * - organizer: Can create events
- * - admin: Full access
+ * <p><b>Responsibilities:</b>
+ * <ul>
+ *   <li>Retrieve and cache the device identifier.</li>
+ *   <li>Check whether a corresponding {@link Profile} already exists in Firestore.</li>
+ *   <li>Create a default profile for first-time users (role = entrant).</li>
+ *   <li>Cache and persist user state in {@link SharedPreferences}.</li>
+ * </ul>
+ * </p>
  *
- * Related User Stories: US 01.07.01
+ * <p><b>Storage:</b> Authentication metadata is stored in {@code PickMePrefs} under:
+ * <ul>
+ *   <li>{@code device_id} – Firebase Installation ID or Android ID fallback.</li>
+ *   <li>{@code user_id} – the Firestore document ID of the user profile.</li>
+ *   <li>{@code is_first_launch} – flag for first-launch onboarding logic.</li>
+ * </ul>
+ * </p>
+ *
+ * <p><b>Typical Flow (on first launch):</b>
+ * <ol>
+ *   <li>Obtain device ID via Firebase Installations.</li>
+ *   <li>Check if a profile exists for that ID.</li>
+ *   <li>If not found, create a new default entrant profile.</li>
+ *   <li>Persist device/user IDs and return the initialized {@link Profile}.</li>
+ * </ol>
+ * </p>
+ *
+ * <p><b>Related User Story:</b> US 01.07.01 – Device-based authentication.</p>
  */
 public class DeviceAuthenticator {
 
@@ -51,6 +71,12 @@ public class DeviceAuthenticator {
         this.profileRepository = new ProfileRepository();
     }
 
+    /**
+     * Returns the singleton instance of the authenticator.
+     *
+     * @param context an application or activity context.
+     * @return global {@link DeviceAuthenticator} instance.
+     */
     public static synchronized DeviceAuthenticator getInstance(Context context) {
         if (instance == null) {
             instance = new DeviceAuthenticator(context);
@@ -110,18 +136,21 @@ public class DeviceAuthenticator {
                 });
     }
 
+
     /**
-     * Initialize user on app startup
+     * Initializes or loads the user’s profile.
      *
-     * Process:
-     * 1. Get device ID
-     * 2. Check if profile exists
-     * 3. If new user, create default profile
-     * 4. Return Profile object
+     * <p>This should be called once during app startup (e.g. in
+     * {@code Application.onCreate()}). The method will:
+     * <ol>
+     *   <li>Obtain the device ID.</li>
+     *   <li>Check Firestore for an existing profile.</li>
+     *   <li>Create a new default entrant profile if none exists.</li>
+     *   <li>Cache the profile locally and return it via callback.</li>
+     * </ol>
+     * </p>
      *
-     * Should be called in Application.onCreate()
-     *
-     * @param listener Callback with Profile
+     * @param listener callback that receives the initialized profile and whether it is new.
      */
     public void initializeUser(@NonNull OnUserInitializedListener listener) {
         Log.d(TAG, "Initializing user");

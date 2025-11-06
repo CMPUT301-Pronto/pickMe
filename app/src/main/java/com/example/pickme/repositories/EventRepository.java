@@ -18,26 +18,40 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 /**
- * EventRepository - Repository for Event CRUD operations and waiting list management
+ * # EventRepository
+ * Repository layer encapsulating Firestore access for event data and waiting-list workflows.
  *
- * Handles all Firestore operations related to events including:
- * - Event creation, retrieval, update, deletion
- * - Organizer-specific event queries
- * - Waiting list management
- * - Event filtering for entrants
- * - Admin operations
+ * <p><b>Responsibilities</b></p>
+ * <ul>
+ *   <li>CRUD for {@code events} collection documents.</li>
+ *   <li>Organizer/admin/entrant-facing queries.</li>
+ *   <li>Waiting list membership management and reads.</li>
+ *   <li>Collection group queries (response pending / in-event / waiting / cancelled).</li>
+ * </ul>
  *
- * Firestore Structure:
+ * <p><b>Firestore Structure</b></p>
+ * <pre>
  * events/{eventId}
- *   ├─ Event fields
- *   └─ subcollections:
- *       ├─ waitingList/{entrantId}
- *       ├─ responsePendingList/{entrantId}
- *       ├─ inEventList/{entrantId}
- *       └─ notifications/{notificationId}
+ *   (Event fields…)
+ *   waitingList/{entrantId}
+ *   responsePendingList/{entrantId}
+ *   inEventList/{entrantId}
+ *   cancelledList/{entrantId}
+ * </pre>
  *
+ * <p><b>Design notes</b></p>
+ * <ul>
+ *   <li>Read/write operations are isolated behind this repository for testability.</li>
+ *   <li>Deletion of subcollections is caller’s responsibility (not automatic in Firestore).</li>
+ *   <li>Some filters are performed in-app to avoid complex Firestore queries.</li>
+ * </ul>
+ *
+ * <p><b>Outstanding considerations</b></p>
+ * <ul>
+ *   <li>Bulk deletion of subcollections for full event removal is not implemented.</li>
+ *   <li>For quota/cost control, consider pagination and query limits for large datasets.</li>
+ * </ul>
  * Related User Stories: US 01.01.01, US 01.01.02, US 01.01.03, US 02.01.01,
  *                       US 02.02.01, US 03.01.01
  */

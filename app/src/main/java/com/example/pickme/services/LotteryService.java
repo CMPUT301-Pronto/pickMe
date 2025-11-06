@@ -22,18 +22,41 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * LotteryService - HIGH-RISK component implementing lottery draw algorithm
+ * JAVADOCS LLM GENERATED
  *
- * Implements random selection with Firestore transactions to prevent race conditions.
- * Manages the complete lottery lifecycle:
- * - Initial lottery draw
- * - Replacement draws
- * - Acceptance/decline handling
- * - Profile history updates
+ * # LotteryService
+ * Centralized domain service that implements the lottery lifecycle for events.
  *
- * CRITICAL: Uses SecureRandom for fairness and Firestore transactions for atomicity
+ * <p><b>Responsibilities</b></p>
+ * <ul>
+ *   <li>Initial draw: randomly select winners from the waiting list (US 02.05.02).</li>
+ *   <li>Replacement draw: select new winners when invitations are declined/expired (US 02.05.03).</li>
+ *   <li>Acceptance/Decline handling: move entrants across event subcollections
+ *       <code>waitingList → responsePendingList → inEventList</code>, or to <code>cancelledList</code>.</li>
+ *   <li>Profile history updates per outcome (selected / not_selected / enrolled / CANCELLED).</li>
+ * </ul>
  *
- * Related User Stories: US 02.05.02, US 02.05.03, US 01.05.01, US 01.05.02, US 01.05.03
+ * <p><b>Design notes</b></p>
+ * <ul>
+ *   <li><b>Fairness:</b> Uses {@link SecureRandom} and {@link Collections#shuffle(List, java.util.Random)} for unbiased selection.</li>
+ *   <li><b>Atomicity:</b> Uses Firestore {@link WriteBatch} for multi-document updates that must succeed together.</li>
+ *   <li><b>Separation of concerns:</b> Reads are delegated to {@link EventRepository}; user history to {@link ProfileRepository}.</li>
+ * </ul>
+ *
+ * <p><b>Data model touchpoints</b></p>
+ * <ul>
+ *   <li>{@code events/{eventId}/waitingList}</li>
+ *   <li>{@code events/{eventId}/responsePendingList}</li>
+ *   <li>{@code events/{eventId}/inEventList}</li>
+ *   <li>{@code events/{eventId}/cancelledList}</li>
+ * </ul>
+ *
+ * <p><b>Outstanding considerations</b></p>
+ * <ul>
+ *   <li>Deadline policy is fixed (7 days). Externalize per-event configuration if needed.</li>
+ *   <li>No automatic notification here—callers should invoke {@code NotificationService} upon completion.</li>
+ *   <li>Batch is used (not transaction). If cross-read consistency is required mid-operation, consider a full transaction.</li>
+ * </ul>
  */
 public class LotteryService {
 

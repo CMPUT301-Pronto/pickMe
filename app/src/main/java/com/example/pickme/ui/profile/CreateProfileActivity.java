@@ -24,6 +24,34 @@ import com.google.android.material.textfield.TextInputLayout;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
+/**
+ * JAVADOCS LLM GENERATED
+ *
+ * # CreateProfileActivity
+ *
+ * Activity responsible for first-time (or explicit) profile creation and onboarding.
+ * It collects basic user info (name, email, optional avatar) and—if provided—creates
+ * a salted PBKDF2 password hash that’s stored with the {@link Profile} in Firestore.
+ *
+ * ## Role in architecture
+ * - **Presentation layer** of the profile creation flow (MVx-friendly).
+ * - Delegates persistence to {@link ProfileRepository}.
+ * - Delegates device identity and cached profile state to {@link DeviceAuthenticator}.
+ *
+ * ## Key behaviors
+ * - Suggests a default display name derived from the device/installation ID.
+ * - Validates inputs (name, email pattern, password rules).
+ * - Hashes and salts passwords via {@link PasswordUtil} (PBKDF2WithHmacSHA256).
+ * - Optionally previews a chosen profile image (Storage upload is TODO).
+ *
+ * ## Outstanding items / technical debt
+ * - Avatar preview is wired, **but actual upload to Firebase Storage is a TODO**.
+ * - Consider client-side password strength meter & breach checks.
+ * - Consider throttling / retry logic on Firestore write failure.
+ * - Consider replacing Toasts with a UI surface (e.g., Snackbar) for accessibility.
+ *
+ * @since 1.0
+ */
 public class CreateProfileActivity extends AppCompatActivity {
 
     private static final String TAG = "CreateProfileActivity";
@@ -49,7 +77,12 @@ public class CreateProfileActivity extends AppCompatActivity {
 
     // Image picker
     private ActivityResultLauncher<String> imagePickerLauncher;
-
+    /**
+     * Android lifecycle entry point. Initializes views, services, and UI listeners for the
+     * profile creation flow. Also pre-fills a suggested display name using the device ID.
+     *
+     * @param savedInstanceState saved state bundle if activity is being re-created
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -63,6 +96,7 @@ public class CreateProfileActivity extends AppCompatActivity {
         setupListeners();
     }
 
+    // Bind view references
     private void initializeViews() {
         profileImage = findViewById(R.id.profileImage);
         btnUploadPhoto = findViewById(R.id.btnUploadPhoto);
@@ -79,6 +113,7 @@ public class CreateProfileActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
     }
 
+    /** Resolve repositories/services and derive a suggested display name. */
     private void initializeServices() {
         profileRepository = new ProfileRepository();
         deviceAuthenticator = DeviceAuthenticator.getInstance(this);
@@ -91,6 +126,7 @@ public class CreateProfileActivity extends AppCompatActivity {
         });
     }
 
+    /** Configure the system file picker for avatar selection. */
     private void setupImagePicker() {
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
@@ -106,17 +142,29 @@ public class CreateProfileActivity extends AppCompatActivity {
         );
     }
 
+    /** Wire up click listeners for primary actions. */
     private void setupListeners() {
         btnUploadPhoto.setOnClickListener(v -> openImagePicker());
         btnCreateProfile.setOnClickListener(v -> createProfile());
         btnSkip.setOnClickListener(v -> skipProfileCreation());
     }
 
+    /** Launch the system image picker for avatar selection. */
     private void openImagePicker() {
         imagePickerLauncher.launch("image/*");
     }
 
-    /** Validate and create profile (with password hashing) */
+    /**
+     * Validate inputs, hash password (if provided), and persist a {@link Profile} to Firestore.
+     * On success, caches the profile and transitions to {@link MainActivity}.
+     *
+     * <p><b>Security notes</b>:
+     * <ul>
+     *   <li>Passwords are immediately salted and hashed on-device using PBKDF2 (no plaintext
+     *       storage).</li>
+     *   <li>Consider moving password creation into a dedicated screen if you later add auth flows.</li>
+     * </ul>
+     */
     private void createProfile() {
         String name  = etName.getText()  != null ? etName.getText().toString().trim()  : "";
         String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
@@ -185,7 +233,12 @@ public class CreateProfileActivity extends AppCompatActivity {
         );
     }
 
-    /** Minimal profile if skipping (no password set) */
+    /**
+     * Create a minimal {@link Profile} without password (fast-track onboarding),
+     * then persist and navigate to {@link MainActivity}.
+     *
+     * <p>Use this for “skip for now” flow; user can enrich profile later.</p>
+     */
     private void skipProfileCreation() {
         Profile profile = new Profile(userId, "User" + userId.substring(0, 8));
         profile.setNotificationEnabled(true);
@@ -204,7 +257,7 @@ public class CreateProfileActivity extends AppCompatActivity {
                 }
         );
     }
-
+    /** Navigate to the main screen */
     private void navigateToMain() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -212,6 +265,12 @@ public class CreateProfileActivity extends AppCompatActivity {
         finish();
     }
 
+    /**
+     * Toggle progress visibility and temporarily disable interactive controls to prevent
+     * duplicate submissions while network work is in flight.
+     *
+     * @param show true to show progress and disable inputs; false to hide and re-enable
+     */
     private void showLoading(boolean show) {
         progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
         btnCreateProfile.setEnabled(!show);
@@ -222,7 +281,12 @@ public class CreateProfileActivity extends AppCompatActivity {
         if (etPassword != null) etPassword.setEnabled(!show);
         if (etConfirm  != null) etConfirm.setEnabled(!show);
     }
-
+    /**
+     * Override back navigation during first-time setup to ensure the user completes
+     * the minimum required onboarding flow before entering the app.
+     *
+     * <p>Intentionally suppresses the super call.</p>
+     */
     @Override
     @SuppressWarnings("MissingSuperCall")
     public void onBackPressed() {
