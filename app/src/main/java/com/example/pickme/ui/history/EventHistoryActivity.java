@@ -1,6 +1,7 @@
 package com.example.pickme.ui.history;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -61,11 +62,18 @@ public class EventHistoryActivity extends AppCompatActivity {
     private DeviceAuthenticator deviceAuthenticator;
     private String currentUserId;
 
-    // Fragments per tab
+    // Store events data until fragments are ready
+    private List<Event> upcomingEvents = new ArrayList<>();
+    private List<Event> waitingEvents = new ArrayList<>();
+    private List<Event> pastEvents = new ArrayList<>();
+    private List<Event> cancelledEvents = new ArrayList<>();
+
+    // Fragments per tab - these will be populated by ViewPager2
     private EventListFragment upcomingFragment;
     private EventListFragment waitingFragment;
     private EventListFragment pastFragment;
-    private EventListFragment cancelledFragment; // NEW: For declined invitations
+    private EventListFragment cancelledFragment;
+
     /**
      * Activity entry point: initializes UI, data dependencies, pager, and triggers loads.
      */
@@ -98,20 +106,13 @@ public class EventHistoryActivity extends AppCompatActivity {
     }
 
     /**
-     * Initializes repository/auth, grabs current user id, and constructs tab fragments.
+     * Initializes repository/auth and grabs current user id.
      * <p>Preconditions: DeviceAuthenticator must have stored a user id earlier in app flow.</p>
      */
     private void initializeData() {
         eventRepository = new EventRepository();
         deviceAuthenticator = DeviceAuthenticator.getInstance(this);
         currentUserId = deviceAuthenticator.getStoredUserId();
-
-        // Create 4 tabs fragments
-        upcomingFragment = EventListFragment.newInstance(EventListFragment.TAB_UPCOMING);
-        waitingFragment = EventListFragment.newInstance(EventListFragment.TAB_WAITING);
-        pastFragment = EventListFragment.newInstance(EventListFragment.TAB_PAST);
-        cancelledFragment = EventListFragment.newInstance(EventListFragment.TAB_CANCELLED); // NEW
-        cancelledFragment = EventListFragment.newInstance(EventListFragment.TAB_CANCELLED);
     }
 
     /**
@@ -147,11 +148,13 @@ public class EventHistoryActivity extends AppCompatActivity {
      * Load event history from repositories
      */
     private void loadEventHistory() {
-        // Show loading on all fragments
-        upcomingFragment.showLoading(true);
-        waitingFragment.showLoading(true);
-        pastFragment.showLoading(true);
-        cancelledFragment.showLoading(true); // NEW
+        Log.d(TAG, "loadEventHistory() called");
+
+        // Show loading on fragments if they exist
+        if (upcomingFragment != null) upcomingFragment.showLoading(true);
+        if (waitingFragment != null) waitingFragment.showLoading(true);
+        if (pastFragment != null) pastFragment.showLoading(true);
+        if (cancelledFragment != null) cancelledFragment.showLoading(true);
 
         // Track completion of all queries
         final boolean[] queriesComplete = {false, false, false, false}; // Updated to 4
@@ -162,22 +165,23 @@ public class EventHistoryActivity extends AppCompatActivity {
                     @Override
                     public void onEventsLoaded(List<Event> events, Map<String, Object> metadata) {
                         // Filter out completed/cancelled events
-                        List<Event> upcomingEvents = new ArrayList<>();
+                        upcomingEvents = new ArrayList<>();
                         for (Event event : events) {
                             if (!event.isCompleted() && !event.isCancelled()) {
                                 upcomingEvents.add(event);
                             }
                         }
 
-                        upcomingFragment.setEvents(upcomingEvents);
-                        upcomingFragment.showLoading(false);
+                        Log.d(TAG, "Loaded " + upcomingEvents.size() + " upcoming events");
+                        updateFragmentEvents(0, upcomingEvents);
                         queriesComplete[0] = true;
                     }
 
                     @Override
                     public void onError(Exception e) {
-                        upcomingFragment.setEvents(new ArrayList<>());
-                        upcomingFragment.showLoading(false);
+                        Log.e(TAG, "Error loading upcoming events", e);
+                        upcomingEvents = new ArrayList<>();
+                        updateFragmentEvents(0, upcomingEvents);
                         queriesComplete[0] = true;
                         Toast.makeText(EventHistoryActivity.this,
                                 "Error loading upcoming events: " + e.getMessage(),
@@ -190,23 +194,29 @@ public class EventHistoryActivity extends AppCompatActivity {
                 new EventRepository.OnEventsWithMetadataLoadedListener() {
                     @Override
                     public void onEventsLoaded(List<Event> events, Map<String, Object> metadata) {
+                        Log.d(TAG, "Waiting list query returned " + events.size() + " events");
+
                         // Filter out completed/cancelled events
-                        List<Event> waitingEvents = new ArrayList<>();
+                        waitingEvents = new ArrayList<>();
                         for (Event event : events) {
+                            Log.d(TAG, "Processing event: " + event.getName() +
+                                  ", completed=" + event.isCompleted() +
+                                  ", cancelled=" + event.isCancelled());
                             if (!event.isCompleted() && !event.isCancelled()) {
                                 waitingEvents.add(event);
                             }
                         }
 
-                        waitingFragment.setEvents(waitingEvents);
-                        waitingFragment.showLoading(false);
+                        Log.d(TAG, "After filtering: " + waitingEvents.size() + " waiting events");
+                        updateFragmentEvents(1, waitingEvents);
                         queriesComplete[1] = true;
                     }
 
                     @Override
                     public void onError(Exception e) {
-                        waitingFragment.setEvents(new ArrayList<>());
-                        waitingFragment.showLoading(false);
+                        Log.e(TAG, "Error loading waiting list events", e);
+                        waitingEvents = new ArrayList<>();
+                        updateFragmentEvents(1, waitingEvents);
                         queriesComplete[1] = true;
                         Toast.makeText(EventHistoryActivity.this,
                                 "Error loading waiting list: " + e.getMessage(),
@@ -218,22 +228,23 @@ public class EventHistoryActivity extends AppCompatActivity {
         eventRepository.getAllEvents(new EventRepository.OnEventsLoadedListener() {
             @Override
             public void onEventsLoaded(List<Event> allEvents) {
-                List<Event> pastEvents = new ArrayList<>();
+                pastEvents = new ArrayList<>();
                 for (Event event : allEvents) {
                     if (event.isCompleted() || event.isCancelled()) {
                         pastEvents.add(event);
                     }
                 }
 
-                pastFragment.setEvents(pastEvents);
-                pastFragment.showLoading(false);
+                Log.d(TAG, "Loaded " + pastEvents.size() + " past events");
+                updateFragmentEvents(2, pastEvents);
                 queriesComplete[2] = true;
             }
 
             @Override
             public void onError(Exception e) {
-                pastFragment.setEvents(new ArrayList<>());
-                pastFragment.showLoading(false);
+                Log.e(TAG, "Error loading past events", e);
+                pastEvents = new ArrayList<>();
+                updateFragmentEvents(2, pastEvents);
                 queriesComplete[2] = true;
                 Toast.makeText(EventHistoryActivity.this,
                         "Error loading past events: " + e.getMessage(),
@@ -247,28 +258,43 @@ public class EventHistoryActivity extends AppCompatActivity {
                     @Override
                     public void onEventsLoaded(List<Event> events, Map<String, Object> metadata) {
                         // These are events the user declined
-                        cancelledFragment.setEvents(events);
-                        cancelledFragment.showLoading(false);
+                        cancelledEvents = new ArrayList<>(events);
 
-                        // Optionally, you can add metadata like when they declined
-                        for (Event event : events) {
-                            Object declinedAt = metadata.get(event.getEventId() + "_declinedAt");
-                            // You could pass this to the fragment if needed
-                        }
-
+                        Log.d(TAG, "Loaded " + cancelledEvents.size() + " cancelled events");
+                        updateFragmentEvents(3, cancelledEvents);
                         queriesComplete[3] = true;
                     }
 
                     @Override
                     public void onError(Exception e) {
-                        cancelledFragment.setEvents(new ArrayList<>());
-                        cancelledFragment.showLoading(false);
+                        Log.e(TAG, "Error loading declined events", e);
+                        cancelledEvents = new ArrayList<>();
+                        updateFragmentEvents(3, cancelledEvents);
                         queriesComplete[3] = true;
                         Toast.makeText(EventHistoryActivity.this,
                                 "Error loading declined events: " + e.getMessage(),
                                 Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    /**
+     * Helper method to update fragment events or store them for later if fragment doesn't exist yet
+     */
+    private void updateFragmentEvents(int position, List<Event> events) {
+        EventListFragment fragment = getFragmentAtPosition(position);
+
+        if (fragment != null) {
+            Log.d(TAG, "updateFragmentEvents: Setting " + events.size() +
+                  " events to fragment at position " + position);
+            fragment.setEvents(events);
+            fragment.showLoading(false);
+        } else {
+            Log.d(TAG, "updateFragmentEvents: Fragment at position " + position +
+                  " not created yet. " + events.size() + " events stored for later.");
+            // Events are already stored in the class variables (upcomingEvents, waitingEvents, etc.)
+            // When fragment is created, we'll need to set them
+        }
     }
 
     @Override
@@ -292,23 +318,69 @@ public class EventHistoryActivity extends AppCompatActivity {
         @NonNull
         @Override
         public Fragment createFragment(int position) {
+            Log.d(TAG, "createFragment called for position=" + position);
+            EventListFragment fragment;
+            List<Event> eventsToSet = null;
+
             switch (position) {
                 case 0:
-                    return upcomingFragment;
+                    fragment = EventListFragment.newInstance(EventListFragment.TAB_UPCOMING);
+                    upcomingFragment = fragment;
+                    eventsToSet = upcomingEvents;
+                    break;
                 case 1:
-                    return waitingFragment;
+                    fragment = EventListFragment.newInstance(EventListFragment.TAB_WAITING);
+                    waitingFragment = fragment;
+                    eventsToSet = waitingEvents;
+                    break;
                 case 2:
-                    return pastFragment;
-                case 3: // NEW
-                    return cancelledFragment;
+                    fragment = EventListFragment.newInstance(EventListFragment.TAB_PAST);
+                    pastFragment = fragment;
+                    eventsToSet = pastEvents;
+                    break;
+                case 3:
+                    fragment = EventListFragment.newInstance(EventListFragment.TAB_CANCELLED);
+                    cancelledFragment = fragment;
+                    eventsToSet = cancelledEvents;
+                    break;
                 default:
-                    return upcomingFragment;
+                    fragment = EventListFragment.newInstance(EventListFragment.TAB_UPCOMING);
+                    eventsToSet = upcomingEvents;
+                    break;
             }
+
+            // If we already have events loaded, set them on the fragment
+            if (eventsToSet != null && !eventsToSet.isEmpty()) {
+                Log.d(TAG, "Setting " + eventsToSet.size() +
+                      " pre-loaded events to newly created fragment at position " + position);
+                // We need to set events after the fragment is created and attached
+                // Use a post to ensure the fragment is fully initialized
+                final List<Event> finalEvents = eventsToSet;
+                fragment.getView(); // This will be null until onCreateView is called
+                viewPager.post(() -> {
+                    fragment.setEvents(finalEvents);
+                    fragment.showLoading(false);
+                });
+            }
+
+            return fragment;
         }
         // Number of taps/pages
         @Override
         public int getItemCount() {
             return 4; // CHANGED from 3 to 4
         }
+    }
+
+    /**
+     * Helper method to get or find fragment by position
+     */
+    private EventListFragment getFragmentAtPosition(int position) {
+        String tag = "f" + position;
+        Fragment fragment = getSupportFragmentManager().findFragmentByTag(tag);
+        if (fragment instanceof EventListFragment) {
+            return (EventListFragment) fragment;
+        }
+        return null;
     }
 }
