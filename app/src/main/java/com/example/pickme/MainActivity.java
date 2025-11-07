@@ -17,8 +17,12 @@ import androidx.navigation.fragment.NavHostFragment;
 import com.example.pickme.repositories.ProfileRepository;
 import com.example.pickme.services.DeviceAuthenticator;
 import com.example.pickme.services.FirebaseManager;
+import com.example.pickme.services.RoleChangeListener;
+import com.example.pickme.models.Profile;
 import com.example.pickme.ui.profile.CreateProfileActivity;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+
+import android.view.MenuItem;
 
 /**
  * JAVADOC LLM GENERATED
@@ -35,11 +39,13 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
  * - Redirects to CreateProfileActivity when a user has no profile yet.
  * - Handles deep links and invitations via Intent actions.
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements RoleChangeListener {
 
     private DeviceAuthenticator deviceAuth;
     private NavController navController;
     private BottomNavigationView bottomNav;
+    private String currentRole = Profile.ROLE_ENTRANT;
+    private NavController.OnDestinationChangedListener destinationChangedListener;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -65,60 +71,29 @@ public class MainActivity extends AppCompatActivity {
 
         navController = navHost.getNavController();
 
-        // Inflate the navigation graph and explicitly set "Browse" as the start destination
-        NavInflater inflater = navController.getNavInflater();
-        NavGraph graph = inflater.inflate(R.navigation.mobile_navigation);
-        graph.setStartDestination(R.id.navigation_browse);
-        navController.setGraph(graph);
+        // Initialize device identity
+        deviceAuth = DeviceAuthenticator.getInstance(this);
 
-        // Keep the bottom navigation state in sync with navigation changes
-        navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
-            int destId = destination.getId();
-            if (destId == R.id.navigation_browse) {
-                bottomNav.getMenu().findItem(R.id.navigation_browse).setChecked(true);
-            } else if (destId == R.id.navigation_notifications) {
-                bottomNav.getMenu().findItem(R.id.navigation_notifications).setChecked(true);
-            } else if (destId == R.id.navigation_profile) {
-                bottomNav.getMenu().findItem(R.id.navigation_profile).setChecked(true);
-            }
-        });
+        // Register role change listener
+        deviceAuth.addRoleChangeListener(this);
 
-        // Handle tab selections manually (instead of using setupWithNavController)
-        bottomNav.setOnItemSelectedListener(item -> {
-            int id = item.getItemId();
-
-            if (id == R.id.navigation_browse) {
-                navigateSingleTop(R.id.navigation_browse);
-                return true;
-            }
-
-            if (id == R.id.navigation_notifications) {
-                navigateSingleTop(R.id.navigation_notifications);
-                return true;
-            }
-
-            if (id == R.id.navigation_profile) {
-                // Gated navigation: only allow access if a profile exists
-                gateProfileThenNavigate();
-                return true;
-            }
-
-            return false;
-        });
-
-        // Set default tab to Browse
-        if (navController.getCurrentDestination() == null) {
-            navigateSingleTop(R.id.navigation_browse);
-        }
-        bottomNav.setSelectedItemId(R.id.navigation_browse);
+        // Load initial navigation based on cached profile
+        Profile cachedProfile = deviceAuth.getCachedProfile();
+        currentRole = cachedProfile != null ? cachedProfile.getRole() : Profile.ROLE_ENTRANT;
+        setupNavigationForRole(currentRole);
 
         // Initialize device identity; do not auto-launch CreateProfile
-        deviceAuth = DeviceAuthenticator.getInstance(this);
         deviceAuth.initializeUser(new DeviceAuthenticator.OnUserInitializedListener() {
             @Override
-            public void onUserInitialized(com.example.pickme.models.Profile profile, boolean isNewUser) {
+            public void onUserInitialized(Profile profile, boolean isNewUser) {
                 // Store or refresh FCM token once the device identity is initialized
                 FirebaseManager.refreshAndStoreFcmToken();
+
+                // Update navigation if role is different
+                if (profile != null && !profile.getRole().equals(currentRole)) {
+                    currentRole = profile.getRole();
+                    setupNavigationForRole(currentRole);
+                }
             }
 
             @Override
@@ -248,4 +223,123 @@ public class MainActivity extends AppCompatActivity {
                 .newInstance(eventId, invId, deadline)
                 .show(getSupportFragmentManager(), "invite");
     }
+
+    @Override
+    public void onRoleChanged(String newRole) {
+        currentRole = newRole;
+        setupNavigationForRole(newRole);
+    }
+
+    /**
+     * Setup navigation graph and menu based on user role
+     *
+     * @param role The user's role (ROLE_ENTRANT, ROLE_ORGANIZER, or ROLE_ADMIN)
+     */
+    private void setupNavigationForRole(String role) {
+        // Clear previous destination change listener
+        if (navController != null && destinationChangedListener != null) {
+            navController.removeOnDestinationChangedListener(destinationChangedListener);
+        }
+
+        // Get appropriate navigation graph and menu based on role
+        int navGraphResId;
+        int menuResId;
+        int startDestination;
+
+        switch (role) {
+            case Profile.ROLE_ORGANIZER:
+                navGraphResId = R.navigation.navigation_organizer;
+                menuResId = R.menu.bottom_nav_menu_organizer;
+                startDestination = R.id.navigation_my_events;
+                break;
+            case Profile.ROLE_ADMIN:
+                navGraphResId = R.navigation.navigation_admin;
+                menuResId = R.menu.bottom_nav_menu_admin;
+                startDestination = R.id.navigation_browse;
+                break;
+            case Profile.ROLE_ENTRANT:
+            default:
+                navGraphResId = R.navigation.navigation_entrant;
+                menuResId = R.menu.bottom_nav_menu_entrant;
+                startDestination = R.id.navigation_browse;
+                break;
+        }
+
+        // Update bottom nav menu
+        bottomNav.getMenu().clear();
+        bottomNav.inflateMenu(menuResId);
+
+        // Update navigation graph
+        NavInflater inflater = navController.getNavInflater();
+        NavGraph graph = inflater.inflate(navGraphResId);
+        graph.setStartDestination(startDestination);
+        navController.setGraph(graph);
+
+        // Create and attach destination change listener
+        destinationChangedListener = (controller, destination, arguments) -> {
+            int destId = destination.getId();
+            MenuItem menuItem = bottomNav.getMenu().findItem(destId);
+            if (menuItem != null) {
+                menuItem.setChecked(true);
+            }
+        };
+        navController.addOnDestinationChangedListener(destinationChangedListener);
+
+        // Setup bottom nav listener
+        setupBottomNavListener();
+    }
+
+    /**
+     * Setup bottom navigation item selection listener
+     */
+    private void setupBottomNavListener() {
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+
+            // Handle common navigation items
+            if (id == R.id.navigation_browse) {
+                navigateSingleTop(R.id.navigation_browse);
+                return true;
+            }
+
+            if (id == R.id.navigation_profile) {
+                // Gated navigation: only allow access if a profile exists
+                gateProfileThenNavigate();
+                return true;
+            }
+
+            // Handle role-specific items
+            if (id == R.id.navigation_invitations) {
+                navigateSingleTop(R.id.navigation_invitations);
+                return true;
+            }
+
+            if (id == R.id.navigation_my_events) {
+                navigateSingleTop(R.id.navigation_my_events);
+                return true;
+            }
+
+            if (id == R.id.navigation_admin) {
+                navigateSingleTop(R.id.navigation_admin);
+                return true;
+            }
+
+            // Legacy notification support (if it exists)
+            if (id == R.id.navigation_notifications) {
+                navigateSingleTop(R.id.navigation_notifications);
+                return true;
+            }
+
+            return false;
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (deviceAuth != null) {
+            deviceAuth.removeRoleChangeListener(this);
+        }
+    }
 }
+

@@ -319,4 +319,11 @@
     <string name="title_browse">Browse</string>
     <string name="title_profile">Profile</string>
     <string name="title_search">Search</string>
+
+    <!-- Role-based Navigation -->
+    <string name="title_my_events">My Events</string>
+    <string name="title_invitations">Invitations</string>
+    <string name="title_admin">Admin</string>
+    <string name="role_changed_title">Role Changed</string>
+    <string name="role_changed_message">Your role has been updated to %1$s. The navigation menu has been updated to reflect your new permissions.</string>
 </resources>

@@ -217,12 +217,16 @@ public class ProfileFragment extends Fragment {
             return;
         }
 
+        // Track old role for comparison
+        String oldRole = currentProfile != null ? currentProfile.getRole() : Profile.ROLE_ENTRANT;
+        final String newRole = role; // Make final for lambda
+
         Map<String, Object> updates = new HashMap<>();
         updates.put("name", name);
         updates.put("email", email);
         updates.put("phoneNumber", phone);
         updates.put("notificationEnabled", notificationsEnabled);
-        updates.put("role", role);
+        updates.put("role", newRole);
         // TODO: handle image upload and add profileImageUrl
 
         showLoading(true);
@@ -233,6 +237,11 @@ public class ProfileFragment extends Fragment {
                             getString(R.string.profile_saved),
                             Toast.LENGTH_SHORT).show();
                     loadProfile();
+
+                    // Show role change confirmation if role changed
+                    if (!oldRole.equals(newRole)) {
+                        showRoleChangeDialog(newRole);
+                    }
                 },
                 e -> {
                     showLoading(false);
@@ -269,6 +278,27 @@ public class ProfileFragment extends Fragment {
                             getString(R.string.error_delete_failed) + ": " + e.getMessage(),
                             Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    private void showRoleChangeDialog(String newRole) {
+        String roleName;
+        switch (newRole) {
+            case Profile.ROLE_ORGANIZER:
+                roleName = getString(R.string.role_organizer);
+                break;
+            case Profile.ROLE_ADMIN:
+                roleName = getString(R.string.role_admin);
+                break;
+            default:
+                roleName = getString(R.string.role_entrant);
+                break;
+        }
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.role_changed_title)
+                .setMessage(getString(R.string.role_changed_message, roleName))
+                .setPositiveButton(R.string.ok, null)
+                .show();
     }
 
     private void showLoading(boolean show) {

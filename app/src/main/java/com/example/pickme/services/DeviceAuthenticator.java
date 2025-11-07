@@ -11,6 +11,9 @@ import com.example.pickme.models.Profile;
 import com.example.pickme.repositories.ProfileRepository;
 import com.google.firebase.installations.FirebaseInstallations;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * JAVADOCS LLM GENERATED
  *
@@ -63,11 +66,13 @@ public class DeviceAuthenticator {
     private ProfileRepository profileRepository;
     private String cachedDeviceId;
     private Profile cachedProfile;
+    private List<RoleChangeListener> roleChangeListeners;
 
     private DeviceAuthenticator(Context context) {
         this.context = context.getApplicationContext();
         this.prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         this.profileRepository = new ProfileRepository();
+        this.roleChangeListeners = new ArrayList<>();
     }
 
     /**
@@ -244,7 +249,47 @@ public class DeviceAuthenticator {
      * @param profile Updated profile
      */
     public void updateCachedProfile(Profile profile) {
+        String oldRole = cachedProfile != null ? cachedProfile.getRole() : null;
+        String newRole = profile != null ? profile.getRole() : null;
+
         this.cachedProfile = profile;
+
+        // Notify listeners if role changed
+        if (oldRole != null && newRole != null && !oldRole.equals(newRole)) {
+            notifyRoleChanged(newRole);
+        }
+    }
+
+    /**
+     * Add a role change listener
+     *
+     * @param listener Listener to be notified when role changes
+     */
+    public void addRoleChangeListener(RoleChangeListener listener) {
+        if (listener != null && !roleChangeListeners.contains(listener)) {
+            roleChangeListeners.add(listener);
+        }
+    }
+
+    /**
+     * Remove a role change listener
+     *
+     * @param listener Listener to remove
+     */
+    public void removeRoleChangeListener(RoleChangeListener listener) {
+        roleChangeListeners.remove(listener);
+    }
+
+    /**
+     * Notify all registered listeners that the role has changed
+     *
+     * @param newRole The new role
+     */
+    private void notifyRoleChanged(String newRole) {
+        Log.d(TAG, "Role changed to: " + newRole + ", notifying " + roleChangeListeners.size() + " listeners");
+        for (RoleChangeListener listener : new ArrayList<>(roleChangeListeners)) {
+            listener.onRoleChanged(newRole);
+        }
     }
 
     /**
@@ -254,6 +299,7 @@ public class DeviceAuthenticator {
         prefs.edit().clear().apply();
         cachedDeviceId = null;
         cachedProfile = null;
+        roleChangeListeners.clear();
         Log.d(TAG, "Authentication data cleared");
     }
 
