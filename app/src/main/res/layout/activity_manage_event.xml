@@ -97,7 +97,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginRight="10dp"
-        android:layout_marginBottom="65dp"
+        android:layout_marginBottom="85dp"
         android:contentDescription="@string/manage_actions"
         android:src="@android:drawable/ic_menu_more"
         app:tint="@color/text_on_primary"

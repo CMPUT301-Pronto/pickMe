@@ -17,8 +17,7 @@ import com.google.firebase.installations.FirebaseInstallations;
  * Manages device-based authentication and user initialization.
  *
  * <p><b>Role / Pattern:</b> Singleton service responsible for implementing
- * the “no username or password” login flow (US 01.07.01). This replaces
- * traditional account creation by using a unique device identifier
+ *  account creation by using a unique device identifier
  * (Firebase Installation ID or Android ID fallback) to bind a {@link Profile}
  * to a specific installation.</p>
  *
@@ -155,69 +154,51 @@ public class DeviceAuthenticator {
     public void initializeUser(@NonNull OnUserInitializedListener listener) {
         Log.d(TAG, "Initializing user");
 
-        getDeviceId(new OnDeviceIdLoadedListener() {
-            @Override
-            public void onDeviceIdLoaded(String deviceId) {
-                // Check if profile exists
-                profileRepository.profileExists(deviceId, new ProfileRepository.OnProfileExistsListener() {
-                    @Override
-                    public void onCheckComplete(boolean exists) {
-                        if (exists) {
-                            // Load existing profile
-                            profileRepository.getProfile(deviceId, new ProfileRepository.OnProfileLoadedListener() {
-                                @Override
-                                public void onProfileLoaded(Profile profile) {
-                                    Log.d(TAG, "Existing user loaded: " + profile.getName());
-                                    cachedProfile = profile;
-                                    prefs.edit()
-                                            .putString(KEY_USER_ID, deviceId)
-                                            .putBoolean(KEY_FIRST_LAUNCH, false)
-                                            .apply();
-                                    listener.onUserInitialized(profile, false);
-                                }
+        getDeviceId(deviceId -> {
+            profileRepository.profileExists(deviceId, new ProfileRepository.OnProfileExistsListener() {
+                @Override
+                public void onCheckComplete(boolean exists) {
+                    if (exists) {
+                        // Load existing profile normally
+                        profileRepository.getProfile(deviceId, new ProfileRepository.OnProfileLoadedListener() {
+                            @Override public void onProfileLoaded(Profile profile) {
+                                Log.d(TAG, "Existing user loaded: " + profile.getName());
+                                cachedProfile = profile;
+                                prefs.edit()
+                                        .putString(KEY_USER_ID, deviceId)
+                                        .putBoolean(KEY_FIRST_LAUNCH, false)
+                                        .apply();
+                                listener.onUserInitialized(profile, /*isNewUser=*/false);
+                            }
+                            @Override public void onError(Exception e) {
+                                Log.e(TAG, "Failed to load profile", e);
+                                listener.onError(e);
+                            }
+                        });
+                    } else {
 
-                                @Override
-                                public void onError(Exception e) {
-                                    Log.e(TAG, "Failed to load profile", e);
-                                    listener.onError(e);
-                                }
-                            });
-                        } else {
-                            // Create new profile for first-time user
-                            Profile newProfile = new Profile(deviceId, "User" + deviceId.substring(0, 8));
-                            newProfile.setRole(Profile.ROLE_ENTRANT); // Default role
+                        // profile does not exist yet
+                        cachedProfile = null;
+                        prefs.edit()
+                                .putString(KEY_USER_ID, deviceId)
+                                .putBoolean(KEY_FIRST_LAUNCH, true)
+                                .apply();
 
-                            profileRepository.createProfile(newProfile, new ProfileRepository.OnSuccessListener() {
-                                @Override
-                                public void onSuccess(String userId) {
-                                    Log.d(TAG, "New user profile created: " + userId);
-                                    cachedProfile = newProfile;
-                                    prefs.edit()
-                                            .putString(KEY_USER_ID, userId)
-                                            .putBoolean(KEY_FIRST_LAUNCH, true)
-                                            .apply();
-                                    listener.onUserInitialized(newProfile, true);
-                                }
-                            }, new ProfileRepository.OnFailureListener() {
-                                @Override
-                                public void onFailure(Exception e) {
-                                    Log.e(TAG, "Failed to create profile", e);
-                                    listener.onError(e);
-                                }
-                            });
-                        }
+                        // pass a  placeholder profile object if you want,
+                        // NOT saved to Firestore.
+                        Profile placeholder = new Profile(deviceId, null);
+                        listener.onUserInitialized(placeholder, /*isNewUser=*/true);
                     }
+                }
 
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e(TAG, "Failed to check profile existence", e);
-                        listener.onError(e);
-                    }
-                });
-            }
+                @Override
+                public void onError(Exception e) {
+                    Log.e(TAG, "Failed to check profile existence", e);
+                    listener.onError(e);
+                }
+            });
         });
     }
-
     /**
      * Get user role (entrant, organizer, admin)
      *

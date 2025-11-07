@@ -12,15 +12,12 @@ import java.util.Map;
  * </p>
  *
  * <p>
- * <b>Security:</b> Contains optional password hash metadata for custom auth flows (hash, salt, algo).
- * Prefer Firebase Authentication where possible; do not store plaintext passwords.
  * </p>
  *
  * <p>
  * <b>Outstanding issues / TODOs:</b>
  * <ul>
  *   <li>Consolidate identity (User) and UI state (Profile) if duplication causes drift.</li>
- *   <li>Verify that hash/salt/algo align with server-side auth policy and rotation strategy.</li>
  * </ul>
  * </p>
  *
@@ -34,9 +31,6 @@ import java.util.Map;
  *   ├─ deviceId
  *   ├─ createdAt
  *   ├─ role (entrant/organizer/admin)
- *   ├─ passwordHash (optional)
- *   ├─ passwordSalt (optional)
- *   └─ passwordAlgo (optional)
  * </pre>
  */
 public class User {
@@ -55,11 +49,6 @@ public class User {
     private String deviceId;
     private long createdAt;
     private String role;
-
-    // password security
-    private String passwordHash; // base64-encoded PBKDF hash
-    private String passwordSalt; // base64-encoded random salt
-    private String passwordAlgo;
 
 
     /**
@@ -81,18 +70,12 @@ public class User {
      * @param deviceId     Device identifier (device-based auth)
      * @param createdAt    Epoch millis of account creation
      * @param role         Role string (entrant/organizer/admin)
-     * @param passwordHash Base64-encoded hash (custom auth only)
-     * @param passwordSalt Base64-encoded salt (custom auth only)
-     * @param passwordAlgo Hash algorithm identifier
      */
     public User(String userId, String name, String email, String profileImageUrl,
-                String phoneNumber, String deviceId, long createdAt, String role, String passwordHash, String passwordSalt, String passwordAlgo) {
+                String phoneNumber, String deviceId, long createdAt, String role) {
         this.userId = userId;
         this.name = name;
         this.email = email;
-        this.passwordHash = passwordHash;
-        this.passwordSalt = passwordSalt;
-        this.passwordAlgo = passwordAlgo;
         this.profileImageUrl = profileImageUrl;
         this.phoneNumber = phoneNumber;
         this.deviceId = deviceId;
@@ -134,24 +117,6 @@ public class User {
 
     /** @param email Email address to set. */
     public void setEmail(String email) { this.email = email; }
-
-    /** @return Base64-encoded password hash (custom auth only). */
-    public String getPasswordHash() { return passwordHash; }
-
-    /** @param passwordHash Base64-encoded password hash (custom auth only). */
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
-
-    /** @return Base64-encoded password salt (custom auth only). */
-    public String getPasswordSalt() { return passwordSalt; }
-
-    /** @param passwordSalt Base64-encoded password salt (custom auth only). */
-    public void setPasswordSalt(String passwordSalt) { this.passwordSalt = passwordSalt; }
-
-    /** @return Hash algorithm identifier, e.g., "PBKDF2WithHmacSHA256". */
-    public String getPasswordAlgo() { return passwordAlgo; }
-
-    /** @param passwordAlgo Hash algorithm identifier to set. */
-    public void setPasswordAlgo(String passwordAlgo) { this.passwordAlgo = passwordAlgo; }
 
     /** @return Profile image URL or null if not set. */
     public String getProfileImageUrl() { return profileImageUrl; }
@@ -199,10 +164,6 @@ public class User {
         map.put("deviceId", deviceId);
         map.put("createdAt", createdAt);
         map.put("role", role);
-        // security fields
-        map.put("passwordHash", passwordHash);
-        map.put("passwordSalt", passwordSalt);
-        map.put("passwordAlgo", passwordAlgo);
         return map;
     }
 

@@ -25,15 +25,12 @@ import java.util.Map;
  * </p>
  *
  * <p>
- * <b>Security:</b> Includes password hash metadata (hash, salt, algo) for custom auth flows.
- * Prefer Firebase Authentication over custom password storage whenever possible.
  * </p>
  *
  * <p>
  * <b>Outstanding issues / TODOs:</b>
  * <ul>
- *   <li>Verify whether password* fields are still required if Firebase Auth is the primary auth.</li>
- *   <li>Consider moving password hashing to a dedicated auth/service layer (single responsibility).</li>
+
  *   <li>Ensure <code>eventHistory</code> remains consistent with server-side state (writes are append-only).</li>
  * </ul>
  * </p>
@@ -61,11 +58,6 @@ public class Profile implements Parcelable {
     private String name;
     private String phoneNumber;
     private String email;
-
-    // Security: custom password fields if not using Firebase Auth email/pass
-    private String passwordHash;
-    private String passwordSalt;
-    private String passwordAlgo;
     private boolean notificationEnabled;
     private List<EventHistoryItem> eventHistory;
     private String profileImageUrl;
@@ -130,24 +122,6 @@ public class Profile implements Parcelable {
 
     /** @param email Email address to set. */
     public void setEmail(String email) { this.email = email; }
-
-    /** @return Base64-encoded password hash (custom auth only). */
-    public String getPasswordHash() { return passwordHash; }
-
-    /** @param v Base64-encoded password hash (custom auth only). */
-    public void setPasswordHash(String v) { this.passwordHash = v; }
-
-    /** @return Base64-encoded password salt (custom auth only). */
-    public String getPasswordSalt() { return passwordSalt; }
-
-    /** @param v Base64-encoded password salt (custom auth only). */
-    public void setPasswordSalt(String v) { this.passwordSalt = v; }
-
-    /** @return Password hashing algorithm, e.g., "PBKDF2WithHmacSHA256". */
-    public String getPasswordAlgo() { return passwordAlgo; }
-
-    /** @param v Password hashing algorithm identifier. */
-    public void setPasswordAlgo(String v) { this.passwordAlgo = v; }
 
     /** @return Phone number or null if not set. */
     public String getPhoneNumber() { return phoneNumber; }
@@ -268,9 +242,6 @@ public class Profile implements Parcelable {
         map.put("userId", userId);
         map.put("name", name);
         map.put("email", email);
-        map.put("passwordHash", passwordHash);
-        map.put("passwordSalt", passwordSalt);
-        map.put("passwordAlgo", passwordAlgo);
         map.put("phoneNumber", phoneNumber);
         map.put("notificationEnabled", notificationEnabled);
         map.put("role", role);

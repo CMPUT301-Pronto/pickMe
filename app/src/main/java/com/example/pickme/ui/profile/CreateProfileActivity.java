@@ -1,5 +1,5 @@
 package com.example.pickme.ui.profile;
-import com.example.pickme.utils.PasswordUtil;
+
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.Toast;
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,75 +20,31 @@ import com.example.pickme.R;
 import com.example.pickme.models.Profile;
 import com.example.pickme.repositories.ProfileRepository;
 import com.example.pickme.services.DeviceAuthenticator;
+import com.example.pickme.services.FirebaseManager;
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-/**
- * JAVADOCS LLM GENERATED
- *
- * # CreateProfileActivity
- *
- * Activity responsible for first-time (or explicit) profile creation and onboarding.
- * It collects basic user info (name, email, optional avatar) and—if provided—creates
- * a salted PBKDF2 password hash that’s stored with the {@link Profile} in Firestore.
- *
- * ## Role in architecture
- * - **Presentation layer** of the profile creation flow (MVx-friendly).
- * - Delegates persistence to {@link ProfileRepository}.
- * - Delegates device identity and cached profile state to {@link DeviceAuthenticator}.
- *
- * ## Key behaviors
- * - Suggests a default display name derived from the device/installation ID.
- * - Validates inputs (name, email pattern, password rules).
- * - Hashes and salts passwords via {@link PasswordUtil} (PBKDF2WithHmacSHA256).
- * - Optionally previews a chosen profile image (Storage upload is TODO).
- *
- * ## Outstanding items / technical debt
- * - Avatar preview is wired, **but actual upload to Firebase Storage is a TODO**.
- * - Consider client-side password strength meter & breach checks.
- * - Consider throttling / retry logic on Firestore write failure.
- * - Consider replacing Toasts with a UI surface (e.g., Snackbar) for accessibility.
- *
- * @since 1.0
- */
 public class CreateProfileActivity extends AppCompatActivity {
 
-    private static final String TAG = "CreateProfileActivity";
-
-    // UI Components
+    // UI
     private CircleImageView profileImage;
-    private Button btnUploadPhoto;
-    private TextInputEditText etName;
-    private TextInputEditText etEmail;
-    private TextInputEditText etPassword;
-    private TextInputEditText etConfirm;
-    private TextInputLayout passwordLayout;
-    private TextInputLayout confirmLayout;
-    private Button btnCreateProfile;
-    private Button btnSkip;
+    private Button btnUploadPhoto, btnCreateProfile, btnSkip;
+    private TextInputEditText etName, etEmail;
     private ProgressBar progressBar;
 
     // Data
     private ProfileRepository profileRepository;
     private DeviceAuthenticator deviceAuthenticator;
-    private String userId;
+    private String userId;                 // device/installation ID
     private Uri selectedImageUri;
 
-    // Image picker
     private ActivityResultLauncher<String> imagePickerLauncher;
-    /**
-     * Android lifecycle entry point. Initializes views, services, and UI listeners for the
-     * profile creation flow. Also pre-fills a suggested display name using the device ID.
-     *
-     * @param savedInstanceState saved state bundle if activity is being re-created
-     */
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_profile);
-
         if (getSupportActionBar() != null) getSupportActionBar().hide();
 
         initializeViews();
@@ -96,37 +53,36 @@ public class CreateProfileActivity extends AppCompatActivity {
         setupListeners();
     }
 
-    // Bind view references
     private void initializeViews() {
-        profileImage = findViewById(R.id.profileImage);
-        btnUploadPhoto = findViewById(R.id.btnUploadPhoto);
-        etName = findViewById(R.id.etName);
-        etEmail = findViewById(R.id.etEmail);
-        // NEW: password fields
-        passwordLayout = findViewById(R.id.passwordLayout);
-        confirmLayout  = findViewById(R.id.confirmLayout);
-        etPassword     = findViewById(R.id.etPassword);
-        etConfirm      = findViewById(R.id.etConfirm);
-
+        profileImage     = findViewById(R.id.profileImage);
+        btnUploadPhoto   = findViewById(R.id.btnUploadPhoto);
+        etName           = findViewById(R.id.etName);
+        etEmail          = findViewById(R.id.etEmail);
         btnCreateProfile = findViewById(R.id.btnCreateProfile);
-        btnSkip = findViewById(R.id.btnSkip);
-        progressBar = findViewById(R.id.progressBar);
+        btnSkip          = findViewById(R.id.btnSkip);
+        progressBar      = findViewById(R.id.progressBar);
+
+        // Disable actions until deviceId is ready
+        btnCreateProfile.setEnabled(false);
+        btnSkip.setEnabled(false);
     }
 
-    /** Resolve repositories/services and derive a suggested display name. */
     private void initializeServices() {
-        profileRepository = new ProfileRepository();
+        profileRepository   = new ProfileRepository();
         deviceAuthenticator = DeviceAuthenticator.getInstance(this);
 
         deviceAuthenticator.getDeviceId(deviceId -> {
             userId = deviceId;
-            String suggestedName = "User" + deviceId.substring(0, 8);
+            String suggestedName = "User" + deviceId.substring(0, Math.min(8, deviceId.length()));
             etName.setText(suggestedName);
             etName.setSelection(suggestedName.length());
+
+            // Now the user can proceed
+            btnCreateProfile.setEnabled(true);
+            btnSkip.setEnabled(true);
         });
     }
 
-    /** Configure the system file picker for avatar selection. */
     private void setupImagePicker() {
         imagePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
@@ -142,36 +98,26 @@ public class CreateProfileActivity extends AppCompatActivity {
         );
     }
 
-    /** Wire up click listeners for primary actions. */
     private void setupListeners() {
         btnUploadPhoto.setOnClickListener(v -> openImagePicker());
         btnCreateProfile.setOnClickListener(v -> createProfile());
         btnSkip.setOnClickListener(v -> skipProfileCreation());
     }
 
-    /** Launch the system image picker for avatar selection. */
     private void openImagePicker() {
         imagePickerLauncher.launch("image/*");
     }
 
-    /**
-     * Validate inputs, hash password (if provided), and persist a {@link Profile} to Firestore.
-     * On success, caches the profile and transitions to {@link MainActivity}.
-     *
-     * <p><b>Security notes</b>:
-     * <ul>
-     *   <li>Passwords are immediately salted and hashed on-device using PBKDF2 (no plaintext
-     *       storage).</li>
-     *   <li>Consider moving password creation into a dedicated screen if you later add auth flows.</li>
-     * </ul>
-     */
+    /** Create profile with name/email (no passwords). (UPDATED) */
     private void createProfile() {
+        if (userId == null) {
+            Toast.makeText(this, "Initializing device… try again in a moment.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         String name  = etName.getText()  != null ? etName.getText().toString().trim()  : "";
         String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
-        String pass  = etPassword.getText() != null ? etPassword.getText().toString()  : "";
-        String conf  = etConfirm.getText()  != null ? etConfirm.getText().toString()   : "";
 
-        // Basic validation
         if (TextUtils.isEmpty(name)) {
             etName.setError(getString(R.string.error_name_required));
             etName.requestFocus();
@@ -183,81 +129,48 @@ public class CreateProfileActivity extends AppCompatActivity {
             return;
         }
 
-        // Password validation (require for account w/ email)
-        passwordLayout.setError(null);
-        confirmLayout.setError(null);
-
-        if (TextUtils.isEmpty(pass)) {
-            passwordLayout.setError("Password required");
-            etPassword.requestFocus();
-            return;
-        }
-        if (pass.length() < 6) {
-            passwordLayout.setError("Minimum 6 characters");
-            etPassword.requestFocus();
-            return;
-        }
-        if (!pass.equals(conf)) {
-            confirmLayout.setError("Passwords do not match");
-            etConfirm.requestFocus();
-            return;
-        }
-
-        // Build profile
         Profile profile = new Profile(userId, name, email);
         profile.setNotificationEnabled(true);
         profile.setRole(Profile.ROLE_ENTRANT);
 
-        // OPTIONAL: upload selectedImageUri to Storage and set profile.setProfileImageUrl(...)
+        // TODO: If you upload selectedImageUri to Storage, set profile.setProfileImageUrl(url)
 
-        // Hash + salt
-        String saltB64 = PasswordUtil.generateSaltB64();
-        String hashB64 = PasswordUtil.hashToB64(pass.toCharArray(), saltB64);
-        profile.setPasswordSalt(saltB64);
-        profile.setPasswordHash(hashB64);
-        profile.setPasswordAlgo(PasswordUtil.algorithmName());
-
-        // Save to Firestore
         showLoading(true);
         profileRepository.createProfile(profile,
-                userId -> {
+                uid -> {
                     showLoading(false);
+                    deviceAuthenticator.updateCachedProfile(profile);
+                    // Store FCM token now that identity exists
+                    FirebaseManager.refreshAndStoreFcmToken();
                     Toast.makeText(this, getString(R.string.profile_saved), Toast.LENGTH_SHORT).show();
-                    deviceAuthenticator.updateCachedProfile(profile);
                     navigateToMain();
                 },
                 e -> {
                     showLoading(false);
-                    Toast.makeText(this, getString(R.string.error_profile_save_failed) + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                }
-        );
+                    Toast.makeText(this,
+                            getString(R.string.error_profile_save_failed) + ": " +
+                                    (e != null ? e.getMessage() : "Unknown error"),
+                            Toast.LENGTH_SHORT).show();
+                });
     }
 
-    /**
-     * Create a minimal {@link Profile} without password (fast-track onboarding),
-     * then persist and navigate to {@link MainActivity}.
-     *
-     * <p>Use this for “skip for now” flow; user can enrich profile later.</p>
-     */
+    /** Skip for now: DO NOT create a Firestore profile. Just go back to Main. */
     private void skipProfileCreation() {
-        Profile profile = new Profile(userId, "User" + userId.substring(0, 8));
-        profile.setNotificationEnabled(true);
-        profile.setRole(Profile.ROLE_ENTRANT);
+        if (userId == null) {
+            Toast.makeText(this, "Initializing device… try again in a moment.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        showLoading(true);
-        profileRepository.createProfile(profile,
-                userId -> {
-                    showLoading(false);
-                    deviceAuthenticator.updateCachedProfile(profile);
-                    navigateToMain();
-                },
-                e -> {
-                    showLoading(false);
-                    Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                }
-        );
+        // Make sure nothing is cached as a "profile" yet
+        deviceAuthenticator.updateCachedProfile(null);
+
+        // Do not write anything to Firestore here.
+        Intent i = new Intent(this, MainActivity.class);
+        i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(i);
+        finish();
     }
-    /** Navigate to the main screen */
+
     private void navigateToMain() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -265,12 +178,6 @@ public class CreateProfileActivity extends AppCompatActivity {
         finish();
     }
 
-    /**
-     * Toggle progress visibility and temporarily disable interactive controls to prevent
-     * duplicate submissions while network work is in flight.
-     *
-     * @param show true to show progress and disable inputs; false to hide and re-enable
-     */
     private void showLoading(boolean show) {
         progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
         btnCreateProfile.setEnabled(!show);
@@ -278,18 +185,11 @@ public class CreateProfileActivity extends AppCompatActivity {
         btnUploadPhoto.setEnabled(!show);
         etName.setEnabled(!show);
         etEmail.setEnabled(!show);
-        if (etPassword != null) etPassword.setEnabled(!show);
-        if (etConfirm  != null) etConfirm.setEnabled(!show);
     }
-    /**
-     * Override back navigation during first-time setup to ensure the user completes
-     * the minimum required onboarding flow before entering the app.
-     *
-     * <p>Intentionally suppresses the super call.</p>
-     */
+
     @Override
     @SuppressWarnings("MissingSuperCall")
     public void onBackPressed() {
-        // Prevent back navigation during first-time setup
+        // Block back during first-time setup
     }
 }

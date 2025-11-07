@@ -28,6 +28,7 @@
     <string name="error_profile_save_failed">Failed to save profile</string>
     <string name="profile_saved">Profile saved successfully</string>
     <string name="profile_loading">Loading profile…</string>
+    <string name="profile_image">Profile image</string>
 
     <!-- Profile Deletion -->
     <string name="delete_account_title">Delete Account</string>
@@ -315,4 +316,7 @@
     <!-- Admin Access -->
     <string name="admin_access_denied_title">Admin Access Required</string>
     <string name="admin_access_denied_message">Only users with Admin role can access this feature</string>
+    <string name="title_browse">Browse</string>
+    <string name="title_profile">Profile</string>
+    <string name="title_search">Search</string>
 </resources>

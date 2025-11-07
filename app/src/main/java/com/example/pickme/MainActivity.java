@@ -1,367 +1,248 @@
 package com.example.pickme;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
-import android.widget.Button;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.navigation.NavController;
+import androidx.navigation.NavDestination;
+import androidx.navigation.NavGraph;
+import androidx.navigation.NavInflater;
+import androidx.navigation.NavOptions;
+import androidx.navigation.fragment.NavHostFragment;
 
-import com.example.pickme.models.Profile;
 import com.example.pickme.repositories.ProfileRepository;
 import com.example.pickme.services.DeviceAuthenticator;
-import com.example.pickme.ui.events.CreateEventActivity;
-import com.example.pickme.ui.events.EventBrowserActivity;
-import com.example.pickme.ui.events.OrganizerDashboardActivity;
-import com.example.pickme.ui.history.EventHistoryActivity;
-import com.example.pickme.ui.invitations.EventInvitationsActivity;
-import com.example.pickme.ui.profile.ProfileActivity;
+import com.example.pickme.services.FirebaseManager;
+import com.example.pickme.ui.profile.CreateProfileActivity;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 /**
- * MainActivity - Role-based launcher for PickMe app
+ * JAVADOC LLM GENERATED
  *
- * Provides access to features based on user role:
- * - Entrants: Profile, Browse Events, Invitations, History
- * - Organizers: Profile, Create Event, My Events Dashboard, Browse Events
- * - Admins: Additional admin features (future)
+ * MainActivity
  *
- * Detects user role from Profile and displays appropriate navigation options.
+ * The main entry point of the PickMe app. This activity manages the bottom navigation bar,
+ * navigation between fragments, user authentication initialization, and profile gating logic.
+ *
+ * Features:
+ * - Hosts the NavHostFragment and handles fragment navigation.
+ * - Initializes the device-based user identity.
+ * - Syncs bottom navigation tab state with the current destination.
+ * - Redirects to CreateProfileActivity when a user has no profile yet.
+ * - Handles deep links and invitations via Intent actions.
  */
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "MainActivity";
-
-    // Common UI elements
-    private TextView tvWelcome;
-    private TextView tvUserId;
-    private TextView tvRoleBadge;
-    private ProgressBar progressBar;
-    private View contentCard;
-
-    // Entrant buttons
-    private View entrantSection;
-    private Button btnProfile;
-    private Button btnBrowseEvents;
-    private Button btnInvitations;
-    private Button btnHistory;
-
-    // Organizer buttons
-    private View organizerSection;
-    private Button btnOrganizerProfile;
-    private Button btnCreateEvent;
-    private Button btnMyEvents;
-    private Button btnOrganizerBrowse;
-
-    // Admin buttons
-    private View adminSection;
-    private Button btnAdminProfile;
-    private Button btnAdminDashboard;
-    private Button btnAdminBrowse;
-
     private DeviceAuthenticator deviceAuth;
-    private String userId;
-    private Profile currentProfile;
+    private NavController navController;
+    private BottomNavigationView bottomNav;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Layout must include: NavHostFragment(id=nav_host_fragment) + BottomNavigationView(id=bottom_nav)
         setContentView(R.layout.activity_main);
 
-        // Initialize views
-        initializeViews();
+        // Request runtime notification permission on Android 13+
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1001);
+            }
+        }
 
-        // Show loading state
-        showLoading(true);
+        // Get reference to the BottomNavigationView
+        bottomNav = findViewById(R.id.bottom_nav);
 
-        // Initialize device authentication
+        // Get the NavHostFragment responsible for managing fragment navigation
+        NavHostFragment navHost =
+                (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.nav_host_fragment);
+        if (navHost == null) return;
+
+        navController = navHost.getNavController();
+
+        // Inflate the navigation graph and explicitly set "Browse" as the start destination
+        NavInflater inflater = navController.getNavInflater();
+        NavGraph graph = inflater.inflate(R.navigation.mobile_navigation);
+        graph.setStartDestination(R.id.navigation_browse);
+        navController.setGraph(graph);
+
+        // Keep the bottom navigation state in sync with navigation changes
+        navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
+            int destId = destination.getId();
+            if (destId == R.id.navigation_browse) {
+                bottomNav.getMenu().findItem(R.id.navigation_browse).setChecked(true);
+            } else if (destId == R.id.navigation_notifications) {
+                bottomNav.getMenu().findItem(R.id.navigation_notifications).setChecked(true);
+            } else if (destId == R.id.navigation_profile) {
+                bottomNav.getMenu().findItem(R.id.navigation_profile).setChecked(true);
+            }
+        });
+
+        // Handle tab selections manually (instead of using setupWithNavController)
+        bottomNav.setOnItemSelectedListener(item -> {
+            int id = item.getItemId();
+
+            if (id == R.id.navigation_browse) {
+                navigateSingleTop(R.id.navigation_browse);
+                return true;
+            }
+
+            if (id == R.id.navigation_notifications) {
+                navigateSingleTop(R.id.navigation_notifications);
+                return true;
+            }
+
+            if (id == R.id.navigation_profile) {
+                // Gated navigation: only allow access if a profile exists
+                gateProfileThenNavigate();
+                return true;
+            }
+
+            return false;
+        });
+
+        // Set default tab to Browse
+        if (navController.getCurrentDestination() == null) {
+            navigateSingleTop(R.id.navigation_browse);
+        }
+        bottomNav.setSelectedItemId(R.id.navigation_browse);
+
+        // Initialize device identity; do not auto-launch CreateProfile
         deviceAuth = DeviceAuthenticator.getInstance(this);
-
-        // Initialize user (async)
         deviceAuth.initializeUser(new DeviceAuthenticator.OnUserInitializedListener() {
             @Override
-            public void onUserInitialized(Profile profile, boolean isNewUser) {
-                currentProfile = profile;
-                userId = profile.getUserId();
-                Log.d(TAG, "User initialized: " + userId + ", role: " + profile.getRole());
-
-                // Update UI on main thread
-                runOnUiThread(() -> {
-                    showLoading(false);
-                    displayUserInfo();
-                    setupRoleBasedUI();
-                });
+            public void onUserInitialized(com.example.pickme.models.Profile profile, boolean isNewUser) {
+                // Store or refresh FCM token once the device identity is initialized
+                FirebaseManager.refreshAndStoreFcmToken();
             }
 
             @Override
             public void onError(Exception e) {
-                Log.e(TAG, "Failed to initialize user", e);
-
-                // Show error on main thread
-                runOnUiThread(() -> {
-                    showLoading(false);
-                    Toast.makeText(MainActivity.this,
-                            "Failed to initialize: " + e.getMessage(),
-                            Toast.LENGTH_LONG).show();
-
-                    // Still allow navigation with fallback to entrant role
-                    userId = "unknown";
-                    displayUserInfo();
-                    setupEntrantUI();
-                });
+                Toast.makeText(MainActivity.this,
+                        "Auth init failed" + (e != null ? (": " + e.getMessage()) : ""),
+                        Toast.LENGTH_LONG).show();
             }
         });
+
+        // Handle any invitation intent passed when launching the app
+        handleInviteIntent(getIntent());
     }
 
     /**
-     * Initialize all view references
+     * Navigates to a destination with singleTop behavior, preventing multiple copies of the same fragment
+     * from being stacked in the back stack.
+     *
+     * @param destId ID of the destination to navigate to.
      */
-    private void initializeViews() {
-        tvWelcome = findViewById(R.id.tvWelcome);
-        tvUserId = findViewById(R.id.tvUserId);
-        tvRoleBadge = findViewById(R.id.tvRoleBadge);
-        progressBar = findViewById(R.id.progressBar);
-        contentCard = findViewById(R.id.contentCard);
+    private void navigateSingleTop(int destId) {
+        NavDestination current = navController.getCurrentDestination();
+        if (current != null && current.getId() == destId) return;
 
-        // Entrant section
-        entrantSection = findViewById(R.id.entrantSection);
-        btnProfile = findViewById(R.id.btnProfile);
-        btnBrowseEvents = findViewById(R.id.btnBrowseEvents);
-        btnInvitations = findViewById(R.id.btnInvitations);
-        btnHistory = findViewById(R.id.btnHistory);
+        NavOptions opts = new NavOptions.Builder()
+                .setLaunchSingleTop(true)
+                .setPopUpTo(navController.getGraph().getStartDestinationId(), false)
+                .build();
 
-        // Organizer section
-        organizerSection = findViewById(R.id.organizerSection);
-        btnOrganizerProfile = findViewById(R.id.btnOrganizerProfile);
-        btnCreateEvent = findViewById(R.id.btnCreateEvent);
-        btnMyEvents = findViewById(R.id.btnMyEvents);
-        btnOrganizerBrowse = findViewById(R.id.btnOrganizerBrowse);
-
-        // Admin section
-        adminSection = findViewById(R.id.adminSection);
-        btnAdminProfile = findViewById(R.id.btnAdminProfile);
-        btnAdminDashboard = findViewById(R.id.btnAdminDashboard);
-        btnAdminBrowse = findViewById(R.id.btnAdminBrowse);
+        navController.navigate(destId, null, opts);
     }
 
     /**
-     * Display user information with role badge
+     * Checks if a profile exists for the current device.
+     * If not, redirects to CreateProfileActivity. Otherwise, navigates to the Profile screen.
      */
-    private void displayUserInfo() {
-        if (userId != null && userId.length() > 8) {
-            tvUserId.setText("Device ID: " + userId.substring(0, 8) + "...");
-        } else if (userId != null) {
-            tvUserId.setText("Device ID: " + userId);
-        } else {
-            tvUserId.setText("Device ID: Loading...");
-        }
+    private void gateProfileThenNavigate() {
+        String userId = deviceAuth.getStoredUserId();
 
-        // Update role badge
-        if (currentProfile != null) {
-            String role = currentProfile.getRole();
-            tvRoleBadge.setText(role.toUpperCase());
-            tvRoleBadge.setVisibility(View.VISIBLE);
-        }
-    }
+        // If device initialization hasn't completed yet, wait until it does
+        if (userId == null) {
+            deviceAuth.initializeUser(new DeviceAuthenticator.OnUserInitializedListener() {
+                @Override
+                public void onUserInitialized(com.example.pickme.models.Profile p, boolean isNew) {
+                    // Once initialized, perform the check again
+                    checkAndRouteProfile(deviceAuth.getStoredUserId());
+                }
 
-    /**
-     * Setup UI based on user role
-     */
-    private void setupRoleBasedUI() {
-        if (currentProfile == null) {
-            setupEntrantUI();
+                @Override
+                public void onError(Exception e) {
+                    // If initialization fails, stay on the Browse tab
+                    bottomNav.setSelectedItemId(R.id.navigation_browse);
+                }
+            });
             return;
         }
 
-        String role = currentProfile.getRole();
+        checkAndRouteProfile(userId);
+    }
 
-        if (Profile.ROLE_ORGANIZER.equals(role)) {
-            setupOrganizerUI();
-        } else if (Profile.ROLE_ADMIN.equals(role)) {
-            setupAdminUI();
-        } else {
-            setupEntrantUI();
+    /**
+     * Verifies profile existence in cache or Firestore and routes accordingly.
+     *
+     * @param userId The device's unique user identifier.
+     */
+    private void checkAndRouteProfile(String userId) {
+        // Fast path: cached profile already exists, navigate directly
+        if (deviceAuth.getCachedProfile() != null) {
+            navigateSingleTop(R.id.navigation_profile);
+            return;
         }
-    }
 
-    /**
-     * Setup entrant-specific UI and navigation
-     */
-    private void setupEntrantUI() {
-        tvWelcome.setText("Welcome, Entrant!");
-
-        // Hide all sections first
-        entrantSection.setVisibility(View.GONE);
-        organizerSection.setVisibility(View.GONE);
-        adminSection.setVisibility(View.GONE);
-
-        // Show only entrant section
-        entrantSection.setVisibility(View.VISIBLE);
-
-        btnProfile.setOnClickListener(v -> {
-            Intent intent = new Intent(this, ProfileActivity.class);
-            startActivity(intent);
-        });
-
-        btnBrowseEvents.setOnClickListener(v -> {
-            Intent intent = new Intent(this, EventBrowserActivity.class);
-            startActivity(intent);
-        });
-
-        btnInvitations.setOnClickListener(v -> {
-            Intent intent = new Intent(this, EventInvitationsActivity.class);
-            startActivity(intent);
-        });
-
-        btnHistory.setOnClickListener(v -> {
-            Intent intent = new Intent(this, EventHistoryActivity.class);
-            startActivity(intent);
-        });
-    }
-
-    /**
-     * Setup organizer-specific UI and navigation
-     */
-    private void setupOrganizerUI() {
-        tvWelcome.setText("Welcome, Organizer!");
-
-        // Hide all sections first
-        entrantSection.setVisibility(View.GONE);
-        organizerSection.setVisibility(View.GONE);
-        adminSection.setVisibility(View.GONE);
-
-        // Show only organizer section
-        organizerSection.setVisibility(View.VISIBLE);
-
-        btnOrganizerProfile.setOnClickListener(v -> {
-            Intent intent = new Intent(this, ProfileActivity.class);
-            startActivity(intent);
-        });
-
-        btnCreateEvent.setOnClickListener(v -> {
-            Intent intent = new Intent(this, CreateEventActivity.class);
-            startActivity(intent);
-        });
-
-        btnMyEvents.setOnClickListener(v -> {
-            Intent intent = new Intent(this, OrganizerDashboardActivity.class);
-            startActivity(intent);
-        });
-
-        btnOrganizerBrowse.setOnClickListener(v -> {
-            Intent intent = new Intent(this, EventBrowserActivity.class);
-            startActivity(intent);
-        });
-    }
-
-    /**
-     * Setup admin-specific UI and navigation
-     */
-    private void setupAdminUI() {
-        tvWelcome.setText("Welcome, Administrator!");
-
-        // Hide all sections first
-        entrantSection.setVisibility(View.GONE);
-        organizerSection.setVisibility(View.GONE);
-        adminSection.setVisibility(View.GONE);
-
-        // Show only admin section
-        adminSection.setVisibility(View.VISIBLE);
-
-        btnAdminProfile.setOnClickListener(v -> {
-            Intent intent = new Intent(this, ProfileActivity.class);
-            startActivity(intent);
-        });
-
-        btnAdminDashboard.setOnClickListener(v -> {
-            Intent intent = new Intent(this, com.example.pickme.ui.admin.AdminDashboardActivity.class);
-            startActivity(intent);
-        });
-
-        btnAdminBrowse.setOnClickListener(v -> {
-            Intent intent = new Intent(this, EventBrowserActivity.class);
-            startActivity(intent);
-        });
-    }
-
-    /**
-     * Show/hide loading state
-     */
-    private void showLoading(boolean loading) {
-        if (progressBar != null && contentCard != null) {
-            progressBar.setVisibility(loading ? View.VISIBLE : View.GONE);
-            contentCard.setVisibility(loading ? View.GONE : View.VISIBLE);
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        // Refresh user info and role when returning to main screen
-        if (deviceAuth != null) {
-            String currentUserId = deviceAuth.getStoredUserId();
-            if (currentUserId != null) {
-                userId = currentUserId;
-
-                // Check if profile is cached
-                Profile cachedProfile = deviceAuth.getCachedProfile();
-                if (cachedProfile != null) {
-                    // Profile is cached, use it to update UI
-                    currentProfile = cachedProfile;
-                    displayUserInfo();
-                    setupRoleBasedUI();
-                } else {
-                    // No cached profile, reload from Firestore
-                    reloadProfile();
-                }
-            }
-        }
-    }
-
-    /**
-     * Reload profile from Firestore (for onResume)
-     */
-    private void reloadProfile() {
-        ProfileRepository profileRepository = new ProfileRepository();
-        profileRepository.getProfile(userId, new ProfileRepository.OnProfileLoadedListener() {
+        // Otherwise, check Firestore for an existing profile
+        new ProfileRepository().profileExists(userId, new ProfileRepository.OnProfileExistsListener() {
             @Override
-            public void onProfileLoaded(Profile profile) {
-                currentProfile = profile;
-                deviceAuth.updateCachedProfile(profile);
-                displayUserInfo();
-                setupRoleBasedUI();
+            public void onCheckComplete(boolean exists) {
+                if (exists) {
+                    // Profile exists → show the Profile screen
+                    navigateSingleTop(R.id.navigation_profile);
+                } else {
+                    // No profile found → prompt user to create one
+                    startActivity(new Intent(MainActivity.this, CreateProfileActivity.class));
+                    // Keep Browse tab selected to avoid being "stuck" on Profile
+                    bottomNav.setSelectedItemId(R.id.navigation_browse);
+                }
             }
 
             @Override
             public void onError(Exception e) {
-                Log.e(TAG, "Failed to reload profile in onResume", e);
-                // Keep existing UI if reload fails
+                // Firestore check failed; stay on Browse tab
+                bottomNav.setSelectedItemId(R.id.navigation_browse);
             }
         });
     }
 
-    @Override protected void onNewIntent(Intent intent) {
+    @Override
+    protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
         handleInviteIntent(intent);
     }
 
-    @Override protected void onStart() {
+    @Override
+    protected void onStart() {
         super.onStart();
         handleInviteIntent(getIntent());
     }
 
-    private void handleInviteIntent(Intent i) {
+    /**
+     * Handles deep links or custom intents used to open invitation dialogs.
+     *
+     * @param i The intent received by the activity.
+     */
+    private void handleInviteIntent(@Nullable Intent i) {
         if (i == null) return;
         if (!"com.example.pickme.ACTION_OPEN_INVITATION".equals(i.getAction())) return;
 
         String eventId = i.getStringExtra("eventId");
-        String invId   = i.getStringExtra("invitationId");
-        long deadline  = 0L;
-        try { deadline = Long.parseLong(i.getStringExtra("deadline")); } catch (Exception ignored) {}
+        String invId = i.getStringExtra("invitationId");
+        long deadline = 0L;
+
+        try {
+            deadline = Long.parseLong(i.getStringExtra("deadline"));
+        } catch (Exception ignored) {}
 
         com.example.pickme.ui.invitations.InvitationDialogFragment
                 .newInstance(eventId, invId, deadline)
