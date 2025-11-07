@@ -57,6 +57,9 @@ import com.google.firebase.storage.StorageReference;
 public class FirebaseManager {
 
     private static final String TAG = "FirebaseManager";
+    // Explicit storage bucket (set to the bucket you created in Firebase)
+    // If you later change buckets, update this constant or move to configuration.
+    private static final String FIREBASE_STORAGE_BUCKET = "gs://pronto-project-8503b.firebasestorage.app";
 
     // Singleton instance - only one FirebaseManager exists in the app
     private static FirebaseManager instance;
@@ -126,8 +129,21 @@ public class FirebaseManager {
      * Used for storing and retrieving images (profile pictures, event posters)
      */
     private void initializeStorage() {
-        storage = FirebaseStorage.getInstance();
-        Log.d(TAG, "Firebase Storage initialized");
+        try {
+            // Try to initialize storage with explicit bucket if provided
+            if (FIREBASE_STORAGE_BUCKET != null && !FIREBASE_STORAGE_BUCKET.isEmpty()) {
+                storage = FirebaseStorage.getInstance(FIREBASE_STORAGE_BUCKET);
+                Log.d(TAG, "Firebase Storage initialized with bucket: " + FIREBASE_STORAGE_BUCKET);
+            } else {
+                storage = FirebaseStorage.getInstance();
+                Log.d(TAG, "Firebase Storage initialized with default bucket");
+            }
+        } catch (Exception e) {
+            // Fallback to default instance if explicit init fails
+            Log.w(TAG, "Failed to initialize storage with explicit bucket, falling back to default", e);
+            storage = FirebaseStorage.getInstance();
+            Log.d(TAG, "Firebase Storage initialized (fallback)");
+        }
     }
 
     /**
