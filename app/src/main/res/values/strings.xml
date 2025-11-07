@@ -212,6 +212,7 @@
     <string name="accepted_status">Accepted</string>
     <string name="declined_status">Declined</string>
     <string name="cancelled_status">Cancelled</string>
+    <string name="joined_on">Joined: %s</string>
 
     <!-- Lottery Draw -->
     <string name="execute_lottery_title">Execute Lottery Draw</string>

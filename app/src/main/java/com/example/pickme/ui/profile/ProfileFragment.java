@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -28,6 +29,7 @@ import androidx.fragment.app.Fragment;
 import com.bumptech.glide.Glide;
 import com.example.pickme.R;
 import com.example.pickme.models.Profile;
+import com.example.pickme.repositories.ImageRepository;
 import com.example.pickme.repositories.ProfileRepository;
 import com.example.pickme.services.DeviceAuthenticator;
 import com.example.pickme.ui.history.EventHistoryActivity;
@@ -54,6 +56,8 @@ import de.hdodenhof.circleimageview.CircleImageView;
  */
 public class ProfileFragment extends Fragment {
 
+    private static final String TAG = "ProfileFragment";
+
     // UI
     private CircleImageView profileImage;
     private Button btnChangePhoto, btnSave, btnViewHistory, btnDeleteAccount;
@@ -64,6 +68,7 @@ public class ProfileFragment extends Fragment {
 
     // Data / services
     private ProfileRepository profileRepository;
+    private ImageRepository imageRepository;
     private DeviceAuthenticator deviceAuthenticator;
     private Profile currentProfile;
     private String userId;
@@ -120,6 +125,7 @@ public class ProfileFragment extends Fragment {
 
     private void initializeRepositories() {
         profileRepository = new ProfileRepository();
+        imageRepository = new ImageRepository();
         deviceAuthenticator = DeviceAuthenticator.getInstance(requireContext());
 
         userId = deviceAuthenticator.getStoredUserId();
@@ -221,18 +227,79 @@ public class ProfileFragment extends Fragment {
         String oldRole = currentProfile != null ? currentProfile.getRole() : Profile.ROLE_ENTRANT;
         final String newRole = role; // Make final for lambda
 
+        // Check if image was selected
+        if (selectedImageUri != null) {
+            Log.d(TAG, "Profile image selected, uploading...");
+            uploadProfileImageAndSave(name, email, phone, newRole, oldRole);
+        } else {
+            Log.d(TAG, "No new profile image selected, saving profile data only");
+            saveProfileData(name, email, phone, newRole, oldRole, null);
+        }
+    }
+
+    /**
+     * Upload profile image to Firebase Storage, then save profile data
+     */
+    private void uploadProfileImageAndSave(String name, String email, String phone,
+                                          String newRole, String oldRole) {
+        showLoading(true);
+        Log.d(TAG, "Starting profile image upload for user: " + userId);
+
+        imageRepository.uploadProfileImage(userId, selectedImageUri,
+                new ImageRepository.OnUploadCompleteListener() {
+                    @Override
+                    public void onUploadComplete(String downloadUrl, String posterId) {
+                        Log.d(TAG, "Profile image uploaded successfully: " + downloadUrl);
+                        // Now save profile with the image URL
+                        saveProfileData(name, email, phone, newRole, oldRole, downloadUrl);
+                        selectedImageUri = null; // Clear the selected URI
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        Log.e(TAG, "Profile image upload failed", e);
+                        showLoading(false);
+                        Toast.makeText(requireContext(),
+                                "Failed to upload profile image: " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                        // Ask user if they want to save without image
+                        new AlertDialog.Builder(requireContext())
+                                .setTitle("Upload Failed")
+                                .setMessage("Failed to upload profile image. Save profile without image?")
+                                .setPositiveButton("Yes", (d, w) -> {
+                                    saveProfileData(name, email, phone, newRole, oldRole, null);
+                                    selectedImageUri = null;
+                                })
+                                .setNegativeButton("No", null)
+                                .show();
+                    }
+                });
+    }
+
+    /**
+     * Save profile data to Firestore
+     */
+    private void saveProfileData(String name, String email, String phone,
+                                 String newRole, String oldRole, String profileImageUrl) {
         Map<String, Object> updates = new HashMap<>();
         updates.put("name", name);
         updates.put("email", email);
         updates.put("phoneNumber", phone);
         updates.put("notificationEnabled", notificationsEnabled);
         updates.put("role", newRole);
-        // TODO: handle image upload and add profileImageUrl
+
+        if (profileImageUrl != null) {
+            Log.d(TAG, "Adding profileImageUrl to updates: " + profileImageUrl);
+            updates.put("profileImageUrl", profileImageUrl);
+        }
 
         showLoading(true);
+        Log.d(TAG, "Updating profile in Firestore for user: " + userId);
+
         profileRepository.updateProfile(userId, updates,
                 uid -> {
                     showLoading(false);
+                    Log.d(TAG, "Profile updated successfully in Firestore");
                     Toast.makeText(requireContext(),
                             getString(R.string.profile_saved),
                             Toast.LENGTH_SHORT).show();
@@ -245,6 +312,7 @@ public class ProfileFragment extends Fragment {
                 },
                 e -> {
                     showLoading(false);
+                    Log.e(TAG, "Failed to update profile in Firestore", e);
                     Toast.makeText(requireContext(),
                             getString(R.string.error_profile_save_failed) + ": " + e.getMessage(),
                             Toast.LENGTH_SHORT).show();

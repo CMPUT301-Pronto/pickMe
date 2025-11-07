@@ -127,6 +127,13 @@
             android:theme="@style/Theme.PickMe.NoActionBar"
             android:parentActivityName=".ui.admin.AdminDashboardActivity" />
 
+        <activity
+            android:name=".ui.admin.AdminOrganizersActivity"
+            android:exported="false"
+            android:label="Remove Organizers"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".ui.admin.AdminDashboardActivity" />
+
         <!-- Invitation & History Activities -->
         <activity
             android:name=".ui.invitations.EventInvitationsActivity"

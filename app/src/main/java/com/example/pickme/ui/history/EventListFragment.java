@@ -2,6 +2,7 @@ package com.example.pickme.ui.history;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,6 +47,7 @@ import java.util.List;
  */
 public class EventListFragment extends Fragment {
 
+    private static final String TAG = "EventListFragment";
     private static final String ARG_TAB_TYPE = "tab_type";
 
     // Use consistent integer constants for all tab types
@@ -86,6 +88,9 @@ public class EventListFragment extends Fragment {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             tabType = getArguments().getInt(ARG_TAB_TYPE);
+            Log.d(TAG, "onCreate: tabType set to " + tabType);
+        } else {
+            Log.e(TAG, "onCreate: No arguments found! tabType will be 0 by default");
         }
         events = new ArrayList<>();
     }
@@ -101,6 +106,9 @@ public class EventListFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        Log.d(TAG, "onViewCreated for tabType=" + tabType + ", events size=" +
+              (events != null ? events.size() : "null"));
+
         // Initialize views
         recyclerView = view.findViewById(R.id.recyclerView);
         progressBar = view.findViewById(R.id.progressBar);
@@ -112,21 +120,46 @@ public class EventListFragment extends Fragment {
 
         // Set empty message based on tab type
         setEmptyMessage();
+
+        // Initial state: if we have events, show them; otherwise show empty state
+        // The loading state should already be managed by showLoading() calls from Activity
+        if (events != null && !events.isEmpty()) {
+            showEmptyState(false);
+            progressBar.setVisibility(View.GONE);
+            recyclerView.setVisibility(View.VISIBLE);
+        } else {
+            // Check if we're still loading or if we've already finished with no results
+            // If events is an empty list (not null), we've already loaded and found nothing
+            if (events != null && events.isEmpty()) {
+                showEmptyState(true);
+                progressBar.setVisibility(View.GONE);
+            } else {
+                // Still loading (events is null or wasn't set yet)
+                progressBar.setVisibility(View.VISIBLE);
+                recyclerView.setVisibility(View.GONE);
+                emptyStateLayout.setVisibility(View.GONE);
+            }
+        }
     }
 
     /**
      * Setup RecyclerView with adapter
      */
     private void setupRecyclerView() {
-        eventAdapter = new EventAdapter(0);
+        eventAdapter = new EventAdapter(tabType);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(eventAdapter);
 
+        Log.d(TAG, "setupRecyclerView called for tabType=" + tabType + ", events size=" +
+              (events != null ? events.size() : "null"));
+
         // If events were set before view was created, apply them now
         if (events != null && !events.isEmpty()) {
+            Log.d(TAG, "Setting " + events.size() + " events to adapter");
             eventAdapter.setEvents(events);
             showEmptyState(false);
         } else {
+            Log.d(TAG, "No events to display, showing empty state");
             showEmptyState(true);
         }
 
@@ -178,28 +211,40 @@ public class EventListFragment extends Fragment {
      * @param events List of {@link Event} objects to display.
      */
     public void setEvents(List<Event> events) {
-        this.events = events;
+        Log.d(TAG, "setEvents called for tabType=" + tabType +
+              ", events size=" + (events != null ? events.size() : "null") +
+              ", adapter initialized=" + (eventAdapter != null));
 
-        // If adapter is not initialized yet, events will be set when view is created
+        this.events = events != null ? events : new ArrayList<>();
+
+        // If adapter is initialized, update it immediately
         if (eventAdapter != null) {
-            eventAdapter.setEvents(events);
+            Log.d(TAG, "Adapter exists, updating with " + this.events.size() + " events");
+            eventAdapter.setEvents(this.events);
 
-            if (events.isEmpty()) {
+            if (this.events.isEmpty()) {
+                Log.d(TAG, "Events list is empty, showing empty state");
                 showEmptyState(true);
             } else {
+                Log.d(TAG, "Events list has data, hiding empty state");
                 showEmptyState(false);
             }
+        } else {
+            // Otherwise, events are stored and will be set when view is created
+            Log.d(TAG, "Adapter not yet initialized, events stored for later. Will be applied in setupRecyclerView()");
         }
-        // Otherwise, events are stored in this.events and will be used when adapter is created
     }
 
     /**
      * Show/hide loading indicator
      */
     public void showLoading(boolean show) {
+        Log.d(TAG, "showLoading(" + show + ") for tabType=" + tabType);
         if (progressBar != null && recyclerView != null) {
             progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
             recyclerView.setVisibility(show ? View.GONE : View.VISIBLE);
+        } else {
+            Log.w(TAG, "showLoading called but views not initialized yet");
         }
     }
 

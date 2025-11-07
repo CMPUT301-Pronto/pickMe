@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -177,16 +178,99 @@ public class OrganizerDashboardFragment extends Fragment {
      * Load metrics for all events
      */
     private void loadEventMetrics(List<Event> events) {
-        // Metrics loading simplified - can be enhanced later
-        // The adapter will show basic event information
+        Log.d(TAG, "loadEventMetrics called for " + events.size() + " events");
+        Map<String, OrganizerEventAdapter.EventMetrics> metricsMap = new HashMap<>();
+        int[] pendingLoads = {events.size() * 3}; // 3 subcollections per event
+
+        for (Event event : events) {
+            String eventId = event.getEventId();
+            Log.d(TAG, "Loading metrics for event: " + eventId + " (" + event.getName() + ")");
+
+            // Initialize metrics
+            metricsMap.put(eventId, new OrganizerEventAdapter.EventMetrics(0, 0, 0));
+
+            // Load waiting list count
+            db.collection("events")
+                    .document(eventId)
+                    .collection("waitingList")
+                    .get()
+                    .addOnSuccessListener(querySnapshot -> {
+                        int count = querySnapshot.size();
+                        Log.d(TAG, "Event " + eventId + " waiting list count: " + count);
+                        OrganizerEventAdapter.EventMetrics metrics = metricsMap.get(eventId);
+                        if (metrics != null) {
+                            metrics.waitingListCount = count;
+                        }
+                        checkMetricsLoadComplete(pendingLoads, metricsMap);
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to load waiting list for " + eventId, e);
+                        checkMetricsLoadComplete(pendingLoads, metricsMap);
+                    });
+
+            // Load selected count (responsePendingList)
+            db.collection("events")
+                    .document(eventId)
+                    .collection("responsePendingList")
+                    .get()
+                    .addOnSuccessListener(querySnapshot -> {
+                        int count = querySnapshot.size();
+                        Log.d(TAG, "Event " + eventId + " selected count: " + count);
+                        OrganizerEventAdapter.EventMetrics metrics = metricsMap.get(eventId);
+                        if (metrics != null) {
+                            metrics.selectedCount = count;
+                        }
+                        checkMetricsLoadComplete(pendingLoads, metricsMap);
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to load selected list for " + eventId, e);
+                        checkMetricsLoadComplete(pendingLoads, metricsMap);
+                    });
+
+            // Load enrolled count (inEventList)
+            db.collection("events")
+                    .document(eventId)
+                    .collection("inEventList")
+                    .get()
+                    .addOnSuccessListener(querySnapshot -> {
+                        int count = querySnapshot.size();
+                        Log.d(TAG, "Event " + eventId + " enrolled count: " + count);
+                        OrganizerEventAdapter.EventMetrics metrics = metricsMap.get(eventId);
+                        if (metrics != null) {
+                            metrics.enrolledCount = count;
+                        }
+                        checkMetricsLoadComplete(pendingLoads, metricsMap);
+                    })
+                    .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to load enrolled list for " + eventId, e);
+                        checkMetricsLoadComplete(pendingLoads, metricsMap);
+                    });
+        }
     }
 
     /**
-     * Load metrics for a single event (future enhancement)
+     * Check if all metrics have been loaded and update adapter
      */
-    private void loadMetricsForEvent(Event event) {
-        // Future enhancement: load detailed metrics per event
-        // For now, basic event information is shown in the adapter
+    private void checkMetricsLoadComplete(int[] pendingLoads,
+                                         Map<String, OrganizerEventAdapter.EventMetrics> metricsMap) {
+        synchronized (pendingLoads) {
+            pendingLoads[0]--;
+            Log.d(TAG, "Pending loads remaining: " + pendingLoads[0]);
+            if (pendingLoads[0] == 0) {
+                // All metrics loaded - update adapter
+                Log.d(TAG, "All metrics loaded! Updating adapter with metrics:");
+                for (Map.Entry<String, OrganizerEventAdapter.EventMetrics> entry : metricsMap.entrySet()) {
+                    OrganizerEventAdapter.EventMetrics m = entry.getValue();
+                    Log.d(TAG, "  Event " + entry.getKey() + ": waiting=" + m.waitingListCount +
+                          ", selected=" + m.selectedCount + ", enrolled=" + m.enrolledCount);
+                }
+
+                // Update on UI thread
+                if (getActivity() != null) {
+                    getActivity().runOnUiThread(() -> eventAdapter.setEventMetrics(metricsMap));
+                }
+            }
+        }
     }
 
     /**

@@ -2,6 +2,7 @@ package com.example.pickme.ui.events;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
@@ -166,11 +167,13 @@ public class OrganizerDashboardActivity extends AppCompatActivity {
      * Load metrics (waiting list, selected, enrolled counts) for all events
      */
     private void loadEventMetrics(List<Event> events) {
+        Log.d(TAG, "loadEventMetrics called for " + events.size() + " events");
         Map<String, OrganizerEventAdapter.EventMetrics> metricsMap = new HashMap<>();
         int[] pendingLoads = {events.size() * 3}; // 3 subcollections per event
 
         for (Event event : events) {
             String eventId = event.getEventId();
+            Log.d(TAG, "Loading metrics for event: " + eventId + " (" + event.getName() + ")");
 
             // Initialize metrics
             metricsMap.put(eventId, new OrganizerEventAdapter.EventMetrics(0, 0, 0));
@@ -181,13 +184,16 @@ public class OrganizerDashboardActivity extends AppCompatActivity {
                     .collection("waitingList")
                     .get()
                     .addOnSuccessListener(querySnapshot -> {
+                        int count = querySnapshot.size();
+                        Log.d(TAG, "Event " + eventId + " waiting list count: " + count);
                         OrganizerEventAdapter.EventMetrics metrics = metricsMap.get(eventId);
                         if (metrics != null) {
-                            metrics.waitingListCount = querySnapshot.size();
+                            metrics.waitingListCount = count;
                         }
                         checkMetricsLoadComplete(pendingLoads, metricsMap);
                     })
                     .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to load waiting list for " + eventId, e);
                         checkMetricsLoadComplete(pendingLoads, metricsMap);
                     });
 
@@ -197,13 +203,16 @@ public class OrganizerDashboardActivity extends AppCompatActivity {
                     .collection("responsePendingList")
                     .get()
                     .addOnSuccessListener(querySnapshot -> {
+                        int count = querySnapshot.size();
+                        Log.d(TAG, "Event " + eventId + " selected count: " + count);
                         OrganizerEventAdapter.EventMetrics metrics = metricsMap.get(eventId);
                         if (metrics != null) {
-                            metrics.selectedCount = querySnapshot.size();
+                            metrics.selectedCount = count;
                         }
                         checkMetricsLoadComplete(pendingLoads, metricsMap);
                     })
                     .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to load selected list for " + eventId, e);
                         checkMetricsLoadComplete(pendingLoads, metricsMap);
                     });
 
@@ -213,13 +222,16 @@ public class OrganizerDashboardActivity extends AppCompatActivity {
                     .collection("inEventList")
                     .get()
                     .addOnSuccessListener(querySnapshot -> {
+                        int count = querySnapshot.size();
+                        Log.d(TAG, "Event " + eventId + " enrolled count: " + count);
                         OrganizerEventAdapter.EventMetrics metrics = metricsMap.get(eventId);
                         if (metrics != null) {
-                            metrics.enrolledCount = querySnapshot.size();
+                            metrics.enrolledCount = count;
                         }
                         checkMetricsLoadComplete(pendingLoads, metricsMap);
                     })
                     .addOnFailureListener(e -> {
+                        Log.e(TAG, "Failed to load enrolled list for " + eventId, e);
                         checkMetricsLoadComplete(pendingLoads, metricsMap);
                     });
         }
@@ -232,8 +244,15 @@ public class OrganizerDashboardActivity extends AppCompatActivity {
                                          Map<String, OrganizerEventAdapter.EventMetrics> metricsMap) {
         synchronized (pendingLoads) {
             pendingLoads[0]--;
+            Log.d(TAG, "Pending loads remaining: " + pendingLoads[0]);
             if (pendingLoads[0] == 0) {
                 // All metrics loaded - update adapter
+                Log.d(TAG, "All metrics loaded! Updating adapter with metrics:");
+                for (Map.Entry<String, OrganizerEventAdapter.EventMetrics> entry : metricsMap.entrySet()) {
+                    OrganizerEventAdapter.EventMetrics m = entry.getValue();
+                    Log.d(TAG, "  Event " + entry.getKey() + ": waiting=" + m.waitingListCount +
+                          ", selected=" + m.selectedCount + ", enrolled=" + m.enrolledCount);
+                }
                 runOnUiThread(() -> eventAdapter.setEventMetrics(metricsMap));
             }
         }

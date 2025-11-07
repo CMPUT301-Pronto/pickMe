@@ -2,6 +2,8 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- QR codes directory -->
     <files-path name="qr_codes" path="qr_codes/" />
+    <!-- Exports directory for CSV files -->
+    <files-path name="exports" path="exports/" />
     <!-- Cache directory -->
     <cache-path name="cache" path="/" />
     <!-- External files directory -->
