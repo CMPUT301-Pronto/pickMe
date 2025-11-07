@@ -160,17 +160,5 @@
         app:tint="@color/text_on_primary"
         tools:layout_editor_absoluteX="331dp"
         tools:layout_editor_absoluteY="434dp" />
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottom_nav"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:background="?android:attr/windowBackground"
-        app:itemIconTint="@color/nav_item_color"
-        app:itemTextColor="@color/nav_item_color"
-        app:labelVisibilityMode="labeled"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:menu="@menu/bottom_nav_menu"
-        tools:layout_editor_absoluteX="35dp" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
