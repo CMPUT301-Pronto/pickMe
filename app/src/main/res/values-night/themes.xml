@@ -1,16 +1,35 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Theme.PickMe" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
-        <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/purple_200</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
-        <item name="colorOnPrimary">@color/black</item>
-        <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryVariant">@color/teal_200</item>
-        <item name="colorOnSecondary">@color/black</item>
-        <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
-        <!-- Customize your theme here. -->
+
+    <!-- Base application theme - Night Mode -->
+    <style name="Theme.PickMe" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/primary_pink_light</item>
+        <item name="colorPrimaryVariant">@color/primary_pink</item>
+        <item name="colorOnPrimary">@color/text_primary</item>
+
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/primary_pink</item>
+        <item name="colorSecondaryVariant">@color/primary_pink_light</item>
+        <item name="colorOnSecondary">@color/text_primary</item>
+
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">@color/primary_pink_dark</item>
+
+        <!-- Background colors for dark mode -->
+        <item name="android:windowBackground">@color/text_primary</item>
+        <item name="colorSurface">@color/text_secondary</item>
+        <item name="colorOnSurface">@color/white</item>
+
+        <!-- Text colors for dark mode -->
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:textColorSecondary">@color/element_shadow</item>
+        <item name="android:textColorHint">@color/text_hint</item>
+
+        <!-- Accent color -->
+        <item name="colorAccent">@color/primary_pink_light</item>
+
+        <!-- Button style -->
+        <item name="materialButtonStyle">@style/Widget.PickMe.Button</item>
     </style>
+
 </resources>

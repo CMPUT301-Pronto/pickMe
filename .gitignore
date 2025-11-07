@@ -13,3 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Ignore Firebase config (contains project identifiers and API keys)
+app/google-services.json

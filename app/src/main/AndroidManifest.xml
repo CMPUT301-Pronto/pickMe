@@ -2,7 +2,34 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Internet permission - Required for Firebase services (Firestore, Storage, FCM, Auth) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Network state permissions - Used to detect connectivity for offline handling -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Camera permission - Required for QR code scanning functionality -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Location permissions - For geolocation features (event location tracking) -->
+    <!-- Fine location provides GPS-level accuracy -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Coarse location provides network-based location (less battery intensive) -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Notification permission - Required for Android 13+ (API 33+) to show push notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Camera feature - Declares camera usage but makes it optional (app works without camera) -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.camera.autofocus"
+        android:required="false" />
+
     <application
+        android:name=".PickMeApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -10,17 +37,131 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.PickMe">
+        android:theme="@style/Theme.PickMe.NoActionBar">
+
+        <!-- Main Activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:label="@string/app_name">
+            android:label="@string/app_name"
+            android:launchMode="singleTop">
+            >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Deep link intent filter for QR code scanning -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:scheme="eventlottery"
+                    android:host="event" />
+            </intent-filter>
         </activity>
+
+        <!-- Profile Activities -->
+        <activity
+            android:name=".ui.profile.CreateProfileActivity"
+            android:exported="false"
+            android:label="@string/create_profile_title"
+            android:theme="@style/Theme.PickMe" />
+
+        <!-- Event Activities -->
+
+        <activity
+            android:name=".ui.events.EventDetailsActivity"
+            android:exported="false"
+            android:label="@string/event_details_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".MainActivity">
+
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+
+        <activity
+            android:name=".ui.events.CreateEventActivity"
+            android:exported="false"
+            android:label="@string/create_event_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".ui.events.OrganizerDashboardActivity"
+            android:exported="false"
+            android:label="@string/organizer_dashboard_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".ui.events.ManageEventActivity"
+            android:exported="false"
+            android:label="@string/manage_event_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".ui.events.OrganizerDashboardActivity" />
+
+        <!-- Admin Activities -->
+        <activity
+            android:name=".ui.admin.AdminDashboardActivity"
+            android:exported="false"
+            android:label="@string/admin_dashboard_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".ui.admin.AdminEventsActivity"
+            android:exported="false"
+            android:label="Browse Events"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".ui.admin.AdminDashboardActivity" />
+
+        <activity
+            android:name=".ui.admin.AdminProfilesActivity"
+            android:exported="false"
+            android:label="Browse Profiles"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".ui.admin.AdminDashboardActivity" />
+
+        <!-- Invitation & History Activities -->
+        <activity
+            android:name=".ui.invitations.EventInvitationsActivity"
+            android:exported="false"
+            android:label="@string/invitations_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
+            android:name=".ui.history.EventHistoryActivity"
+            android:exported="false"
+            android:label="@string/event_history_title"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".MainActivity" />
+
+        <!-- FileProvider for sharing QR codes -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- Service for sending notifications -->
+        <service
+            android:name=".services.MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>

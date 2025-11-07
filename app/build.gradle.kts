@@ -1,5 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
+    // Google Services plugin - processes google-services.json and generates Firebase config
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -8,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.pickme"
-        minSdk = 24
+        minSdk = 34
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -43,7 +45,71 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)
+    implementation(libs.firebase.common)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+    // Firebase BOM (Bill of Materials) - manages all Firebase library versions
+    // Using BOM ensures all Firebase libraries are compatible with each other
+    implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
+
+    // Firebase Services (versions managed by BOM)
+    implementation("com.google.firebase:firebase-analytics")
+
+    // Firestore - NoSQL cloud database for storing event data, user profiles, etc.
+    implementation("com.google.firebase:firebase-firestore")
+
+    // Firebase Storage - For storing and retrieving user-uploaded images (profile pics, event posters)
+    implementation("com.google.firebase:firebase-storage")
+
+    // Firebase Cloud Messaging (FCM) - Push notifications for event updates, lottery results
+    implementation("com.google.firebase:firebase-messaging")
+
+    // Firebase Authentication - Device-based authentication without requiring user accounts
+    implementation("com.google.firebase:firebase-auth")
+
+    // ZXing Library for QR Code Generation and Scanning
+    // Core library for QR code processing
+    implementation("com.google.zxing:core:3.5.3")
+    // Android integration for ZXing - provides easy-to-use scanning activities
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    // Google Play Services - Location Services for geolocation features
+    // Used to track user location for location-based event features
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    // Additional helpful libraries
+    // Glide for efficient image loading and caching
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
+
+    // CircleImageView for rounded profile images
+    implementation("de.hdodenhof:circleimageview:3.1.0")
+    // Material UI Elements
+    implementation("com.google.android.material:material:1.12.0")
+    // Biometric authenitcation for device-based authentication
+    implementation("androidx.biometric:biometric:1.1.0")
+    // Firebase messagining
+    implementation(platform("com.google.firebase:firebase-bom:34.4.0"))
+    implementation("com.google.firebase:firebase-functions")
+
+    // Unit tests
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:5.14.2")
+    testImplementation("org.robolectric:robolectric:4.12.2")
+    testImplementation("com.google.truth:truth:1.4.4")
+    testImplementation("androidx.test:core:1.6.1")
+
+    // Android instrumented tests
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:rules:1.6.1")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("com.google.truth:truth:1.4.4")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("org.mockito:mockito-android:5.14.2")
+
+    // Firebase emulator helper (we’ll point the SDK to localhost in @Before)
+    androidTestImplementation("com.google.firebase:firebase-firestore")
+    androidTestImplementation("com.google.firebase:firebase-auth")
+
 }

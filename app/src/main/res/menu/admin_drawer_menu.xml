@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_events"
+            android:icon="@android:drawable/ic_menu_search"
+            android:title="@string/browse_events_admin" />
+        <item
+            android:id="@+id/nav_profiles"
+            android:icon="@android:drawable/ic_menu_myplaces"
+            android:title="@string/browse_profiles" />
+        <item
+            android:id="@+id/nav_images"
+            android:icon="@android:drawable/ic_menu_gallery"
+            android:title="@string/browse_images" />
+        <item
+            android:id="@+id/nav_notifications"
+            android:icon="@android:drawable/ic_dialog_email"
+            android:title="@string/notification_logs" />
+    </group>
+    <item android:title="@string/management">
+        <menu>
+            <item
+                android:id="@+id/nav_remove_organizer"
+                android:icon="@android:drawable/ic_menu_delete"
+                android:title="@string/remove_organizer" />
+        </menu>
+    </item>
+</menu>
+

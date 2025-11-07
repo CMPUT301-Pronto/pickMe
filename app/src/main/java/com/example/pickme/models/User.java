@@ -1,0 +1,208 @@
+package com.example.pickme.models;
+
+import java.util.HashMap;
+import java.util.Map;
+/**
+ * JAVADOCS LLM GENERATED
+ *
+ * Firestore DTO for application users (authentication identity + profile snapshot).
+ * <p>
+ * <b>Role / Pattern:</b> Plain Old Java Object (POJO) that maps 1:1 to a Firestore document.
+ * Prefer using {@link Profile} for UI/state; use {@code User} to represent identity + creation metadata.
+ * </p>
+ *
+ * <p>
+ * </p>
+ *
+ * <p>
+ * <b>Outstanding issues / TODOs:</b>
+ * <ul>
+ *   <li>Consolidate identity (User) and UI state (Profile) if duplication causes drift.</li>
+ * </ul>
+ * </p>
+ *
+ * <p><b>Firestore structure:</b></p>
+ * <pre>
+ * users/{userId}
+ *   ├─ name
+ *   ├─ email
+ *   ├─ profileImageUrl
+ *   ├─ phoneNumber
+ *   ├─ deviceId
+ *   ├─ createdAt
+ *   ├─ role (entrant/organizer/admin)
+ * </pre>
+ */
+public class User {
+
+    // User roles
+    public static final String ROLE_ENTRANT = "entrant";
+    public static final String ROLE_ORGANIZER = "organizer";
+    public static final String ROLE_ADMIN = "admin";
+
+    // Role constants
+    private String userId;
+    private String name;
+    private String email;
+    private String profileImageUrl;
+    private String phoneNumber;
+    private String deviceId;
+    private long createdAt;
+    private String role;
+
+
+    /**
+     * Default constructor required for Firestore deserialization
+     * Firestore uses reflection to create objects from documents
+     */
+    public User() {
+        // Default constructor required for calls to DataSnapshot.getValue(User.class)
+    }
+
+    /**
+     * Full constructor for Firestore deserialization or manual creation.
+     *
+     * @param userId       Firebase Auth UID (or unique id)
+     * @param name         Display name
+     * @param email        Email address (optional)
+     * @param profileImageUrl Profile image URL
+     * @param phoneNumber  Phone number (optional)
+     * @param deviceId     Device identifier (device-based auth)
+     * @param createdAt    Epoch millis of account creation
+     * @param role         Role string (entrant/organizer/admin)
+     */
+    public User(String userId, String name, String email, String profileImageUrl,
+                String phoneNumber, String deviceId, long createdAt, String role) {
+        this.userId = userId;
+        this.name = name;
+        this.email = email;
+        this.profileImageUrl = profileImageUrl;
+        this.phoneNumber = phoneNumber;
+        this.deviceId = deviceId;
+        this.createdAt = createdAt;
+        this.role = role;
+    }
+    /**
+     * Convenience constructor for minimal user creation.
+     *
+     * @param userId  Unique identifier
+     * @param name    Display name
+     * @param deviceId Device identifier (device-based auth)
+     */
+    public User(String userId, String name, String deviceId) {
+        this.userId = userId;
+        this.name = name;
+        this.deviceId = deviceId;
+        this.createdAt = System.currentTimeMillis();
+        this.role = ROLE_ENTRANT;  // Default role
+    }
+
+    // Getters and Setters
+    // Required by Firestore for serialization/deserialization
+
+    /** @return Unique user identifier. */
+    public String getUserId() { return userId; }
+
+    /** @param userId Unique user identifier to set. */
+    public void setUserId(String userId) { this.userId = userId; }
+
+    /** @return Display name. */
+    public String getName() { return name; }
+
+    /** @param name Display name to set. */
+    public void setName(String name) { this.name = name; }
+
+    /** @return Email address or null if not set. */
+    public String getEmail() { return email; }
+
+    /** @param email Email address to set. */
+    public void setEmail(String email) { this.email = email; }
+
+    /** @return Profile image URL or null if not set. */
+    public String getProfileImageUrl() { return profileImageUrl; }
+
+    /** @param profileImageUrl Profile image URL to set. */
+    public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
+
+    /** @return Phone number or null if not set. */
+    public String getPhoneNumber() { return phoneNumber; }
+
+    /** @param phoneNumber Phone number to set. */
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    /** @return Device identifier (device-based auth). */
+    public String getDeviceId() { return deviceId; }
+
+    /** @param deviceId Device identifier to set. */
+    public void setDeviceId(String deviceId) { this.deviceId = deviceId; }
+
+    /** @return Epoch millis of account creation. */
+    public long getCreatedAt() { return createdAt; }
+
+    /** @param createdAt Epoch millis of account creation. */
+    public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
+
+    /** @return Role string (entrant/organizer/admin). */
+    public String getRole() { return role; }
+
+    /** @param role Role string to set (entrant/organizer/admin). */
+    public void setRole(String role) { this.role = role; }
+
+    /**
+     * Convert User object to Map for Firestore
+     * Useful when you need more control over what gets saved
+     *
+     * @return Map representation of User
+     */
+    public Map<String, Object> toMap() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("userId", userId);
+        map.put("name", name);
+        map.put("email", email);
+        map.put("profileImageUrl", profileImageUrl);
+        map.put("phoneNumber", phoneNumber);
+        map.put("deviceId", deviceId);
+        map.put("createdAt", createdAt);
+        map.put("role", role);
+        return map;
+    }
+
+    /**
+     * Check if user is an organizer
+     *
+     * @return true if user has organizer role
+     */
+    public boolean isOrganizer() {
+        return ROLE_ORGANIZER.equals(role);
+    }
+
+    /**
+     * Check if user is an admin
+     *
+     * @return true if user has admin role
+     */
+    public boolean isAdmin() {
+        return ROLE_ADMIN.equals(role);
+    }
+
+    /**
+     * Check if user profile is complete
+     *
+     * @return true if all required fields are filled
+     */
+    public boolean isProfileComplete() {
+        return name != null && !name.isEmpty()
+                && deviceId != null && !deviceId.isEmpty();
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "userId='" + userId + '\'' +
+                ", name='" + name + '\'' +
+                ", email='" + email + '\'' +
+                ", role='" + role + '\'' +
+                ", createdAt=" + createdAt +
+                '}';
+    }
+}

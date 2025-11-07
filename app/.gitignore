@@ -1,1 +1,4 @@
 /build
+
+# Ignore Firebase config
+google-services.json

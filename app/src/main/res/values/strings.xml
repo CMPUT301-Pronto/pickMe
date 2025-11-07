@@ -3,4 +3,327 @@
     <string name="title_home">Home</string>
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
+
+    <!-- Profile Strings -->
+    <string name="profile_title">My Profile</string>
+    <string name="create_profile_title">Create Profile</string>
+    <string name="profile_name">Name</string>
+    <string name="profile_email">Email</string>
+    <string name="profile_phone">Phone Number (Optional)</string>
+    <string name="profile_notifications">Enable Notifications</string>
+    <string name="user_role">User Role</string>
+    <string name="role_hint">Select your role to access different features</string>
+    <string name="role_entrant">Entrant</string>
+    <string name="role_organizer">Organizer</string>
+    <string name="role_admin">Admin</string>
+    <string name="profile_save">Save Changes</string>
+    <string name="profile_view_history">View Event History</string>
+    <string name="profile_delete_account">Delete Account</string>
+    <string name="profile_upload_photo">Upload Photo</string>
+    <string name="profile_change_photo">Change Photo</string>
+
+    <!-- Profile Validation -->
+    <string name="error_name_required">Name is required</string>
+    <string name="error_email_invalid">Please enter a valid email address</string>
+    <string name="error_profile_save_failed">Failed to save profile</string>
+    <string name="profile_saved">Profile saved successfully</string>
+    <string name="profile_loading">Loading profile…</string>
+    <string name="profile_image">Profile image</string>
+
+    <!-- Profile Deletion -->
+    <string name="delete_account_title">Delete Account</string>
+    <string name="delete_account_message">Are you sure you want to delete your account? This action cannot be undone and will remove you from all events.</string>
+    <string name="delete_account_confirm">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="account_deleted">Account deleted successfully</string>
+    <string name="error_delete_failed">Failed to delete account</string>
+
+    <!-- Create Profile -->
+    <string name="create_profile_welcome">Welcome to PickMe!</string>
+    <string name="create_profile_subtitle">Let\'s set up your profile</string>
+    <string name="create_profile_button">Create Profile</string>
+    <string name="skip_for_now">Skip for now</string>
+
+    <!-- General -->
+    <string name="loading">Loading…</string>
+    <string name="error_occurred">An error occurred</string>
+    <string name="retry">Retry</string>
+    <string name="ok">OK</string>
+
+    <!-- Event Browser Strings -->
+    <string name="event_browser_title">Browse Events</string>
+    <string name="search_events">Search events…</string>
+    <string name="filter_open">Open</string>
+    <string name="filter_upcoming">Upcoming</string>
+    <string name="filter_all">All Events</string>
+    <string name="scan_qr_code">Scan QR Code</string>
+    <string name="no_events_found">No events found</string>
+    <string name="no_events_available">No events available at the moment</string>
+
+    <!-- Event Card Strings -->
+    <string name="spots_available">Spots available: %d</string>
+    <string name="waiting_list_count">Waiting list: %d entrants</string>
+    <string name="event_full">Event Full</string>
+    <string name="joined_badge">Joined</string>
+    <string name="event_date">Date: %s</string>
+    <string name="event_location">Location: %s</string>
+    <string name="free_event">Free</string>
+    <string name="event_price">$%.2f</string>
+
+    <!-- Event Details Strings -->
+    <string name="event_details_title">Event Details</string>
+    <string name="event_description">Description</string>
+    <string name="event_details">Details</string>
+    <string name="event_dates">Event Dates</string>
+    <string name="registration_period">Registration Period</string>
+    <string name="registration_open">Registration Open</string>
+    <string name="registration_closed">Registration Closed</string>
+    <string name="event_capacity">Capacity: %d</string>
+    <string name="waiting_list_status">Waiting list: %d entrants</string>
+    <string name="lottery_criteria">Lottery Selection</string>
+    <string name="lottery_criteria_description">Winners will be randomly selected from the waiting list when registration closes.</string>
+    <string name="geolocation_required">Location tracking required for this event</string>
+
+    <!-- Event Actions -->
+    <string name="join_waiting_list">Join Waiting List</string>
+    <string name="leave_waiting_list">Leave Waiting List</string>
+    <string name="already_joined">You\'re on the waiting list</string>
+    <string name="join_success">Successfully joined waiting list</string>
+    <string name="leave_success">Successfully left waiting list</string>
+    <string name="join_failed">Failed to join waiting list</string>
+    <string name="leave_failed">Failed to leave waiting list</string>
+    <string name="event_full_message">This event has reached its waiting list capacity</string>
+    <string name="confirm_leave_title">Leave Waiting List</string>
+    <string name="confirm_leave_message">Are you sure you want to leave the waiting list for this event?</string>
+    <string name="leave">Leave</string>
+
+    <!-- Location Permission -->
+    <string name="location_required_title">Location Required</string>
+    <string name="location_required_message">This event requires location tracking. Please grant location permission to join.</string>
+    <string name="grant_permission">Grant Permission</string>
+    <string name="location_permission_denied">Location permission is required to join this event</string>
+
+    <!-- Event Invitations Strings -->
+    <string name="invitations_title">My Invitations</string>
+    <string name="no_invitations">No pending invitations</string>
+    <string name="no_invitations_message">You don\'t have any event invitations at the moment</string>
+    <string name="respond_by">Respond by: %s</string>
+    <string name="accept_invitation">Accept</string>
+    <string name="decline_invitation">Decline</string>
+    <string name="invitation_accepted">Invitation accepted!</string>
+    <string name="invitation_declined">Invitation declined</string>
+    <string name="accept_failed">Failed to accept invitation</string>
+    <string name="decline_failed">Failed to decline invitation</string>
+    <string name="confirm_decline_invitation">Are you sure you want to decline this invitation?</string>
+    <string name="invitation_expired">This invitation has expired</string>
+    <string name="no_declined_events">No declined invitations</string>
+    <string name="no_events">No events to display</string>
+    <string name="invitation_body_with_deadline">You’ve been chosen from the waiting list. Please respond before %1$s.</string>
+    <string name="invitation_deadline_unknown">(no deadline)</string>
+    <string name="view_more">View</string>
+
+    <!-- Event History Strings -->
+    <string name="event_history_title">My Event History</string>
+    <string name="tab_upcoming">Upcoming</string>
+    <string name="tab_waiting">Waiting List</string>
+    <string name="tab_past">Past Events</string>
+    <string name="no_upcoming_events">No upcoming events</string>
+    <string name="no_waiting_lists">Not on any waiting lists</string>
+    <string name="no_past_events">No past events</string>
+    <string name="event_status_enrolled">Enrolled</string>
+    <string name="event_status_waiting">Waiting</string>
+    <string name="event_status_selected">Selected</string>
+    <string name="event_status_not_selected">Not Selected</string>
+    <string name="event_status_cancelled">Cancelled</string>
+    <string name="event_status_completed">Completed</string>
+    <string name="view_event">View Event</string>
+
+    <!-- Create Event Strings -->
+    <string name="create_event_title">Create Event</string>
+    <string name="event_poster">Event Poster</string>
+    <string name="upload_poster">Upload Poster</string>
+    <string name="event_name">Event Name</string>
+    <string name="event_description_label">Description</string>
+    <string name="event_location_label">Location</string>
+    <string name="event_date_label">Event Date</string>
+    <string name="select_date">Select Date</string>
+    <string name="registration_period_label">Registration Period</string>
+    <string name="start_date">Start Date</string>
+    <string name="end_date">End Date</string>
+    <string name="event_capacity_label">Capacity &amp; Price</string>
+    <string name="max_participants">Max Participants</string>
+    <string name="event_price_label">Price</string>
+    <string name="waiting_list_label">Waiting List</string>
+    <string name="waiting_list_limit">Waiting List Limit (Optional)</string>
+    <string name="waiting_list_hint">Leave empty for unlimited waiting list</string>
+    <string name="geolocation_requirement">Require Geolocation</string>
+    <string name="geolocation_hint">When enabled, entrants must share their location to join</string>
+    <string name="geolocation_icon">Location icon</string>
+    <string name="publish_event">Publish Event</string>
+
+    <!-- Event Creation Validation -->
+    <string name="error_event_name_required">Event name is required</string>
+    <string name="error_description_required">Description is required</string>
+    <string name="error_location_required">Location is required</string>
+    <string name="error_event_date_required">Event date is required</string>
+    <string name="error_reg_dates_required">Registration dates are required</string>
+    <string name="error_capacity_required">Capacity is required</string>
+    <string name="error_capacity_invalid">Capacity must be greater than 0</string>
+    <string name="error_price_invalid">Please enter a valid price</string>
+    <string name="error_waiting_list_invalid">Waiting list limit must be greater than capacity</string>
+    <string name="error_reg_end_before_start">Registration end date must be after start date</string>
+    <string name="error_event_date_before_reg">Event date must be after registration period</string>
+
+    <!-- Event Creation Success -->
+    <string name="event_created_title">Event Published!</string>
+    <string name="event_created_message">Your event has been successfully created. Share the QR code with potential entrants.</string>
+    <string name="share_qr_code">Share QR Code</string>
+    <string name="download_qr_code">Download QR Code</string>
+    <string name="view_my_events">View My Events</string>
+    <string name="event_creation_failed">Failed to create event</string>
+    <string name="qr_code_generation_failed">Failed to generate QR code</string>
+
+    <!-- Role Check -->
+    <string name="access_denied_title">Access Denied</string>
+    <string name="organizer_only_message">Only users with Organizer role can create events</string>
+
+    <!-- Organizer Dashboard Strings -->
+    <string name="organizer_dashboard_title">My Events</string>
+    <string name="create_event_fab">Create New Event</string>
+    <string name="no_events_created">No Events Yet</string>
+    <string name="no_events_created_message">Tap the + button to create your first event</string>
+    <string name="waiting_list_label_short">Waiting</string>
+    <string name="selected_label">Selected</string>
+    <string name="enrolled_label">Enrolled</string>
+    <string name="manage_event">Manage Event</string>
+
+    <!-- Manage Event Strings -->
+    <string name="manage_event_title">Manage Event</string>
+    <string name="manage_actions">Manage Actions</string>
+    <string name="tab_waiting_list">Waiting List</string>
+    <string name="tab_selected">Selected</string>
+    <string name="tab_confirmed">Confirmed</string>
+    <string name="tab_cancelled">Cancelled</string>
+    <string name="no_entrants">No entrants</string>
+    <string name="view_map">View Entrants on Map</string>
+
+    <!-- Entrant Status -->
+    <string name="pending_status">Pending</string>
+    <string name="accepted_status">Accepted</string>
+    <string name="declined_status">Declined</string>
+    <string name="cancelled_status">Cancelled</string>
+
+    <!-- Lottery Draw -->
+    <string name="execute_lottery_title">Execute Lottery Draw</string>
+    <string name="execute_lottery_message">Enter the number of winners to select from the waiting list:</string>
+    <string name="number_of_winners">Number of Winners</string>
+    <string name="execute_lottery_button">Draw Winners</string>
+    <string name="lottery_executing">Executing lottery draw…</string>
+    <string name="lottery_success">Lottery draw completed! %d winners selected.</string>
+    <string name="lottery_failed">Failed to execute lottery draw</string>
+    <string name="lottery_no_entrants">No entrants in waiting list</string>
+    <string name="lottery_insufficient">Not enough entrants for this draw</string>
+    <string name="lottery_invalid_number">Please enter a valid number</string>
+
+    <!-- Send Notification -->
+    <string name="send_notification_title">Send Notification</string>
+    <string name="notification_message">Notification Message</string>
+    <string name="notification_recipient_group">Send to:</string>
+    <string name="recipients_all">All Entrants</string>
+    <string name="recipients_waiting">Waiting List</string>
+    <string name="recipients_selected">Selected Only</string>
+    <string name="recipients_confirmed">Confirmed Only</string>
+    <string name="send_notification_button">Send</string>
+    <string name="notification_sending">Sending notifications…</string>
+    <string name="notification_sent">Notifications sent successfully</string>
+    <string name="notification_failed">Failed to send notifications</string>
+    <string name="notification_message_required">Please enter a message</string>
+    <string name="invite_notification_body">You were selected for %1$s. Tap to respond.</string>
+    <string name="channel_invites_name">Invitations</string>
+    <string name="channel_invites_desc">Notifications when you’re selected from a waitlist</string>
+
+    <!-- Update Poster -->
+    <string name="update_poster_title">Update Event Poster</string>
+    <string name="poster_updated">Event poster updated successfully</string>
+    <string name="poster_update_failed">Failed to update poster</string>
+
+    <!-- Export CSV -->
+    <string name="export_csv_title">Export List</string>
+    <string name="export_csv_message">Export entrant list to CSV file:</string>
+    <string name="export_waiting_list">Waiting List</string>
+    <string name="export_selected_list">Selected List</string>
+    <string name="export_confirmed_list">Confirmed List</string>
+    <string name="export_button">Export</string>
+    <string name="exporting">Exporting…</string>
+    <string name="export_success">List exported to: %s</string>
+    <string name="export_failed">Failed to export list</string>
+
+    <!-- Cancel Entrant -->
+    <string name="cancel_entrant_title">Cancel Entrant</string>
+    <string name="cancel_entrant_message">Are you sure you want to cancel this entrant? This will trigger a replacement draw if available.</string>
+    <string name="cancel_entrant_button">Cancel Entrant</string>
+    <string name="entrant_cancelled">Entrant cancelled successfully</string>
+    <string name="cancel_entrant_failed">Failed to cancel entrant</string>
+
+    <!-- Map -->
+    <string name="map_title">Entrant Locations</string>
+    <string name="geolocation_not_enabled">Geolocation is not enabled for this event</string>
+
+    <!-- Main Navigation -->
+    <string name="entrant_features">Entrant Features</string>
+    <string name="organizer_features">Organizer Features</string>
+    <string name="admin_features">Admin Features</string>
+    <string name="my_profile">My Profile</string>
+    <string name="browse_events">Browse Events</string>
+    <string name="my_invitations">My Invitations</string>
+    <string name="event_history">Event History</string>
+    <string name="create_new_event">Create New Event</string>
+    <string name="my_events_dashboard">My Events Dashboard</string>
+    <string name="browse_all_events">Browse All Events</string>
+    <string name="admin_dashboard">Admin Dashboard</string>
+
+    <!-- Admin Dashboard Strings -->
+    <string name="admin_dashboard_title">Admin Dashboard</string>
+    <string name="admin_panel">Admin Panel</string>
+    <string name="admin_subtitle">System Administration</string>
+    <string name="admin_icon">Admin Icon</string>
+    <string name="browse_section">Browse</string>
+    <string name="browse_events_admin">Browse Events</string>
+    <string name="browse_profiles">Browse Profiles</string>
+    <string name="browse_images">Browse Images</string>
+    <string name="notification_logs">Notification Logs</string>
+    <string name="management">Management</string>
+    <string name="remove_organizer">Remove Organizer</string>
+    <string name="search">Search</string>
+    <string name="no_items">No items</string>
+    <string name="no_items_found">No items found</string>
+    <string name="no_profiles_found">No profiles found</string>
+    <string name="no_images_found">No images found</string>
+    <string name="no_notifications_found">No notifications found</string>
+
+    <!-- Delete Confirmations -->
+    <string name="delete_event_title">Delete Event</string>
+    <string name="delete_event_message">Are you sure you want to delete this event? This action cannot be undone.</string>
+    <string name="delete_profile_title">Delete Profile</string>
+    <string name="delete_profile_message">Are you sure you want to delete this profile? This will remove the user from all events.</string>
+    <string name="delete_image_title">Delete Image</string>
+    <string name="delete_image_message">Are you sure you want to delete this image?</string>
+    <string name="delete">Delete</string>
+    <string name="deleting">Deleting…</string>
+    <string name="deleted_successfully">Deleted successfully</string>
+    <string name="delete_failed">Failed to delete</string>
+
+    <!-- Admin Access -->
+    <string name="admin_access_denied_title">Admin Access Required</string>
+    <string name="admin_access_denied_message">Only users with Admin role can access this feature</string>
+    <string name="title_browse">Browse</string>
+    <string name="title_profile">Profile</string>
+    <string name="title_search">Search</string>
+
+    <!-- Role-based Navigation -->
+    <string name="title_my_events">My Events</string>
+    <string name="title_invitations">Invitations</string>
+    <string name="title_admin">Admin</string>
+    <string name="role_changed_title">Role Changed</string>
+    <string name="role_changed_message">Your role has been updated to %1$s. The navigation menu has been updated to reflect your new permissions.</string>
 </resources>
