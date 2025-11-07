@@ -507,7 +507,7 @@ public class ManageEventActivity extends AppCompatActivity {
         TextInputEditText etRegStart = dialogView.findViewById(R.id.etEditRegStartDate);
         TextInputEditText etRegEnd = dialogView.findViewById(R.id.etEditRegEndDate);
 
-        // Pre-fill current dates
+        // Pre fill current dates
         SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
         long currentStart = currentEvent.getRegistrationStartDate();
         long currentEnd = currentEvent.getRegistrationEndDate();
@@ -545,7 +545,6 @@ public class ManageEventActivity extends AppCompatActivity {
             });
         });
 
-        // Build dialog with system default buttons (no custom XML buttons)
         new AlertDialog.Builder(this)
                 .setTitle("Edit Registration Dates")
                 .setView(dialogView)
