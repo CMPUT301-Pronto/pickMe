@@ -1,5 +1,6 @@
 package com.example.pickme.ui.events;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -37,6 +38,7 @@ import java.util.Map;
  */
 public class OrganizerEventAdapter extends RecyclerView.Adapter<OrganizerEventAdapter.OrganizerEventViewHolder> {
 
+    private static final String TAG = "OrganizerEventAdapter";
     private List<Event> events;
     private Map<String, EventMetrics> eventMetrics; // Event ID -> metrics
     private OnEventClickListener listener;
@@ -60,8 +62,17 @@ public class OrganizerEventAdapter extends RecyclerView.Adapter<OrganizerEventAd
      * Update event metrics (waiting list, selected, enrolled counts)
      */
     public void setEventMetrics(Map<String, EventMetrics> metrics) {
+        Log.d(TAG, "setEventMetrics called with " + (metrics != null ? metrics.size() : 0) + " entries");
         this.eventMetrics = metrics != null ? metrics : new HashMap<>();
+        if (metrics != null) {
+            for (Map.Entry<String, EventMetrics> entry : metrics.entrySet()) {
+                EventMetrics m = entry.getValue();
+                Log.d(TAG, "  Metrics for " + entry.getKey() + ": waiting=" + m.waitingListCount +
+                      ", selected=" + m.selectedCount + ", enrolled=" + m.enrolledCount);
+            }
+        }
         notifyDataSetChanged();
+        Log.d(TAG, "notifyDataSetChanged called");
     }
 
     /**
@@ -127,6 +138,8 @@ public class OrganizerEventAdapter extends RecyclerView.Adapter<OrganizerEventAd
         }
 
         public void bind(Event event, EventMetrics metrics) {
+            Log.d(TAG, "Binding event: " + event.getEventId() + " (" + event.getName() + ")");
+
             // Event name
             tvEventName.setText(event.getName());
 
@@ -159,10 +172,13 @@ public class OrganizerEventAdapter extends RecyclerView.Adapter<OrganizerEventAd
 
             // Metrics
             if (metrics != null) {
+                Log.d(TAG, "  Setting metrics: waiting=" + metrics.waitingListCount +
+                      ", selected=" + metrics.selectedCount + ", enrolled=" + metrics.enrolledCount);
                 tvWaitingCount.setText(String.valueOf(metrics.waitingListCount));
                 tvSelectedCount.setText(String.valueOf(metrics.selectedCount));
                 tvEnrolledCount.setText(String.valueOf(metrics.enrolledCount));
             } else {
+                Log.d(TAG, "  No metrics available, setting to 0");
                 tvWaitingCount.setText("0");
                 tvSelectedCount.setText("0");
                 tvEnrolledCount.setText("0");

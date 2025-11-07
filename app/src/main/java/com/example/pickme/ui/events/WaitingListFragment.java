@@ -1,6 +1,7 @@
 package com.example.pickme.ui.events;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,11 +15,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.pickme.R;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.example.pickme.models.Profile;
+import com.example.pickme.models.WaitingList;
+import com.example.pickme.repositories.EventRepository;
+import com.example.pickme.repositories.ProfileRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * WaitingListFragment - Display waiting list entrants
@@ -27,13 +31,16 @@ import java.util.List;
  */
 public class WaitingListFragment extends Fragment {
 
+    private static final String TAG = "WaitingListFragment";
     private static final String ARG_EVENT_ID = "event_id";
 
     private String eventId;
     private RecyclerView recyclerView;
     private ProgressBar progressBar;
     private View emptyStateLayout;
-    private FirebaseFirestore db;
+    private EventRepository eventRepository;
+    private ProfileRepository profileRepository;
+    private EntrantAdapter adapter;
 
     public static WaitingListFragment newInstance(String eventId) {
         WaitingListFragment fragment = new WaitingListFragment();
@@ -49,7 +56,8 @@ public class WaitingListFragment extends Fragment {
         if (getArguments() != null) {
             eventId = getArguments().getString(ARG_EVENT_ID);
         }
-        db = FirebaseFirestore.getInstance();
+        eventRepository = new EventRepository();
+        profileRepository = new ProfileRepository();
     }
 
     @Nullable
@@ -67,35 +75,99 @@ public class WaitingListFragment extends Fragment {
         progressBar = view.findViewById(R.id.progressBar);
         emptyStateLayout = view.findViewById(R.id.emptyStateLayout);
 
+        // Setup adapter
+        adapter = new EntrantAdapter(true, false); // Show join time, don't show status
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        recyclerView.setAdapter(adapter);
 
         loadWaitingList();
     }
 
     private void loadWaitingList() {
         progressBar.setVisibility(View.VISIBLE);
+        recyclerView.setVisibility(View.GONE);
+        emptyStateLayout.setVisibility(View.GONE);
 
-        db.collection("events")
-                .document(eventId)
-                .collection("waitingList")
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
+        Log.d(TAG, "Loading waiting list for event: " + eventId);
+
+        eventRepository.getWaitingListForEvent(eventId, new EventRepository.OnWaitingListLoadedListener() {
+            @Override
+            public void onWaitingListLoaded(WaitingList waitingList) {
+                Log.d(TAG, "Waiting list loaded with " + waitingList.getEntrantCount() + " entrants");
+
+                if (waitingList.getEntrantCount() == 0) {
                     progressBar.setVisibility(View.GONE);
+                    emptyStateLayout.setVisibility(View.VISIBLE);
+                    recyclerView.setVisibility(View.GONE);
+                } else {
+                    // Load profiles for all entrants
+                    loadProfiles(waitingList.getEntrantIds(), waitingList.getEntrantTimestamps());
+                }
+            }
 
-                    if (querySnapshot.isEmpty()) {
-                        emptyStateLayout.setVisibility(View.VISIBLE);
-                        recyclerView.setVisibility(View.GONE);
-                    } else {
-                        emptyStateLayout.setVisibility(View.GONE);
+            @Override
+            public void onError(Exception e) {
+                Log.e(TAG, "Failed to load waiting list", e);
+                progressBar.setVisibility(View.GONE);
+                Toast.makeText(requireContext(), "Failed to load waiting list: " + e.getMessage(),
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void loadProfiles(List<String> entrantIds, Map<String, Long> timestamps) {
+        Log.d(TAG, "Loading profiles for " + entrantIds.size() + " entrants");
+
+        List<Profile> profiles = new ArrayList<>();
+        int[] remaining = {entrantIds.size()};
+
+        if (entrantIds.isEmpty()) {
+            progressBar.setVisibility(View.GONE);
+            emptyStateLayout.setVisibility(View.VISIBLE);
+            recyclerView.setVisibility(View.GONE);
+            return;
+        }
+
+        for (String entrantId : entrantIds) {
+            profileRepository.getProfile(entrantId, new ProfileRepository.OnProfileLoadedListener() {
+                @Override
+                public void onProfileLoaded(Profile profile) {
+                    profiles.add(profile);
+                    remaining[0]--;
+
+                    if (remaining[0] == 0) {
+                        // All profiles loaded
+                        Log.d(TAG, "All profiles loaded: " + profiles.size());
+                        progressBar.setVisibility(View.GONE);
                         recyclerView.setVisibility(View.VISIBLE);
-                        // Adapter setup would go here
+                        emptyStateLayout.setVisibility(View.GONE);
+
+                        adapter.setProfiles(profiles);
+                        adapter.setJoinTimestamps(timestamps);
                     }
-                })
-                .addOnFailureListener(e -> {
-                    progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(), "Failed to load waiting list",
-                            Toast.LENGTH_SHORT).show();
-                });
+                }
+
+                @Override
+                public void onError(Exception e) {
+                    Log.w(TAG, "Failed to load profile for entrant: " + entrantId, e);
+                    remaining[0]--;
+
+                    if (remaining[0] == 0) {
+                        // All profiles processed (some may have failed)
+                        progressBar.setVisibility(View.GONE);
+                        if (profiles.isEmpty()) {
+                            emptyStateLayout.setVisibility(View.VISIBLE);
+                            recyclerView.setVisibility(View.GONE);
+                        } else {
+                            recyclerView.setVisibility(View.VISIBLE);
+                            emptyStateLayout.setVisibility(View.GONE);
+                            adapter.setProfiles(profiles);
+                            adapter.setJoinTimestamps(timestamps);
+                        }
+                    }
+                }
+            });
+        }
     }
 
     public void refresh() {
@@ -104,4 +176,6 @@ public class WaitingListFragment extends Fragment {
         }
     }
 }
+
+
 
