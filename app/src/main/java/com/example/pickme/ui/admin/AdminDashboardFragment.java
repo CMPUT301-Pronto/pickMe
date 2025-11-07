@@ -82,7 +82,8 @@ public class AdminDashboardFragment extends Fragment {
         });
 
         btnRemoveOrganizer.setOnClickListener(v -> {
-            Toast.makeText(requireContext(), "Remove Organizer - Coming soon", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(requireContext(), AdminOrganizersActivity.class);
+            startActivity(intent);
         });
     }
 }
