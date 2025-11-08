@@ -21,14 +21,37 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * EventAdapter - RecyclerView adapter for event list
+ * EventAdapter - RecyclerView adapter for displaying event cards
  *
- * Displays event cards with:
- * - Event poster image
- * - Name, date, location
- * - Spots available or waiting list count
- * - "Joined" badge if user is on waiting list
- * - Price information
+ * Displays event information in a card layout with poster image, details, and status indicators.
+ * Used in browse events, event history, and organizer dashboard.
+ *
+ * Features:
+ * - Event poster image loading with Glide
+ * - Event details (name, date, location, price)
+ * - Capacity and waiting list information
+ * - "Joined" badge for events user has enrolled in
+ * - Registration status indicators
+ * - Click handling for navigation to event details
+ *
+ * Tab Types:
+ * - 0: Browse tab (shows all available events)
+ * - 1: Waiting tab (shows events user is waiting for)
+ * - 2: Accepted tab (shows events user was selected for)
+ * - 3: Declined tab (shows events user declined)
+ *
+ * Usage:
+ * ```java
+ * EventAdapter adapter = new EventAdapter(0); // Browse tab
+ * recyclerView.setAdapter(adapter);
+ * adapter.setEvents(eventList);
+ * adapter.setJoinedEventIds(joinedIds); // Optional
+ * adapter.setOnEventClickListener(event -> {
+ *     // Handle click
+ * });
+ * ```
+ *
+ * Related User Stories: US 01.01.03, US 01.01.04, US 01.04.01
  */
 public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> {
 
@@ -38,6 +61,11 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     private SimpleDateFormat dateFormat;
     private int tabType;
 
+    /**
+     * Constructor
+     *
+     * @param tabType Tab type (0=Browse, 1=Waiting, 2=Accepted, 3=Declined)
+     */
     public EventAdapter(int tabType) {
         this.tabType = tabType;
         this.events = new ArrayList<>();
@@ -46,7 +74,9 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
     }
 
     /**
-     * Update event list
+     * Update the list of events to display
+     *
+     * @param events List of Event objects
      */
     public void setEvents(List<Event> events) {
         this.events = events != null ? events : new ArrayList<>();

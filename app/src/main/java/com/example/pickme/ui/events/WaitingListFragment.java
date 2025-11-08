@@ -1,179 +1,53 @@
 package com.example.pickme.ui.events;
 
-import android.os.Bundle;
-import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ProgressBar;
-import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
-import com.example.pickme.R;
-import com.example.pickme.models.Profile;
-import com.example.pickme.models.WaitingList;
-import com.example.pickme.repositories.EventRepository;
-import com.example.pickme.repositories.ProfileRepository;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import com.example.pickme.utils.Constants;
 
 /**
  * WaitingListFragment - Display waiting list entrants
- * Shows all entrants who joined the waiting list
+ *
+ * Shows all entrants who joined the waiting list for an event.
+ * Displays join timestamps to show when each entrant registered.
+ *
+ * This fragment extends BaseEntrantListFragment which provides:
+ * - Lifecycle-aware profile loading
+ * - Thread-safe data handling
+ * - Common UI state management
+ *
  * Related User Stories: US 02.02.01, US 02.02.02
  */
-public class WaitingListFragment extends Fragment {
+public class WaitingListFragment extends BaseEntrantListFragment {
 
     private static final String TAG = "WaitingListFragment";
-    private static final String ARG_EVENT_ID = "event_id";
 
-    private String eventId;
-    private RecyclerView recyclerView;
-    private ProgressBar progressBar;
-    private View emptyStateLayout;
-    private EventRepository eventRepository;
-    private ProfileRepository profileRepository;
-    private EntrantAdapter adapter;
-
+    /**
+     * Factory method to create new instance
+     *
+     * @param eventId Event ID to display waiting list for
+     * @return WaitingListFragment instance
+     */
     public static WaitingListFragment newInstance(String eventId) {
         WaitingListFragment fragment = new WaitingListFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_EVENT_ID, eventId);
-        fragment.setArguments(args);
-        return fragment;
+        return (WaitingListFragment) BaseEntrantListFragment.newInstance(eventId, fragment);
     }
 
     @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            eventId = getArguments().getString(ARG_EVENT_ID);
-        }
-        eventRepository = new EventRepository();
-        profileRepository = new ProfileRepository();
-    }
-
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_entrant_list, container, false);
+    protected String getSubcollectionName() {
+        return Constants.SUBCOLLECTION_WAITING_LIST;
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-
-        recyclerView = view.findViewById(R.id.recyclerViewEntrants);
-        progressBar = view.findViewById(R.id.progressBar);
-        emptyStateLayout = view.findViewById(R.id.emptyStateLayout);
-
-        // Setup adapter
-        adapter = new EntrantAdapter(true, false); // Show join time, don't show status
-        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-        recyclerView.setAdapter(adapter);
-
-        loadWaitingList();
+    protected boolean showJoinTime() {
+        return true; // Show when entrants joined the waiting list
     }
 
-    private void loadWaitingList() {
-        progressBar.setVisibility(View.VISIBLE);
-        recyclerView.setVisibility(View.GONE);
-        emptyStateLayout.setVisibility(View.GONE);
-
-        Log.d(TAG, "Loading waiting list for event: " + eventId);
-
-        eventRepository.getWaitingListForEvent(eventId, new EventRepository.OnWaitingListLoadedListener() {
-            @Override
-            public void onWaitingListLoaded(WaitingList waitingList) {
-                Log.d(TAG, "Waiting list loaded with " + waitingList.getEntrantCount() + " entrants");
-
-                if (waitingList.getEntrantCount() == 0) {
-                    progressBar.setVisibility(View.GONE);
-                    emptyStateLayout.setVisibility(View.VISIBLE);
-                    recyclerView.setVisibility(View.GONE);
-                } else {
-                    // Load profiles for all entrants
-                    loadProfiles(waitingList.getEntrantIds(), waitingList.getEntrantTimestamps());
-                }
-            }
-
-            @Override
-            public void onError(Exception e) {
-                Log.e(TAG, "Failed to load waiting list", e);
-                progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), "Failed to load waiting list: " + e.getMessage(),
-                        Toast.LENGTH_SHORT).show();
-            }
-        });
+    @Override
+    protected boolean showStatus() {
+        return false; // Waiting list doesn't have status
     }
 
-    private void loadProfiles(List<String> entrantIds, Map<String, Long> timestamps) {
-        Log.d(TAG, "Loading profiles for " + entrantIds.size() + " entrants");
-
-        List<Profile> profiles = new ArrayList<>();
-        int[] remaining = {entrantIds.size()};
-
-        if (entrantIds.isEmpty()) {
-            progressBar.setVisibility(View.GONE);
-            emptyStateLayout.setVisibility(View.VISIBLE);
-            recyclerView.setVisibility(View.GONE);
-            return;
-        }
-
-        for (String entrantId : entrantIds) {
-            profileRepository.getProfile(entrantId, new ProfileRepository.OnProfileLoadedListener() {
-                @Override
-                public void onProfileLoaded(Profile profile) {
-                    profiles.add(profile);
-                    remaining[0]--;
-
-                    if (remaining[0] == 0) {
-                        // All profiles loaded
-                        Log.d(TAG, "All profiles loaded: " + profiles.size());
-                        progressBar.setVisibility(View.GONE);
-                        recyclerView.setVisibility(View.VISIBLE);
-                        emptyStateLayout.setVisibility(View.GONE);
-
-                        adapter.setProfiles(profiles);
-                        adapter.setJoinTimestamps(timestamps);
-                    }
-                }
-
-                @Override
-                public void onError(Exception e) {
-                    Log.w(TAG, "Failed to load profile for entrant: " + entrantId, e);
-                    remaining[0]--;
-
-                    if (remaining[0] == 0) {
-                        // All profiles processed (some may have failed)
-                        progressBar.setVisibility(View.GONE);
-                        if (profiles.isEmpty()) {
-                            emptyStateLayout.setVisibility(View.VISIBLE);
-                            recyclerView.setVisibility(View.GONE);
-                        } else {
-                            recyclerView.setVisibility(View.VISIBLE);
-                            emptyStateLayout.setVisibility(View.GONE);
-                            adapter.setProfiles(profiles);
-                            adapter.setJoinTimestamps(timestamps);
-                        }
-                    }
-                }
-            });
-        }
-    }
-
-    public void refresh() {
-        if (isAdded()) {
-            loadWaitingList();
-        }
+    @Override
+    protected String getLogTag() {
+        return TAG;
     }
 }
 

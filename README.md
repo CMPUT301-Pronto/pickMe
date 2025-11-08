@@ -309,6 +309,8 @@ service cloud.firestore {
 **Location**:
 - Google Play Services Location 21.3.0
 
+AI USE: A self hosted fine-tune of qwen3 4b was active as a completion agent for comments, some markdown, and parts of boilerplate syntax/imports but not core function definitions and logic.
+
 ## Team
 
 CMPUT 301 - pronto

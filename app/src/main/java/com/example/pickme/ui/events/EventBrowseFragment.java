@@ -22,13 +22,9 @@ import com.example.pickme.R;
 import com.example.pickme.models.Event;
 import com.example.pickme.repositories.EventRepository;
 import com.example.pickme.services.DeviceAuthenticator;
-import com.example.pickme.services.QRCodeScanner;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.zxing.integration.android.IntentIntegrator;
-import com.google.zxing.integration.android.IntentResult;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -66,7 +62,6 @@ public class EventBrowseFragment extends Fragment {
     private List<Event> allEvents = new ArrayList<>();
     private List<Event> filteredEvents = new ArrayList<>();
     private String currentUserId;
-    private QRCodeScanner qrCodeScanner;
 
     // Filter state
     private String searchQuery = "";
@@ -113,7 +108,6 @@ public class EventBrowseFragment extends Fragment {
     private void initializeData() {
         eventRepository = new EventRepository();
         deviceAuthenticator = DeviceAuthenticator.getInstance(requireContext());
-        qrCodeScanner = new QRCodeScanner();
         currentUserId = deviceAuthenticator.getStoredUserId();
     }
 
@@ -216,29 +210,14 @@ public class EventBrowseFragment extends Fragment {
     }
 
     private void launchQRScanner() {
-        // If your QRCodeScanner expects an Activity, pass requireActivity().
-        // If it supports Fragments, passing `this` is fine.
-        qrCodeScanner.startScanning(requireActivity());
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        IntentResult result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
-        if (result == null) return;
-
-        qrCodeScanner.parseScannedResult(result, new QRCodeScanner.OnQRScannedListener() {
-            @Override public void onQRScanned(Event event) {
-                Intent intent = new Intent(requireContext(), EventDetailsActivity.class);
-                intent.putExtra(EXTRA_EVENT_ID, event.getEventId());
-                startActivity(intent);
-            }
-            @Override public void onError(Exception e) {
-                Toast.makeText(requireContext(),
-                        "Invalid QR code: " + e.getMessage(),
-                        Toast.LENGTH_SHORT).show();
-            }
-        });
+        // Use MainActivity's modern QR scanner launcher
+        if (getActivity() instanceof com.example.pickme.MainActivity) {
+            ((com.example.pickme.MainActivity) getActivity()).launchQRScanner();
+        } else {
+            Toast.makeText(requireContext(),
+                    "QR scanner not available",
+                    Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showLoading(boolean show) {
