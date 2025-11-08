@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -28,6 +29,7 @@ import com.example.pickme.repositories.EventRepository;
 import com.example.pickme.repositories.ImageRepository;
 import com.example.pickme.services.LotteryService;
 import com.example.pickme.services.NotificationService;
+import com.example.pickme.services.QRCodeGenerator;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -73,6 +75,7 @@ public class ManageEventActivity extends AppCompatActivity {
     private LotteryService lotteryService;
     private NotificationService notificationService;
     private CsvExporter csvExporter;
+    private QRCodeGenerator qrCodeGenerator;
     private Event currentEvent;
     private String eventId;
 
@@ -131,6 +134,7 @@ public class ManageEventActivity extends AppCompatActivity {
         lotteryService = LotteryService.getInstance();
         notificationService = NotificationService.getInstance();
         csvExporter = new CsvExporter(this);
+        qrCodeGenerator = new QRCodeGenerator();
     }
 
     private void setupImagePicker() {
@@ -237,7 +241,8 @@ public class ManageEventActivity extends AppCompatActivity {
                 "Execute Lottery Draw",
                 "Send Notification",
                 "Update Poster",
-                "Export Lists"
+                "Export Lists",
+                "View QR Code"
         };
 
         new AlertDialog.Builder(this)
@@ -255,6 +260,9 @@ public class ManageEventActivity extends AppCompatActivity {
                             break;
                         case 3:
                             showExportDialog();
+                            break;
+                        case 4:
+                            showQRCode();
                             break;
                     }
                 })
@@ -481,6 +489,134 @@ public class ManageEventActivity extends AppCompatActivity {
         }
         if (confirmedFragment != null) {
             confirmedFragment.refresh();
+        }
+    }
+
+    /**
+     * Show QR code for the event
+     * Loads existing QR code or generates a new one if it doesn't exist
+     */
+    private void showQRCode() {
+        if (currentEvent == null) {
+            Toast.makeText(this, "Event data not loaded", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Show progress dialog
+        AlertDialog progressDialog = new AlertDialog.Builder(this)
+                .setMessage("Loading QR code...")
+                .setCancelable(false)
+                .create();
+        progressDialog.show();
+
+        qrCodeGenerator.loadOrGenerateQRCode(eventId, this,
+                new QRCodeGenerator.OnQRGeneratedListener() {
+                    @Override
+                    public void onQRGenerated(android.graphics.Bitmap qrBitmap, String filePath, String qrCodeId) {
+                        progressDialog.dismiss();
+                        displayQRCodeDialog(qrBitmap, filePath);
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        progressDialog.dismiss();
+                        Toast.makeText(ManageEventActivity.this,
+                                "Failed to load QR code: " + e.getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    /**
+     * Display QR code dialog with share and download options
+     */
+    private void displayQRCodeDialog(android.graphics.Bitmap qrBitmap, String filePath) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_event_created, null);
+        ImageView ivQRCode = dialogView.findViewById(R.id.ivQRCode);
+        Button btnShare = dialogView.findViewById(R.id.btnShare);
+        Button btnDownload = dialogView.findViewById(R.id.btnDownload);
+        Button btnClose = dialogView.findViewById(R.id.btnClose);
+
+        ivQRCode.setImageBitmap(qrBitmap);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(true)
+                .create();
+
+        btnShare.setOnClickListener(v -> {
+            shareQRCode(filePath);
+        });
+
+        btnDownload.setOnClickListener(v -> {
+            downloadQRCode(filePath);
+        });
+
+        btnClose.setOnClickListener(v -> {
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    /**
+     * Share QR code using system share sheet
+     */
+    private void shareQRCode(String filePath) {
+        try {
+            java.io.File qrFile = new java.io.File(filePath);
+            android.net.Uri qrUri = androidx.core.content.FileProvider.getUriForFile(
+                    this,
+                    getApplicationContext().getPackageName() + ".fileprovider",
+                    qrFile
+            );
+
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.setType("image/png");
+            shareIntent.putExtra(Intent.EXTRA_STREAM, qrUri);
+            shareIntent.putExtra(Intent.EXTRA_TEXT, "Join my event: " + currentEvent.getName());
+            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            startActivity(Intent.createChooser(shareIntent, "Share QR Code"));
+        } catch (Exception e) {
+            Toast.makeText(this, "Failed to share QR code", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * Download QR code to device gallery
+     */
+    private void downloadQRCode(String filePath) {
+        try {
+            java.io.File sourceFile = new java.io.File(filePath);
+
+            // Copy to Downloads folder
+            java.io.File downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
+                    android.os.Environment.DIRECTORY_DOWNLOADS);
+            java.io.File destFile = new java.io.File(downloadsDir,
+                    "QR_" + currentEvent.getName().replaceAll("[^a-zA-Z0-9]", "_") + ".png");
+
+            java.io.FileInputStream fis = new java.io.FileInputStream(sourceFile);
+            java.io.FileOutputStream fos = new java.io.FileOutputStream(destFile);
+
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = fis.read(buffer)) > 0) {
+                fos.write(buffer, 0, length);
+            }
+
+            fis.close();
+            fos.close();
+
+            // Notify media scanner
+            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+            mediaScanIntent.setData(android.net.Uri.fromFile(destFile));
+            sendBroadcast(mediaScanIntent);
+
+            Toast.makeText(this, "QR code saved to Downloads", Toast.LENGTH_LONG).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "Failed to download QR code: " + e.getMessage(),
+                    Toast.LENGTH_SHORT).show();
         }
     }
 

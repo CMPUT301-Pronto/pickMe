@@ -202,26 +202,82 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
         handleInviteIntent(getIntent());
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // Handle ZXing QR scanner result
+        com.google.zxing.integration.android.IntentResult result =
+            com.google.zxing.integration.android.IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+
+        if (result != null && result.getContents() != null) {
+            String scannedData = result.getContents();
+            android.util.Log.d("MainActivity", "QR code scanned: " + scannedData);
+
+            // Check if it's an event lottery QR code
+            if (scannedData.startsWith("eventlottery://event/")) {
+                String eventId = scannedData.substring("eventlottery://event/".length());
+                if (!eventId.isEmpty()) {
+                    android.util.Log.d("MainActivity", "Opening event: " + eventId);
+                    // Navigate to EventDetailsActivity
+                    Intent eventIntent = new Intent(this, com.example.pickme.ui.events.EventDetailsActivity.class);
+                    eventIntent.putExtra(com.example.pickme.ui.events.EventBrowseFragment.EXTRA_EVENT_ID, eventId);
+                    startActivity(eventIntent);
+                } else {
+                    Toast.makeText(this, "Invalid QR code: empty event ID", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Toast.makeText(this, "Invalid QR code format", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
     /**
-     * Handles deep links or custom intents used to open invitation dialogs.
+     * Handles deep links or custom intents used to open invitation dialogs or event details.
+     * Supports:
+     * - ACTION_OPEN_INVITATION: Opens invitation dialog
+     * - eventlottery://event/{eventId}: Opens event details from QR code scan
      *
      * @param i The intent received by the activity.
      */
     private void handleInviteIntent(@Nullable Intent i) {
         if (i == null) return;
-        if (!"com.example.pickme.ACTION_OPEN_INVITATION".equals(i.getAction())) return;
 
-        String eventId = i.getStringExtra("eventId");
-        String invId = i.getStringExtra("invitationId");
-        long deadline = 0L;
+        // Handle invitation intent
+        if ("com.example.pickme.ACTION_OPEN_INVITATION".equals(i.getAction())) {
+            String eventId = i.getStringExtra("eventId");
+            String invId = i.getStringExtra("invitationId");
+            long deadline = 0L;
 
-        try {
-            deadline = Long.parseLong(i.getStringExtra("deadline"));
-        } catch (Exception ignored) {}
+            try {
+                deadline = Long.parseLong(i.getStringExtra("deadline"));
+            } catch (Exception ignored) {}
 
-        com.example.pickme.ui.invitations.InvitationDialogFragment
-                .newInstance(eventId, invId, deadline)
-                .show(getSupportFragmentManager(), "invite");
+            com.example.pickme.ui.invitations.InvitationDialogFragment
+                    .newInstance(eventId, invId, deadline)
+                    .show(getSupportFragmentManager(), "invite");
+            return;
+        }
+
+        // Handle QR code deep link: eventlottery://event/{eventId}
+        android.net.Uri data = i.getData();
+        if (data != null && "eventlottery".equals(data.getScheme()) && "event".equals(data.getHost())) {
+            // Extract event ID from path (format: eventlottery://event/{eventId})
+            String path = data.getPath();
+            if (path != null && path.startsWith("/")) {
+                String eventId = path.substring(1); // Remove leading slash
+                if (!eventId.isEmpty()) {
+                    android.util.Log.d("MainActivity", "QR code scanned for event: " + eventId);
+                    // Navigate to EventDetailsActivity
+                    Intent eventIntent = new Intent(this, com.example.pickme.ui.events.EventDetailsActivity.class);
+                    eventIntent.putExtra(com.example.pickme.ui.events.EventBrowseFragment.EXTRA_EVENT_ID, eventId);
+                    startActivity(eventIntent);
+
+                    // Clear the intent data to prevent re-opening on back press
+                    i.setData(null);
+                }
+            }
+        }
     }
 
     @Override
