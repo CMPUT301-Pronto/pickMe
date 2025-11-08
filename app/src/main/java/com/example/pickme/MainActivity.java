@@ -3,8 +3,10 @@ package com.example.pickme;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
@@ -19,27 +21,48 @@ import com.example.pickme.services.DeviceAuthenticator;
 import com.example.pickme.services.FirebaseManager;
 import com.example.pickme.services.RoleChangeListener;
 import com.example.pickme.models.Profile;
+import com.example.pickme.ui.events.EventBrowseFragment;
+import com.example.pickme.ui.events.EventDetailsActivity;
 import com.example.pickme.ui.profile.CreateProfileActivity;
+import com.example.pickme.utils.Constants;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.journeyapps.barcodescanner.ScanContract;
+import com.journeyapps.barcodescanner.ScanOptions;
 
 import android.view.MenuItem;
 
 /**
- * JAVADOC LLM GENERATED
+ * MainActivity - Main entry point and navigation controller for PickMe app
  *
- * MainActivity
+ * Responsibilities:
+ * - Hosts NavHostFragment for fragment navigation
+ * - Manages bottom navigation bar across different user roles
+ * - Initializes device-based authentication
+ * - Handles deep links for QR codes and invitations
+ * - Coordinates role-based navigation graph switching
+ * - Gates profile access (redirects to profile creation if needed)
  *
- * The main entry point of the PickMe app. This activity manages the bottom navigation bar,
- * navigation between fragments, user authentication initialization, and profile gating logic.
+ * Navigation Structure:
+ * - Entrant: Browse → Invitations → Profile
+ * - Organizer: My Events → Browse → Profile
+ * - Admin: Browse → Admin Dashboard → Profile
  *
- * Features:
- * - Hosts the NavHostFragment and handles fragment navigation.
- * - Initializes the device-based user identity.
- * - Syncs bottom navigation tab state with the current destination.
- * - Redirects to CreateProfileActivity when a user has no profile yet.
- * - Handles deep links and invitations via Intent actions.
+ * Deep Link Support:
+ * - eventlottery://event/{eventId} - QR code scanned event links
+ * - ACTION_OPEN_INVITATION - Push notification invitation links
+ *
+ * Lifecycle:
+ * - onCreate: Initialize auth, setup navigation, handle intents
+ * - onNewIntent: Handle deep links when app is already running
+ * - onStart: Re-check for pending deep links
+ * - onDestroy: Cleanup role change listeners
+ *
+ * Related User Stories: US 01.07.01 (device auth), US 01.06.01 (QR scanning),
+ *                       US 01.04.01 (navigation), US 01.02.01 (profile management)
  */
 public class MainActivity extends AppCompatActivity implements RoleChangeListener {
+
+    private static final String TAG = "MainActivity";
 
     private DeviceAuthenticator deviceAuth;
     private NavController navController;
@@ -47,11 +70,19 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
     private String currentRole = Profile.ROLE_ENTRANT;
     private NavController.OnDestinationChangedListener destinationChangedListener;
 
+    /**
+     * Modern QR scanner launcher using ActivityResultContracts API
+     * Replaces deprecated onActivityResult() pattern
+     */
+    private ActivityResultLauncher<ScanOptions> qrScannerLauncher;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Layout must include: NavHostFragment(id=nav_host_fragment) + BottomNavigationView(id=bottom_nav)
         setContentView(R.layout.activity_main);
+
+        // Setup modern QR scanner before any other initialization
+        setupQRScannerLauncher();
 
         // Request runtime notification permission on Android 13+
         if (android.os.Build.VERSION.SDK_INT >= 33) {
@@ -107,6 +138,53 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
         // Handle any invitation intent passed when launching the app
         handleInviteIntent(getIntent());
     }
+
+    /**
+     * Setup modern QR scanner using ActivityResultContracts API
+     * Replaces deprecated onActivityResult() pattern with lifecycle-aware launcher
+     */
+    private void setupQRScannerLauncher() {
+        qrScannerLauncher = registerForActivityResult(new ScanContract(), result -> {
+            if (result.getContents() != null) {
+                String scannedData = result.getContents();
+                Log.d(TAG, "QR code scanned: " + scannedData);
+
+                // Check if it's an event lottery QR code
+                if (scannedData.startsWith(Constants.DEEP_LINK_PREFIX_EVENT)) {
+                    String eventId = scannedData.substring(Constants.DEEP_LINK_PREFIX_EVENT.length());
+                    if (!eventId.isEmpty()) {
+                        Log.d(TAG, "Opening event: " + eventId);
+                        // Navigate to EventDetailsActivity
+                        Intent eventIntent = new Intent(this, EventDetailsActivity.class);
+                        eventIntent.putExtra(Constants.EXTRA_EVENT_ID, eventId);
+                        startActivity(eventIntent);
+                    } else {
+                        Toast.makeText(this, "Invalid QR code: empty event ID", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(this, "Invalid QR code format", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                Log.d(TAG, "QR scan cancelled");
+            }
+        });
+    }
+
+    /**
+     * Public method to launch QR scanner from fragments
+     * Uses modern ActivityResultLauncher pattern
+     */
+    public void launchQRScanner() {
+        ScanOptions options = new ScanOptions();
+        options.setDesiredBarcodeFormats(ScanOptions.QR_CODE);
+        options.setPrompt("Scan Event QR Code");
+        options.setCameraId(0); // Use back camera
+        options.setBeepEnabled(true);
+        options.setOrientationLocked(false);
+        qrScannerLauncher.launch(options);
+    }
+
+    // ...existing code...
 
     /**
      * Navigates to a destination with singleTop behavior, preventing multiple copies of the same fragment
@@ -202,57 +280,33 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
         handleInviteIntent(getIntent());
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        // Handle ZXing QR scanner result
-        com.google.zxing.integration.android.IntentResult result =
-            com.google.zxing.integration.android.IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
-
-        if (result != null && result.getContents() != null) {
-            String scannedData = result.getContents();
-            android.util.Log.d("MainActivity", "QR code scanned: " + scannedData);
-
-            // Check if it's an event lottery QR code
-            if (scannedData.startsWith("eventlottery://event/")) {
-                String eventId = scannedData.substring("eventlottery://event/".length());
-                if (!eventId.isEmpty()) {
-                    android.util.Log.d("MainActivity", "Opening event: " + eventId);
-                    // Navigate to EventDetailsActivity
-                    Intent eventIntent = new Intent(this, com.example.pickme.ui.events.EventDetailsActivity.class);
-                    eventIntent.putExtra(com.example.pickme.ui.events.EventBrowseFragment.EXTRA_EVENT_ID, eventId);
-                    startActivity(eventIntent);
-                } else {
-                    Toast.makeText(this, "Invalid QR code: empty event ID", Toast.LENGTH_SHORT).show();
-                }
-            } else {
-                Toast.makeText(this, "Invalid QR code format", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
-
     /**
      * Handles deep links or custom intents used to open invitation dialogs or event details.
-     * Supports:
-     * - ACTION_OPEN_INVITATION: Opens invitation dialog
-     * - eventlottery://event/{eventId}: Opens event details from QR code scan
      *
-     * @param i The intent received by the activity.
+     * Supports two types of intents:
+     * 1. ACTION_OPEN_INVITATION: Custom action for push notification invitations
+     *    - Opens invitation dialog fragment with event and invitation details
+     *
+     * 2. eventlottery://event/{eventId}: Deep link from QR code or external source
+     *    - Navigates directly to EventDetailsActivity to show event information
+     *    - Allows entrant to join waiting list
+     *
+     * @param i The intent received by the activity (from onCreate, onNewIntent, or onStart)
      */
     private void handleInviteIntent(@Nullable Intent i) {
         if (i == null) return;
 
-        // Handle invitation intent
-        if ("com.example.pickme.ACTION_OPEN_INVITATION".equals(i.getAction())) {
-            String eventId = i.getStringExtra("eventId");
-            String invId = i.getStringExtra("invitationId");
+        // Handle invitation intent from push notification
+        if (Constants.ACTION_OPEN_INVITATION.equals(i.getAction())) {
+            String eventId = i.getStringExtra(Constants.EXTRA_EVENT_ID);
+            String invId = i.getStringExtra(Constants.EXTRA_INVITATION_ID);
             long deadline = 0L;
 
             try {
-                deadline = Long.parseLong(i.getStringExtra("deadline"));
+                deadline = Long.parseLong(i.getStringExtra(Constants.EXTRA_DEADLINE));
             } catch (Exception ignored) {}
 
+            Log.d(TAG, "Opening invitation dialog for event: " + eventId);
             com.example.pickme.ui.invitations.InvitationDialogFragment
                     .newInstance(eventId, invId, deadline)
                     .show(getSupportFragmentManager(), "invite");
@@ -261,24 +315,29 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
 
         // Handle QR code deep link: eventlottery://event/{eventId}
         android.net.Uri data = i.getData();
-        if (data != null && "eventlottery".equals(data.getScheme()) && "event".equals(data.getHost())) {
+        if (data != null && Constants.DEEP_LINK_SCHEME.equals(data.getScheme())
+                && Constants.DEEP_LINK_HOST_EVENT.equals(data.getHost())) {
             // Extract event ID from path (format: eventlottery://event/{eventId})
             String path = data.getPath();
             if (path != null && path.startsWith("/")) {
                 String eventId = path.substring(1); // Remove leading slash
                 if (!eventId.isEmpty()) {
-                    android.util.Log.d("MainActivity", "QR code scanned for event: " + eventId);
+                    Log.d(TAG, "Deep link scanned for event: " + eventId);
                     // Navigate to EventDetailsActivity
-                    Intent eventIntent = new Intent(this, com.example.pickme.ui.events.EventDetailsActivity.class);
-                    eventIntent.putExtra(com.example.pickme.ui.events.EventBrowseFragment.EXTRA_EVENT_ID, eventId);
+                    Intent eventIntent = new Intent(this, EventDetailsActivity.class);
+                    eventIntent.putExtra(Constants.EXTRA_EVENT_ID, eventId);
                     startActivity(eventIntent);
 
                     // Clear the intent data to prevent re-opening on back press
                     i.setData(null);
+                } else {
+                    Log.w(TAG, "Deep link has empty event ID");
                 }
             }
         }
     }
+
+    // ...existing code...
 
     @Override
     public void onRoleChanged(String newRole) {

@@ -22,12 +22,36 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * EntrantAdapter - RecyclerView adapter for displaying entrant profiles
- * Used in waiting list, selected, confirmed, and cancelled tabs
+ * EntrantAdapter - RecyclerView adapter for displaying entrant profile lists
+ *
+ * Displays a list of entrant profiles in a RecyclerView with configurable display options.
+ * Used across multiple event management screens (waiting list, selected, confirmed, cancelled).
+ *
+ * Features:
+ * - Displays profile information (name, email, profile picture)
+ * - Optional join timestamp display (for waiting list)
+ * - Optional status indicators (for selected entrants)
+ * - Click handling for entrant selection
+ * - Glide image loading with error handling
+ *
+ * Configuration Options:
+ * - showJoinTime: Display when entrant joined waiting list
+ * - showStatus: Display entrant response status (pending/accepted/declined)
+ *
+ * Usage:
+ * ```java
+ * EntrantAdapter adapter = new EntrantAdapter(true, false); // Show join time, hide status
+ * recyclerView.setAdapter(adapter);
+ * adapter.setProfiles(profileList);
+ * adapter.setJoinTimestamps(timestampMap); // Optional
+ * ```
+ *
+ * Related User Stories: US 02.02.01, US 02.06.01-04
  */
 public class EntrantAdapter extends RecyclerView.Adapter<EntrantAdapter.EntrantViewHolder> {
 
     private static final String TAG = "EntrantAdapter";
+
     private List<Profile> profiles;
     private Map<String, Long> joinTimestamps; // Optional: userId -> timestamp
     private OnEntrantClickListener listener;
@@ -35,6 +59,12 @@ public class EntrantAdapter extends RecyclerView.Adapter<EntrantAdapter.EntrantV
     private boolean showJoinTime;
     private boolean showStatus;
 
+    /**
+     * Constructor
+     *
+     * @param showJoinTime Whether to display join timestamps (for waiting list)
+     * @param showStatus Whether to display status indicators (for selected entrants)
+     */
     public EntrantAdapter(boolean showJoinTime, boolean showStatus) {
         this.profiles = new ArrayList<>();
         this.showJoinTime = showJoinTime;
@@ -42,12 +72,22 @@ public class EntrantAdapter extends RecyclerView.Adapter<EntrantAdapter.EntrantV
         this.dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
     }
 
+    /**
+     * Set the list of profiles to display
+     *
+     * @param profiles List of Profile objects to display
+     */
     public void setProfiles(List<Profile> profiles) {
         this.profiles = profiles != null ? profiles : new ArrayList<>();
         Log.d(TAG, "setProfiles called with " + this.profiles.size() + " profiles");
         notifyDataSetChanged();
     }
 
+    /**
+     * Set join timestamps for entrants (optional, used with waiting list)
+     *
+     * @param timestamps Map of userId to timestamp (milliseconds)
+     */
     public void setJoinTimestamps(Map<String, Long> timestamps) {
         this.joinTimestamps = timestamps;
         notifyDataSetChanged();
