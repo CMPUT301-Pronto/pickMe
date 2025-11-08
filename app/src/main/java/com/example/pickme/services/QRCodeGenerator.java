@@ -124,6 +124,63 @@ public class QRCodeGenerator {
     }
 
     /**
+     * Load existing QR code for an event
+     * If QR code file exists, load it; otherwise generate a new one
+     *
+     * @param eventId Event ID
+     * @param context Android context
+     * @param listener Callback with bitmap and file path
+     */
+    public void loadOrGenerateQRCode(@NonNull String eventId,
+                                     @NonNull Context context,
+                                     @NonNull OnQRGeneratedListener listener) {
+        Log.d(TAG, "Loading QR code for event: " + eventId);
+
+        // Check if QR code file exists
+        File qrCodesDir = new File(context.getFilesDir(), "qr_codes");
+        String filename = "qr_event_" + eventId + ".png";
+        File qrFile = new File(qrCodesDir, filename);
+
+        if (qrFile.exists()) {
+            Log.d(TAG, "QR code file exists, loading from: " + qrFile.getAbsolutePath());
+            try {
+                // Load bitmap from file
+                Bitmap qrBitmap = android.graphics.BitmapFactory.decodeFile(qrFile.getAbsolutePath());
+
+                if (qrBitmap != null) {
+                    Log.d(TAG, "QR code bitmap loaded successfully");
+
+                    // Get QR code ID from Firestore
+                    db.collection(COLLECTION_QR_CODES)
+                            .whereEqualTo("eventId", eventId)
+                            .limit(1)
+                            .get()
+                            .addOnSuccessListener(querySnapshot -> {
+                                String qrCodeId = null;
+                                if (!querySnapshot.isEmpty()) {
+                                    qrCodeId = querySnapshot.getDocuments().get(0).getId();
+                                }
+                                listener.onQRGenerated(qrBitmap, qrFile.getAbsolutePath(), qrCodeId);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.w(TAG, "Failed to get QR code ID from Firestore", e);
+                                listener.onQRGenerated(qrBitmap, qrFile.getAbsolutePath(), null);
+                            });
+                } else {
+                    Log.w(TAG, "Failed to decode QR code bitmap, regenerating");
+                    generateQRCode(eventId, context, listener);
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Error loading QR code bitmap", e);
+                generateQRCode(eventId, context, listener);
+            }
+        } else {
+            Log.d(TAG, "QR code file doesn't exist, generating new one");
+            generateQRCode(eventId, context, listener);
+        }
+    }
+
+    /**
      * Generate QR code bitmap using ZXing
      *
      * @param content Content to encode
