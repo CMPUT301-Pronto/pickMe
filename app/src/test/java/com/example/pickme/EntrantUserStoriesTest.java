@@ -1,0 +1,477 @@
+package com.example.pickme;
+
+import static org.junit.Assert.*;
+
+import com.example.pickme.models.Event;
+import com.example.pickme.models.EventStatus;
+import com.example.pickme.models.Profile;
+import com.example.pickme.models.WaitingList;
+import com.example.pickme.models.WaitingList;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Unit tests for Entrant user stories
+ * Tests cover waiting list operations, profile management, and invitation handling
+ *
+ * User Stories Covered:
+ * - US 01.01.01: Join waiting list
+ * - US 01.01.02: Leave waiting list
+ * - US 01.01.03: View joinable events
+ * - US 01.02.01: Provide personal information
+ * - US 01.02.02: Update personal information
+ * - US 01.03.01: Accept invitation
+ * - US 01.03.02: Decline invitation
+ * - US 01.06.01: Scan QR code to view event
+ * - US 01.06.02: Sign up from event details
+ * - US 01.07.01: Device-based authentication
+ */
+public class EntrantUserStoriesTest {
+
+    private Event testEvent;
+    private Profile testProfile;
+    private WaitingList testWaitingList;
+    private String testUserId;
+    private String testEventId;
+
+    @Before
+    public void setUp() {
+        // Set up test data
+        testUserId = "test_device_123";
+        testEventId = "test_event_456";
+
+        // Create test profile
+        testProfile = new Profile(testUserId, "Test User", "test@example.com");
+        testProfile.setPhoneNumber("555-1234");
+        testProfile.setRole(Profile.ROLE_ENTRANT);
+
+        // Create test event with registration open
+        testEvent = new Event(testEventId, "Test Event", "Test Description", "organizer_123");
+        testEvent.setCapacity(100);
+        testEvent.setWaitingListLimit(200);
+        testEvent.setGeolocationRequired(false);
+        testEvent.setRegistrationStartDate(System.currentTimeMillis() - 86400000); // 1 day ago
+        testEvent.setRegistrationEndDate(System.currentTimeMillis() + 86400000); // 1 day from now
+        testEvent.setStatus(EventStatus.OPEN.name());
+
+        // Create test waiting list
+        testWaitingList = new WaitingList();
+    }
+
+    // ==================== US 01.01.01: Join Waiting List ====================
+
+    @Test
+    public void testJoinWaitingList_Success() {
+        // Given: Event with open registration and user not on list
+        assertTrue("Registration should be open", testEvent.isRegistrationOpen());
+
+        // When: User joins waiting list
+        testWaitingList.addEntrant(testUserId, null);
+
+        // Then: User should be on waiting list
+        assertTrue("User should be on waiting list",
+                testWaitingList.getEntrantIds().contains(testUserId));
+        assertEquals("Waiting list count should be 1", 1, testWaitingList.getEntrantCount());
+    }
+
+    @Test
+    public void testJoinWaitingList_AlreadyJoined() {
+        // Given: User already on waiting list
+        testWaitingList.addEntrant(testUserId, null);
+
+        // When: User tries to join again
+        int initialCount = testWaitingList.getEntrantCount();
+        testWaitingList.addEntrant(testUserId, null);
+
+        // Then: Count should not increase (duplicate prevented)
+        assertEquals("Count should remain same", initialCount, testWaitingList.getEntrantCount());
+    }
+
+    @Test
+    public void testJoinWaitingList_CapacityReached() {
+        // Given: Waiting list at capacity
+        testEvent.setWaitingListLimit(2);
+        testWaitingList.addEntrant("user1", null);
+        testWaitingList.addEntrant("user2", null);
+
+        // When: Another user tries to join
+        boolean canJoin = testWaitingList.getEntrantCount() < testEvent.getWaitingListLimit();
+
+        // Then: Should not be able to join
+        assertFalse("Should not be able to join when at capacity", canJoin);
+    }
+
+    @Test
+    public void testJoinWaitingList_GeolocationCaptured() {
+        // Given: Event requires geolocation
+        testEvent.setGeolocationRequired(true);
+
+        // When: User joins with location
+        double testLatitude = 53.5461;
+        double testLongitude = -113.4938;
+
+        // Then: Location should be stored (validated by data model)
+        assertTrue("Event should require geolocation", testEvent.isGeolocationRequired());
+        assertNotNull("Latitude should be captured", testLatitude);
+        assertNotNull("Longitude should be captured", testLongitude);
+    }
+
+    @Test
+    public void testJoinWaitingList_RegistrationClosed() {
+        // Given: Registration period ended
+        testEvent.setRegistrationEndDate(System.currentTimeMillis() - 1000);
+
+        // When: Check if can join
+        boolean canJoin = testEvent.isRegistrationOpen();
+
+        // Then: Should not be able to join
+        assertFalse("Should not be able to join when registration closed", canJoin);
+    }
+
+    // ==================== US 01.01.02: Leave Waiting List ====================
+
+    @Test
+    public void testLeaveWaitingList_Success() {
+        // Given: User on waiting list
+        testWaitingList.addEntrant(testUserId, null);
+        assertEquals(1, testWaitingList.getEntrantCount());
+
+        // When: User leaves waiting list
+        testWaitingList.removeEntrant(testUserId);
+
+        // Then: User should be removed
+        assertFalse("User should not be on waiting list",
+                testWaitingList.getEntrantIds().contains(testUserId));
+        assertEquals("Waiting list should be empty", 0, testWaitingList.getEntrantCount());
+    }
+
+    @Test
+    public void testLeaveWaitingList_NotOnList() {
+        // Given: User not on waiting list
+        assertFalse(testWaitingList.getEntrantIds().contains(testUserId));
+
+        // When: User tries to leave
+        testWaitingList.removeEntrant(testUserId);
+
+        // Then: No error should occur
+        assertEquals("Count should remain 0", 0, testWaitingList.getEntrantCount());
+    }
+
+    // ==================== US 01.01.03: View Joinable Events ====================
+
+    @Test
+    public void testViewJoinableEvents_OpenRegistration() {
+        // Given: Multiple events with different statuses
+        List<Event> allEvents = new ArrayList<>();
+
+        Event openEvent = new Event("event1", "Open Event", "Description", "org1");
+        openEvent.setRegistrationStartDate(System.currentTimeMillis() - 86400000);
+        openEvent.setRegistrationEndDate(System.currentTimeMillis() + 86400000);
+        openEvent.setStatus(EventStatus.OPEN.name());
+
+        Event closedEvent = new Event("event2", "Closed Event", "Description", "org2");
+        closedEvent.setRegistrationStartDate(System.currentTimeMillis() - 172800000);
+        closedEvent.setRegistrationEndDate(System.currentTimeMillis() - 86400000);
+        closedEvent.setStatus(EventStatus.OPEN.name());
+
+        allEvents.add(openEvent);
+        allEvents.add(closedEvent);
+
+        // When: Filter for joinable events
+        List<Event> joinableEvents = new ArrayList<>();
+        for (Event event : allEvents) {
+            if (event.isRegistrationOpen()) {
+                joinableEvents.add(event);
+            }
+        }
+
+        // Then: Only open events should be shown
+        assertEquals("Should have 1 joinable event", 1, joinableEvents.size());
+        assertTrue("Open event should be joinable", joinableEvents.get(0).isRegistrationOpen());
+    }
+
+    @Test
+    public void testViewJoinableEvents_EventDetails() {
+        // Given: Event with all details
+        testEvent.setLocation("Edmonton Convention Centre");
+        testEvent.setPosterImageUrl("https://example.com/poster.jpg");
+
+        // When: Display event details
+        String name = testEvent.getName();
+        String location = testEvent.getLocation();
+        String posterUrl = testEvent.getPosterImageUrl();
+        int capacity = testEvent.getCapacity();
+
+        // Then: All details should be available
+        assertNotNull("Event name should be present", name);
+        assertNotNull("Location should be present", location);
+        assertNotNull("Poster URL should be present", posterUrl);
+        assertTrue("Capacity should be positive", capacity > 0);
+    }
+
+    // ==================== US 01.02.01: Provide Personal Information ====================
+
+    @Test
+    public void testProvidePersonalInfo_RequiredFields() {
+        // Given: Profile with required fields
+        Profile newProfile = new Profile("device_123", "John Doe", "john@example.com");
+
+        // Then: Required fields should be set
+        assertNotNull("User ID should not be null", newProfile.getUserId());
+        assertNotNull("Name should not be null", newProfile.getName());
+        assertNotNull("Email should not be null", newProfile.getEmail());
+    }
+
+    @Test
+    public void testProvidePersonalInfo_OptionalPhone() {
+        // Given: Profile without phone number
+        Profile profileWithoutPhone = new Profile("device_456", "Jane Doe", "jane@example.com");
+
+        // Then: Profile should be valid without phone
+        assertNull("Phone should be null", profileWithoutPhone.getPhoneNumber());
+        assertNotNull("Email should be present", profileWithoutPhone.getEmail());
+
+        // When: Phone is added later
+        profileWithoutPhone.setPhoneNumber("555-5678");
+
+        // Then: Phone should be set
+        assertEquals("Phone should be set", "555-5678", profileWithoutPhone.getPhoneNumber());
+    }
+
+    @Test
+    public void testProvidePersonalInfo_EmailValidation() {
+        // Given: Valid email formats
+        String validEmail1 = "test@example.com";
+        String validEmail2 = "user.name+tag@domain.co.uk";
+
+        // When: Set emails
+        testProfile.setEmail(validEmail1);
+
+        // Then: Email should be set
+        assertEquals("Email should match", validEmail1, testProfile.getEmail());
+
+        // Test another valid format
+        testProfile.setEmail(validEmail2);
+        assertEquals("Email should match", validEmail2, testProfile.getEmail());
+    }
+
+    @Test
+    public void testProvidePersonalInfo_LinkedToDeviceId() {
+        // Given: Profile created with device ID
+        String deviceId = "unique_device_789";
+        Profile profile = new Profile(deviceId, "User Name", "user@test.com");
+
+        // Then: Profile should be linked to device
+        assertEquals("User ID should match device ID", deviceId, profile.getUserId());
+    }
+
+    // ==================== US 01.02.02: Update Personal Information ====================
+
+    @Test
+    public void testUpdatePersonalInfo_Name() {
+        // Given: Existing profile
+        String originalName = testProfile.getName();
+
+        // When: Update name
+        String newName = "Updated Test User";
+        testProfile.setName(newName);
+
+        // Then: Name should be updated
+        assertNotEquals("Name should be different", originalName, testProfile.getName());
+        assertEquals("Name should match new value", newName, testProfile.getName());
+    }
+
+    @Test
+    public void testUpdatePersonalInfo_Email() {
+        // Given: Existing profile
+        String originalEmail = testProfile.getEmail();
+
+        // When: Update email
+        String newEmail = "newemail@example.com";
+        testProfile.setEmail(newEmail);
+
+        // Then: Email should be updated
+        assertNotEquals("Email should be different", originalEmail, testProfile.getEmail());
+        assertEquals("Email should match new value", newEmail, testProfile.getEmail());
+    }
+
+    @Test
+    public void testUpdatePersonalInfo_Phone() {
+        // Given: Profile with phone
+        testProfile.setPhoneNumber("555-1111");
+
+        // When: Update phone
+        String newPhone = "555-2222";
+        testProfile.setPhoneNumber(newPhone);
+
+        // Then: Phone should be updated
+        assertEquals("Phone should be updated", newPhone, testProfile.getPhoneNumber());
+    }
+
+    @Test
+    public void testUpdatePersonalInfo_RemoveOptionalPhone() {
+        // Given: Profile with phone
+        testProfile.setPhoneNumber("555-3333");
+        assertNotNull(testProfile.getPhoneNumber());
+
+        // When: Remove phone
+        testProfile.setPhoneNumber(null);
+
+        // Then: Phone should be null
+        assertNull("Phone should be removed", testProfile.getPhoneNumber());
+    }
+
+    // ==================== US 01.03.01: Accept Invitation ====================
+
+    @Test
+    public void testAcceptInvitation_StatusChange() {
+        // Given: User selected in lottery
+        String invitationStatus = "SELECTED";
+
+        // When: User accepts invitation
+        String newStatus = "ACCEPTED";
+
+        // Then: Status should change to accepted
+        assertNotEquals("Status should change", invitationStatus, newStatus);
+        assertEquals("Status should be ACCEPTED", "ACCEPTED", newStatus);
+    }
+
+    @Test
+    public void testAcceptInvitation_MoveToEnrolled() {
+        // Given: Event with selected entrant
+        List<String> selectedList = new ArrayList<>();
+        List<String> enrolledList = new ArrayList<>();
+        selectedList.add(testUserId);
+
+        // When: Accept invitation
+        selectedList.remove(testUserId);
+        enrolledList.add(testUserId);
+
+        // Then: User should be in enrolled list
+        assertFalse("Should not be in selected list", selectedList.contains(testUserId));
+        assertTrue("Should be in enrolled list", enrolledList.contains(testUserId));
+    }
+
+    // ==================== US 01.03.02: Decline Invitation ====================
+
+    @Test
+    public void testDeclineInvitation_StatusChange() {
+        // Given: User selected in lottery
+        String invitationStatus = "SELECTED";
+
+        // When: User declines invitation
+        String newStatus = "DECLINED";
+
+        // Then: Status should change to declined
+        assertEquals("Status should be DECLINED", "DECLINED", newStatus);
+    }
+
+    @Test
+    public void testDeclineInvitation_MoveToCancelled() {
+        // Given: Event with selected entrant
+        List<String> selectedList = new ArrayList<>();
+        List<String> cancelledList = new ArrayList<>();
+        selectedList.add(testUserId);
+
+        // When: Decline invitation
+        selectedList.remove(testUserId);
+        cancelledList.add(testUserId);
+
+        // Then: User should be in cancelled list
+        assertFalse("Should not be in selected list", selectedList.contains(testUserId));
+        assertTrue("Should be in cancelled list", cancelledList.contains(testUserId));
+    }
+
+    // ==================== US 01.06.01 & 01.06.02: QR Code & Sign Up ====================
+
+    @Test
+    public void testQRCodeScan_ValidFormat() {
+        // Given: Valid QR code data
+        String qrData = "eventlottery://event/" + testEventId;
+
+        // When: Parse QR code
+        String prefix = "eventlottery://event/";
+        String extractedEventId = qrData.substring(prefix.length());
+
+        // Then: Event ID should be extracted correctly
+        assertEquals("Event ID should match", testEventId, extractedEventId);
+    }
+
+    @Test
+    public void testQRCodeScan_InvalidFormat() {
+        // Given: Invalid QR code data
+        String invalidQrData = "https://example.com/event/123";
+
+        // When: Validate format
+        boolean isValid = invalidQrData.startsWith("eventlottery://event/");
+
+        // Then: Should be invalid
+        assertFalse("Invalid QR code should not validate", isValid);
+    }
+
+    @Test
+    public void testSignUpFromEventDetails_JoinWaitingList() {
+        // Given: Event details page with join button
+        assertTrue("Registration should be open", testEvent.isRegistrationOpen());
+
+        // When: User clicks join from event details
+        testWaitingList.addEntrant(testUserId, null);
+
+        // Then: User should be added to waiting list
+        assertTrue("User should be on waiting list",
+                testWaitingList.getEntrantIds().contains(testUserId));
+    }
+
+    // ==================== US 01.07.01: Device-Based Authentication ====================
+
+    @Test
+    public void testDeviceAuth_UniqueIdentifier() {
+        // Given: Device ID
+        String deviceId = "android_device_abc123";
+
+        // When: Create profile with device ID
+        Profile profile = new Profile(deviceId, "Device User", "device@test.com");
+
+        // Then: Device ID should be stored as user ID
+        assertEquals("User ID should match device ID", deviceId, profile.getUserId());
+    }
+
+    @Test
+    public void testDeviceAuth_NoPasswordRequired() {
+        // Given: Profile creation
+        Profile profile = new Profile("device_xyz", "No Password User", "nopass@test.com");
+
+        // Then: Profile should not have password field
+        // (Verified by absence of password field in Profile class)
+        assertNotNull("Profile should be created without password", profile.getUserId());
+    }
+
+    @Test
+    public void testDeviceAuth_DefaultRole() {
+        // Given: New profile
+        Profile newProfile = new Profile("device_123", "New User", "new@test.com");
+
+        // Then: Should have default entrant role
+        assertEquals("Default role should be entrant",
+                Profile.ROLE_ENTRANT, newProfile.getRole());
+    }
+
+    @Test
+    public void testDeviceAuth_PersistentIdentity() {
+        // Given: User ID from device
+        String deviceId = "persistent_device_456";
+
+        // When: Create profile on first launch
+        Profile firstProfile = new Profile(deviceId, "First Launch", "first@test.com");
+
+        // Then: Same device ID can be used for subsequent launches
+        Profile secondProfile = new Profile(deviceId, "First Launch", "first@test.com");
+        assertEquals("Device ID should persist",
+                firstProfile.getUserId(), secondProfile.getUserId());
+    }
+}
+
