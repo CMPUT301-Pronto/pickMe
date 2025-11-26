@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -312,6 +313,36 @@ public class ManageEventActivity extends AppCompatActivity {
                                 getString(R.string.lottery_success, result.winners.size()),
                                 Toast.LENGTH_LONG).show();
                         refreshFragments();
+
+                        notificationService.sendLotteryWinNotification(
+                                result.winners,
+                                currentEvent,
+                                new NotificationService.OnNotificationSentListener() {
+                                    @Override
+                                    public void onNotificationSent(int sentCount) {
+                                        Log.d(TAG, "Winner notifications sent: " + sentCount);
+                                    }
+
+                                    @Override
+                                    public void onError(Exception e) {
+                                        Log.e(TAG, "Winner notification error", e);
+                                    }
+                                });
+
+                        notificationService.sendLotteryLossNotification(
+                                result.losers,
+                                currentEvent,
+                                new NotificationService.OnNotificationSentListener() {
+                                    @Override
+                                    public void onNotificationSent(int sentCount) {
+                                        Log.d(TAG, "Loser notifications sent: " + sentCount);
+                                    }
+
+                                    @Override
+                                    public void onError(Exception e) {
+                                        Log.e(TAG, "Loser notification error", e);
+                                    }
+                                });
                     }
 
                     @Override
