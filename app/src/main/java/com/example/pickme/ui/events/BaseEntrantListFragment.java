@@ -38,12 +38,17 @@ import java.util.concurrent.atomic.AtomicInteger;
  * - Configurable adapter display options
  * - Common loading, error, and empty state handling
  * - Memory leak prevention through lifecycle checks
+ * - Support for entrant actions (cancel, etc.) via adapter action listener
  *
  * Subclasses must implement:
  * - getSubcollectionName(): Firestore subcollection to query
  * - showJoinTime(): Whether adapter should show join timestamps
  * - showStatus(): Whether adapter should show entrant status
  * - getLogTag(): Tag for logging
+ *
+ * Subclasses may override:
+ * - showCancelOption(): Whether to show cancel option in menu (default: false)
+ * - getActionListener(): Listener for entrant actions (default: null)
  *
  * Related User Stories: US 02.02.01, US 02.06.01, US 02.06.02, US 02.06.04
  */
@@ -87,6 +92,24 @@ public abstract class BaseEntrantListFragment extends Fragment {
      * @return Tag for Log statements
      */
     protected abstract String getLogTag();
+
+    /**
+     * Configure whether adapter should show cancel option in menu
+     * Override in subclasses that need cancel functionality (e.g., SelectedEntrantsFragment)
+     * @return true to show cancel option, false to hide (default)
+     */
+    protected boolean showCancelOption() {
+        return false;
+    }
+
+    /**
+     * Get the action listener for entrant menu actions
+     * Override in subclasses that handle actions (e.g., SelectedEntrantsFragment)
+     * @return Action listener or null (default)
+     */
+    protected EntrantAdapter.OnEntrantActionListener getActionListener() {
+        return null;
+    }
 
     /**
      * Create new instance with event ID
@@ -137,9 +160,18 @@ public abstract class BaseEntrantListFragment extends Fragment {
 
     /**
      * Setup RecyclerView and adapter
+     * Now includes cancel option and action listener configuration
      */
     private void setupAdapter() {
-        adapter = new EntrantAdapter(showJoinTime(), showStatus());
+        // Create adapter with all configuration options
+        adapter = new EntrantAdapter(showJoinTime(), showStatus(), showCancelOption());
+
+        // Set action listener if provided by subclass
+        EntrantAdapter.OnEntrantActionListener actionListener = getActionListener();
+        if (actionListener != null) {
+            adapter.setOnEntrantActionListener(actionListener);
+        }
+
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
     }
@@ -148,7 +180,7 @@ public abstract class BaseEntrantListFragment extends Fragment {
      * Load entrant list from Firestore
      * Handles special case for waiting list which has timestamps
      */
-    private void loadEntrantList() {
+    protected void loadEntrantList() {
         showLoading(true);
         Log.d(getLogTag(), "Loading entrant list for event: " + eventId);
 
@@ -318,8 +350,9 @@ public abstract class BaseEntrantListFragment extends Fragment {
 
     /**
      * Show loading state
+     * Made protected so subclasses can call it
      */
-    private void showLoading(boolean show) {
+    protected void showLoading(boolean show) {
         if (!isAdded()) return;
 
         progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
@@ -330,7 +363,7 @@ public abstract class BaseEntrantListFragment extends Fragment {
     /**
      * Show empty state
      */
-    private void showEmptyState() {
+    protected void showEmptyState() {
         if (!isAdded()) return;
 
         progressBar.setVisibility(View.GONE);
@@ -341,7 +374,7 @@ public abstract class BaseEntrantListFragment extends Fragment {
     /**
      * Show content state
      */
-    private void showContent() {
+    protected void showContent() {
         if (!isAdded()) return;
 
         progressBar.setVisibility(View.GONE);
@@ -352,7 +385,7 @@ public abstract class BaseEntrantListFragment extends Fragment {
     /**
      * Show error message
      */
-    private void showError(String message) {
+    protected void showError(String message) {
         if (!isAdded()) return;
 
         showLoading(false);
@@ -369,6 +402,14 @@ public abstract class BaseEntrantListFragment extends Fragment {
         }
     }
 
+    /**
+     * Get the current event ID
+     * @return Event ID or null if not set
+     */
+    protected String getEventId() {
+        return eventId;
+    }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
@@ -377,4 +418,3 @@ public abstract class BaseEntrantListFragment extends Fragment {
         loadedProfiles.clear();
     }
 }
-

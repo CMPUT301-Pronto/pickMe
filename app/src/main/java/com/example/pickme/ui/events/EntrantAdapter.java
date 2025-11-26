@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -32,18 +33,21 @@ import java.util.Map;
  * - Optional join timestamp display (for waiting list)
  * - Optional status indicators (for selected entrants)
  * - Click handling for entrant selection
+ * - Long-press menu for entrant actions (cancel, etc.)
+ * - Optional overflow menu button support
  * - Glide image loading with error handling
  *
  * Configuration Options:
  * - showJoinTime: Display when entrant joined waiting list
  * - showStatus: Display entrant response status (pending/accepted/declined)
+ * - showCancelOption: Display cancel option in overflow menu (for selected entrants)
  *
  * Usage:
  * ```java
- * EntrantAdapter adapter = new EntrantAdapter(true, false); // Show join time, hide status
+ * EntrantAdapter adapter = new EntrantAdapter(true, false, false);
  * recyclerView.setAdapter(adapter);
  * adapter.setProfiles(profileList);
- * adapter.setJoinTimestamps(timestampMap); // Optional
+ * adapter.setOnEntrantActionListener(actionListener); // For cancel actions
  * ```
  *
  * Related User Stories: US 02.02.01, US 02.06.01-04
@@ -54,22 +58,45 @@ public class EntrantAdapter extends RecyclerView.Adapter<EntrantAdapter.EntrantV
 
     private List<Profile> profiles;
     private Map<String, Long> joinTimestamps; // Optional: userId -> timestamp
-    private OnEntrantClickListener listener;
+    private OnEntrantClickListener clickListener;
+    private OnEntrantActionListener actionListener;
     private SimpleDateFormat dateFormat;
     private boolean showJoinTime;
     private boolean showStatus;
+    private boolean showCancelOption;
 
     /**
-     * Constructor
+     * Constructor with default cancel option disabled
      *
      * @param showJoinTime Whether to display join timestamps (for waiting list)
      * @param showStatus Whether to display status indicators (for selected entrants)
      */
     public EntrantAdapter(boolean showJoinTime, boolean showStatus) {
+        this(showJoinTime, showStatus, false);
+    }
+
+    /**
+     * Constructor with all options
+     *
+     * @param showJoinTime Whether to display join timestamps (for waiting list)
+     * @param showStatus Whether to display status indicators (for selected entrants)
+     * @param showCancelOption Whether to show cancel option in overflow menu
+     */
+    public EntrantAdapter(boolean showJoinTime, boolean showStatus, boolean showCancelOption) {
         this.profiles = new ArrayList<>();
         this.showJoinTime = showJoinTime;
         this.showStatus = showStatus;
+        this.showCancelOption = showCancelOption;
         this.dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+    }
+
+    /**
+     * Enable or disable the cancel option
+     * @param showCancelOption true to show cancel option in menu
+     */
+    public void setShowCancelOption(boolean showCancelOption) {
+        this.showCancelOption = showCancelOption;
+        notifyDataSetChanged();
     }
 
     /**
@@ -94,7 +121,15 @@ public class EntrantAdapter extends RecyclerView.Adapter<EntrantAdapter.EntrantV
     }
 
     public void setOnEntrantClickListener(OnEntrantClickListener listener) {
-        this.listener = listener;
+        this.clickListener = listener;
+    }
+
+    /**
+     * Set listener for entrant actions (cancel, etc.)
+     * @param listener Action listener
+     */
+    public void setOnEntrantActionListener(OnEntrantActionListener listener) {
+        this.actionListener = listener;
     }
 
     @NonNull
@@ -133,12 +168,61 @@ public class EntrantAdapter extends RecyclerView.Adapter<EntrantAdapter.EntrantV
             tvStatus = itemView.findViewById(R.id.tvStatus);
             tvJoinTime = itemView.findViewById(R.id.tvJoinTime);
 
+            // Click listener for viewing details
             itemView.setOnClickListener(v -> {
                 int position = getAdapterPosition();
-                if (position != RecyclerView.NO_POSITION && listener != null) {
-                    listener.onEntrantClick(profiles.get(position));
+                if (position != RecyclerView.NO_POSITION && clickListener != null) {
+                    clickListener.onEntrantClick(profiles.get(position));
                 }
             });
+
+            // Long press listener for showing context menu
+            itemView.setOnLongClickListener(v -> {
+                if (showCancelOption && actionListener != null) {
+                    int position = getAdapterPosition();
+                    if (position != RecyclerView.NO_POSITION) {
+                        showPopupMenu(v, profiles.get(position));
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+
+        /**
+         * Show popup menu with entrant actions
+         */
+        private void showPopupMenu(View anchor, Profile profile) {
+            PopupMenu popup = new PopupMenu(anchor.getContext(), anchor);
+
+            // Try to inflate the menu resource
+            try {
+                popup.getMenuInflater().inflate(R.menu.menu_entrant_actions, popup.getMenu());
+
+                // Show/hide cancel option based on configuration
+                if (popup.getMenu().findItem(R.id.action_cancel_entrant) != null) {
+                    popup.getMenu().findItem(R.id.action_cancel_entrant).setVisible(showCancelOption);
+                }
+            } catch (Exception e) {
+                // Menu resource not found - create menu programmatically
+                Log.w(TAG, "Menu resource not found, creating programmatically", e);
+                if (showCancelOption) {
+                    popup.getMenu().add(0, 1, 0, "Cancel Entrant");
+                }
+            }
+
+            popup.setOnMenuItemClickListener(item -> {
+                // Handle both resource-based and programmatic menu items
+                if (item.getItemId() == R.id.action_cancel_entrant || item.getItemId() == 1) {
+                    if (actionListener != null) {
+                        actionListener.onCancelEntrant(profile);
+                    }
+                    return true;
+                }
+                return false;
+            });
+
+            popup.show();
         }
 
         public void bind(Profile profile) {
@@ -186,8 +270,21 @@ public class EntrantAdapter extends RecyclerView.Adapter<EntrantAdapter.EntrantV
         }
     }
 
+    /**
+     * Interface for entrant click events
+     */
     public interface OnEntrantClickListener {
         void onEntrantClick(Profile profile);
     }
-}
 
+    /**
+     * Interface for entrant action events (cancel, etc.)
+     */
+    public interface OnEntrantActionListener {
+        /**
+         * Called when organizer requests to cancel an entrant
+         * @param profile The profile of the entrant to cancel
+         */
+        void onCancelEntrant(Profile profile);
+    }
+}

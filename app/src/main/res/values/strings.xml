@@ -327,4 +327,5 @@
     <string name="title_admin">Admin</string>
     <string name="role_changed_title">Role Changed</string>
     <string name="role_changed_message">Your role has been updated to %1$s. The navigation menu has been updated to reflect your new permissions.</string>
+    <string name="action_cancel_entrant">Cancel Entrant</string>
 </resources>
