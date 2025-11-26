@@ -1,56 +1,53 @@
 package com.example.pickme.ui.events;
 
-import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-import com.example.pickme.R;
+import com.example.pickme.utils.Constants;
 
 /**
  * ConfirmedEntrantsFragment - Display confirmed entrants (inEventList)
+ *
+ * Shows entrants who have accepted their invitation and are confirmed
+ * to attend the event. These are the final participants.
+ *
+ * Does not show join time or status as these entrants have completed
+ * the registration process.
+ *
+ * This fragment extends BaseEntrantListFragment for lifecycle-aware data loading.
+ *
  * Related User Stories: US 02.06.02, US 02.06.04
  */
-public class ConfirmedEntrantsFragment extends Fragment {
-    private static final String ARG_EVENT_ID = "event_id";
-    private String eventId;
-    private RecyclerView recyclerView;
+public class ConfirmedEntrantsFragment extends BaseEntrantListFragment {
 
+    private static final String TAG = "ConfirmedFragment";
+
+    /**
+     * Factory method to create new instance
+     *
+     * @param eventId Event ID to display confirmed entrants for
+     * @return ConfirmedEntrantsFragment instance
+     */
     public static ConfirmedEntrantsFragment newInstance(String eventId) {
         ConfirmedEntrantsFragment fragment = new ConfirmedEntrantsFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_EVENT_ID, eventId);
-        fragment.setArguments(args);
-        return fragment;
+        return (ConfirmedEntrantsFragment) BaseEntrantListFragment.newInstance(eventId, fragment);
     }
 
     @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            eventId = getArguments().getString(ARG_EVENT_ID);
-        }
-    }
-
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_entrant_list, container, false);
+    protected String getSubcollectionName() {
+        return Constants.SUBCOLLECTION_IN_EVENT;
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        recyclerView = view.findViewById(R.id.recyclerViewEntrants);
-        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-        view.findViewById(R.id.emptyStateLayout).setVisibility(View.VISIBLE);
+    protected boolean showJoinTime() {
+        return false; // Don't show join time for confirmed list
     }
 
-    public void refresh() {}
+    @Override
+    protected boolean showStatus() {
+        return false; // Don't show status - all are confirmed
+    }
+
+    @Override
+    protected String getLogTag() {
+        return TAG;
+    }
 }
 

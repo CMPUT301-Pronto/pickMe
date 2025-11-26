@@ -21,6 +21,7 @@
             app:layout_scrollFlags="scroll|exitUntilCollapsed"
             app:contentScrim="@color/primary_pink"
             app:expandedTitleMarginStart="16dp"
+            app:titleEnabled="true"
             app:expandedTitleMarginBottom="16dp">
 
             <!-- Event Poster Image -->

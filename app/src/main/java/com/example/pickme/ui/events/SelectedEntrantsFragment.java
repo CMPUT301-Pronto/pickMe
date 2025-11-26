@@ -1,69 +1,55 @@
 package com.example.pickme.ui.events;
 
-import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ProgressBar;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-import com.example.pickme.R;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.example.pickme.utils.Constants;
 
 /**
  * SelectedEntrantsFragment - Display selected entrants (responsePendingList)
+ *
+ * Shows entrants who have been selected in the lottery draw and are awaiting
+ * response (pending acceptance/decline of invitation).
+ *
+ * Displays status indicators to show whether entrants have:
+ * - Not yet responded
+ * - Accepted invitation
+ * - Declined invitation
+ *
+ * This fragment extends BaseEntrantListFragment for lifecycle-aware data loading.
+ *
  * Related User Stories: US 02.06.01
  */
-public class SelectedEntrantsFragment extends Fragment {
-    private static final String ARG_EVENT_ID = "event_id";
-    private String eventId;
-    private RecyclerView recyclerView;
-    private ProgressBar progressBar;
-    private View emptyStateLayout;
+public class SelectedEntrantsFragment extends BaseEntrantListFragment {
 
+    private static final String TAG = "SelectedFragment";
+
+    /**
+     * Factory method to create new instance
+     *
+     * @param eventId Event ID to display selected entrants for
+     * @return SelectedEntrantsFragment instance
+     */
     public static SelectedEntrantsFragment newInstance(String eventId) {
         SelectedEntrantsFragment fragment = new SelectedEntrantsFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_EVENT_ID, eventId);
-        fragment.setArguments(args);
-        return fragment;
+        return (SelectedEntrantsFragment) BaseEntrantListFragment.newInstance(eventId, fragment);
     }
 
     @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            eventId = getArguments().getString(ARG_EVENT_ID);
-        }
-    }
-
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_entrant_list, container, false);
+    protected String getSubcollectionName() {
+        return Constants.SUBCOLLECTION_RESPONSE_PENDING;
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        recyclerView = view.findViewById(R.id.recyclerViewEntrants);
-        progressBar = view.findViewById(R.id.progressBar);
-        emptyStateLayout = view.findViewById(R.id.emptyStateLayout);
-        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-        loadSelectedList();
+    protected boolean showJoinTime() {
+        return false; // Don't show join time for selected list
     }
 
-    private void loadSelectedList() {
-        // Implementation similar to WaitingListFragment
-        emptyStateLayout.setVisibility(View.VISIBLE);
+    @Override
+    protected boolean showStatus() {
+        return true; // Show response status (pending/accepted/declined)
     }
 
-    public void refresh() {
-        if (isAdded()) loadSelectedList();
+    @Override
+    protected String getLogTag() {
+        return TAG;
     }
 }
 

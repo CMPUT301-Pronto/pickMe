@@ -22,18 +22,41 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * LotteryService - HIGH-RISK component implementing lottery draw algorithm
+ * JAVADOCS LLM GENERATED
  *
- * Implements random selection with Firestore transactions to prevent race conditions.
- * Manages the complete lottery lifecycle:
- * - Initial lottery draw
- * - Replacement draws
- * - Acceptance/decline handling
- * - Profile history updates
+ * # LotteryService
+ * Centralized domain service that implements the lottery lifecycle for events.
  *
- * CRITICAL: Uses SecureRandom for fairness and Firestore transactions for atomicity
+ * <p><b>Responsibilities</b></p>
+ * <ul>
+ *   <li>Initial draw: randomly select winners from the waiting list (US 02.05.02).</li>
+ *   <li>Replacement draw: select new winners when invitations are declined/expired (US 02.05.03).</li>
+ *   <li>Acceptance/Decline handling: move entrants across event subcollections
+ *       <code>waitingList → responsePendingList → inEventList</code>, or to <code>cancelledList</code>.</li>
+ *   <li>Profile history updates per outcome (selected / not_selected / enrolled / CANCELLED).</li>
+ * </ul>
  *
- * Related User Stories: US 02.05.02, US 02.05.03, US 01.05.01, US 01.05.02, US 01.05.03
+ * <p><b>Design notes</b></p>
+ * <ul>
+ *   <li><b>Fairness:</b> Uses {@link SecureRandom} and {@link Collections#shuffle(List, java.util.Random)} for unbiased selection.</li>
+ *   <li><b>Atomicity:</b> Uses Firestore {@link WriteBatch} for multi-document updates that must succeed together.</li>
+ *   <li><b>Separation of concerns:</b> Reads are delegated to {@link EventRepository}; user history to {@link ProfileRepository}.</li>
+ * </ul>
+ *
+ * <p><b>Data model touchpoints</b></p>
+ * <ul>
+ *   <li>{@code events/{eventId}/waitingList}</li>
+ *   <li>{@code events/{eventId}/responsePendingList}</li>
+ *   <li>{@code events/{eventId}/inEventList}</li>
+ *   <li>{@code events/{eventId}/cancelledList}</li>
+ * </ul>
+ *
+ * <p><b>Outstanding considerations</b></p>
+ * <ul>
+ *   <li>Deadline policy is fixed (7 days). Externalize per-event configuration if needed.</li>
+ *   <li>No automatic notification here—callers should invoke {@code NotificationService} upon completion.</li>
+ *   <li>Batch is used (not transaction). If cross-read consistency is required mid-operation, consider a full transaction.</li>
+ * </ul>
  */
 public class LotteryService {
 
@@ -387,57 +410,132 @@ public class LotteryService {
      * @param entrantId Entrant who declined
      * @param listener Callback
      */
+
     public void handleEntrantDecline(@NonNull String eventId,
-                                    @NonNull String entrantId,
-                                    @NonNull OnDeclineHandledListener listener) {
+                                     @NonNull String entrantId,
+                                     @NonNull OnDeclineHandledListener listener) {
         Log.d(TAG, "Handling decline for entrant: " + entrantId + " in event: " + eventId);
 
-        // Remove from response pending list
+        // Get entrant data first to preserve it
         db.collection(COLLECTION_EVENTS)
                 .document(eventId)
                 .collection(SUBCOLLECTION_RESPONSE_PENDING)
                 .document(entrantId)
-                .delete()
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Entrant decline handled successfully");
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        listener.onError(new Exception("Entrant not found in response pending list"));
+                        return;
+                    }
 
-                    // Update profile history
-                    eventRepository.getEvent(eventId, new EventRepository.OnEventLoadedListener() {
-                        @Override
-                        public void onEventLoaded(Event event) {
-                            EventHistoryItem historyItem = new EventHistoryItem(
-                                    eventId,
-                                    event.getName(),
-                                    System.currentTimeMillis(),
-                                    "cancelled"
-                            );
+                    // Prepare cancelled entry data
+                    Map<String, Object> cancelledData = new HashMap<>();
+                    cancelledData.put("entrantId", entrantId);
+                    cancelledData.put("declinedTimestamp", System.currentTimeMillis());
+                    cancelledData.put("reason", "user_declined");
 
-                            profileRepository.addEventToHistory(entrantId, historyItem,
-                                    new ProfileRepository.OnSuccessListener() {
-                                        @Override
-                                        public void onSuccess(String userId) {
-                                            listener.onDeclineHandled(entrantId, true);
-                                        }
-                                    },
-                                    new ProfileRepository.OnFailureListener() {
-                                        @Override
-                                        public void onFailure(Exception e) {
-                                            Log.w(TAG, "Failed to update history, but decline recorded", e);
-                                            listener.onDeclineHandled(entrantId, true);
-                                        }
-                                    });
-                        }
+                    // Copy geolocation if available
+                    if (documentSnapshot.contains("latitude")) {
+                        cancelledData.put("latitude", documentSnapshot.getDouble("latitude"));
+                        cancelledData.put("longitude", documentSnapshot.getDouble("longitude"));
+                        cancelledData.put("locationTimestamp", documentSnapshot.getLong("locationTimestamp"));
+                    }
 
-                        @Override
-                        public void onError(Exception e) {
-                            Log.w(TAG, "Failed to get event for history update", e);
-                            listener.onDeclineHandled(entrantId, true);
-                        }
-                    });
+                    // Use batch for atomic operations
+                    WriteBatch batch = db.batch();
+
+                    // 1. Add to cancelled list
+                    batch.set(db.collection(COLLECTION_EVENTS)
+                            .document(eventId)
+                            .collection("cancelledList")
+                            .document(entrantId), cancelledData);
+
+                    // 2. Remove from response pending list
+                    batch.delete(db.collection(COLLECTION_EVENTS)
+                            .document(eventId)
+                            .collection(SUBCOLLECTION_RESPONSE_PENDING)
+                            .document(entrantId));
+
+                    // Commit batch
+                    batch.commit()
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "Entrant decline handled successfully");
+
+                                // Update profile history
+                                eventRepository.getEvent(eventId, new EventRepository.OnEventLoadedListener() {
+                                    @Override
+                                    public void onEventLoaded(Event event) {
+                                        // Update event history
+                                        EventHistoryItem historyItem = new EventHistoryItem(
+                                                eventId,
+                                                event.getName(),
+                                                System.currentTimeMillis(),
+                                                "CANCELLED"  // Use uppercase for consistency
+                                        );
+
+                                        profileRepository.addEventToHistory(entrantId, historyItem,
+                                                new ProfileRepository.OnSuccessListener() {
+                                                    @Override
+                                                    public void onSuccess(String userId) {
+                                                        // Notify organizer
+                                                        notifyOrganizerOfDecline(event, entrantId);
+
+                                                        // Indicate replacement should be triggered
+                                                        listener.onDeclineHandled(entrantId, true);
+                                                    }
+                                                },
+                                                new ProfileRepository.OnFailureListener() {
+                                                    @Override
+                                                    public void onFailure(Exception e) {
+                                                        Log.w(TAG, "Failed to update history, but decline recorded", e);
+                                                        notifyOrganizerOfDecline(event, entrantId);
+                                                        listener.onDeclineHandled(entrantId, true);
+                                                    }
+                                                });
+                                    }
+
+                                    @Override
+                                    public void onError(Exception e) {
+                                        Log.w(TAG, "Failed to get event for notifications", e);
+                                        listener.onDeclineHandled(entrantId, true);
+                                    }
+                                });
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Failed to handle decline", e);
+                                listener.onError(e);
+                            });
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to handle decline", e);
+                    Log.e(TAG, "Failed to get entrant data", e);
                     listener.onError(e);
+                });
+    }
+
+    /**
+     * Notify organizer about entrant decline
+     */
+    private void notifyOrganizerOfDecline(@NonNull Event event, @NonNull String entrantId) {
+        // Create notification for organizer
+        Map<String, Object> notification = new HashMap<>();
+        notification.put("type", "ENTRANT_DECLINED");
+        notification.put("eventId", event.getEventId());
+        notification.put("eventName", event.getName());
+        notification.put("entrantId", entrantId);
+        notification.put("timestamp", System.currentTimeMillis());
+        notification.put("message", "An entrant has declined their invitation to " + event.getName());
+        notification.put("read", false);
+
+        // Add to organizer's notifications subcollection
+        db.collection("users")
+                .document(event.getOrganizerId())
+                .collection("notifications")
+                .add(notification)
+                .addOnSuccessListener(docRef -> {
+                    Log.d(TAG, "Organizer notified of decline");
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to notify organizer", e);
                 });
     }
 

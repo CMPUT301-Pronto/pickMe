@@ -1,55 +1,52 @@
 package com.example.pickme.ui.events;
 
-import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-import com.example.pickme.R;
+import com.example.pickme.utils.Constants;
 
 /**
  * CancelledEntrantsFragment - Display cancelled entrants
+ *
+ * Shows entrants who declined their invitation or were removed from the event.
+ * Useful for organizers to track who opted out and potentially draw replacements.
+ *
+ * Does not show join time or status as these entrants are no longer participating.
+ *
+ * This fragment extends BaseEntrantListFragment for lifecycle-aware data loading.
+ *
  * Related User Stories: US 02.06.03
  */
-public class CancelledEntrantsFragment extends Fragment {
-    private static final String ARG_EVENT_ID = "event_id";
-    private String eventId;
+public class CancelledEntrantsFragment extends BaseEntrantListFragment {
 
+    private static final String TAG = "CancelledFragment";
+
+    /**
+     * Factory method to create new instance
+     *
+     * @param eventId Event ID to display cancelled entrants for
+     * @return CancelledEntrantsFragment instance
+     */
     public static CancelledEntrantsFragment newInstance(String eventId) {
         CancelledEntrantsFragment fragment = new CancelledEntrantsFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_EVENT_ID, eventId);
-        fragment.setArguments(args);
-        return fragment;
+        return (CancelledEntrantsFragment) BaseEntrantListFragment.newInstance(eventId, fragment);
     }
 
     @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            eventId = getArguments().getString(ARG_EVENT_ID);
-        }
-    }
-
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_entrant_list, container, false);
+    protected String getSubcollectionName() {
+        return Constants.SUBCOLLECTION_CANCELLED;
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        RecyclerView recyclerView = view.findViewById(R.id.recyclerViewEntrants);
-        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-        view.findViewById(R.id.emptyStateLayout).setVisibility(View.VISIBLE);
+    protected boolean showJoinTime() {
+        return false; // Don't show join time for cancelled list
     }
 
-    public void refresh() {}
+    @Override
+    protected boolean showStatus() {
+        return false; // Don't show status - all are cancelled
+    }
+
+    @Override
+    protected String getLogTag() {
+        return TAG;
+    }
 }
 

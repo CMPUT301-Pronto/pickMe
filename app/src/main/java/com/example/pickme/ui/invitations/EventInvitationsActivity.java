@@ -13,7 +13,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.pickme.R;
 import com.example.pickme.models.Event;
 import com.example.pickme.repositories.EventRepository;
-import com.example.pickme.repositories.OnEventsWithMetadataLoadedListener;
 import com.example.pickme.services.DeviceAuthenticator;
 import com.example.pickme.services.LotteryService;
 
@@ -114,7 +113,7 @@ public class EventInvitationsActivity extends AppCompatActivity {
 
         // Query Firestore for events where user is in responsePendingList subcollection
         eventRepository.getEventsWhereEntrantInResponsePending(currentUserId,
-                new OnEventsWithMetadataLoadedListener() {
+                new EventRepository.OnEventsWithMetadataLoadedListener() {
                     @Override
                     public void onEventsLoaded(List<Event> events, Map<String, Object> metadata) {
                         // Extract deadlines from metadata

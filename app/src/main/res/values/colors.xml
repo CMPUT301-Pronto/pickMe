@@ -6,6 +6,7 @@
     <color name="primary_pink_dark">#E56B68</color>
     <color name="primary_pink_light">#F5B5B3</color>
 
+
     <!-- Shadow and Background -->
     <color name="element_shadow">#F5F4F4</color>
     <color name="background_light">#FFFFFF</color>
@@ -21,6 +22,12 @@
     <color name="error_red">#F44336</color>
     <color name="success_green">#4CAF50</color>
     <color name="warning_orange">#FF9800</color>
+    <color name="status_cancelled">#E56B68</color>
+    <color name="status_accepted">#4CAF50</color>
+    <color name="status_declined">#F44336</color>
+    <color name="nav_item_color">#E56B68</color>
+
+
 
     <!-- Standard Colors -->
     <color name="black">#FF000000</color>

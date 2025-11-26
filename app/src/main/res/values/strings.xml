@@ -28,6 +28,7 @@
     <string name="error_profile_save_failed">Failed to save profile</string>
     <string name="profile_saved">Profile saved successfully</string>
     <string name="profile_loading">Loading profile…</string>
+    <string name="profile_image">Profile image</string>
 
     <!-- Profile Deletion -->
     <string name="delete_account_title">Delete Account</string>
@@ -115,6 +116,11 @@
     <string name="decline_failed">Failed to decline invitation</string>
     <string name="confirm_decline_invitation">Are you sure you want to decline this invitation?</string>
     <string name="invitation_expired">This invitation has expired</string>
+    <string name="no_declined_events">No declined invitations</string>
+    <string name="no_events">No events to display</string>
+    <string name="invitation_body_with_deadline">You’ve been chosen from the waiting list. Please respond before %1$s.</string>
+    <string name="invitation_deadline_unknown">(no deadline)</string>
+    <string name="view_more">View</string>
 
     <!-- Event History Strings -->
     <string name="event_history_title">My Event History</string>
@@ -206,6 +212,7 @@
     <string name="accepted_status">Accepted</string>
     <string name="declined_status">Declined</string>
     <string name="cancelled_status">Cancelled</string>
+    <string name="joined_on">Joined: %s</string>
 
     <!-- Lottery Draw -->
     <string name="execute_lottery_title">Execute Lottery Draw</string>
@@ -232,6 +239,9 @@
     <string name="notification_sent">Notifications sent successfully</string>
     <string name="notification_failed">Failed to send notifications</string>
     <string name="notification_message_required">Please enter a message</string>
+    <string name="invite_notification_body">You were selected for %1$s. Tap to respond.</string>
+    <string name="channel_invites_name">Invitations</string>
+    <string name="channel_invites_desc">Notifications when you’re selected from a waitlist</string>
 
     <!-- Update Poster -->
     <string name="update_poster_title">Update Event Poster</string>
@@ -307,4 +317,14 @@
     <!-- Admin Access -->
     <string name="admin_access_denied_title">Admin Access Required</string>
     <string name="admin_access_denied_message">Only users with Admin role can access this feature</string>
+    <string name="title_browse">Browse</string>
+    <string name="title_profile">Profile</string>
+    <string name="title_search">Search</string>
+
+    <!-- Role-based Navigation -->
+    <string name="title_my_events">My Events</string>
+    <string name="title_invitations">Invitations</string>
+    <string name="title_admin">Admin</string>
+    <string name="role_changed_title">Role Changed</string>
+    <string name="role_changed_message">Your role has been updated to %1$s. The navigation menu has been updated to reflect your new permissions.</string>
 </resources>

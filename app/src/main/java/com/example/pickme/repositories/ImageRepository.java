@@ -99,16 +99,27 @@ public class ImageRepository {
             String filename = UUID.randomUUID().toString() + ".jpg";
             String storagePath = STORAGE_PATH_EVENT_POSTERS + "/" + eventId + "/" + filename;
 
+            Log.d(TAG, "Starting upload to path: " + storagePath);
+            Log.d(TAG, "Image URI: " + imageUri.toString());
+            Log.d(TAG, "Storage bucket: " + storageRef.getBucket());
+
             // Compress image (compression logic would use imageUri to get bitmap)
             // Note: Actual compression would require Context to get ContentResolver
             // For now, we'll upload directly and add compression in a utility class
 
             StorageReference posterRef = storageRef.child(storagePath);
 
+            Log.d(TAG, "Storage reference created: " + posterRef.getPath());
+            Log.d(TAG, "Full storage URL: " + posterRef.toString());
+
             // Upload file
             UploadTask uploadTask = posterRef.putFile(imageUri);
 
-            uploadTask.addOnSuccessListener(taskSnapshot -> {
+            uploadTask.addOnProgressListener(taskSnapshot -> {
+                double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+                Log.d(TAG, "Upload progress: " + progress + "%");
+            }).addOnSuccessListener(taskSnapshot -> {
+                Log.d(TAG, "Upload successful! Getting download URL...");
                 // Get download URL
                 posterRef.getDownloadUrl().addOnSuccessListener(downloadUri -> {
                     String downloadUrl = downloadUri.toString();
@@ -148,6 +159,11 @@ public class ImageRepository {
                 });
             }).addOnFailureListener(e -> {
                 Log.e(TAG, "Image upload failed", e);
+                Log.e(TAG, "Error class: " + e.getClass().getName());
+                Log.e(TAG, "Error message: " + e.getMessage());
+                if (e.getCause() != null) {
+                    Log.e(TAG, "Error cause: " + e.getCause().getMessage());
+                }
                 listener.onError(e);
             });
 
@@ -184,6 +200,175 @@ public class ImageRepository {
                 uploadEventPoster(eventId, newImageUri, uploadedBy, listener);
             }
         });
+    }
+
+    // ==================== Profile Image Operations ====================
+
+    /**
+     * Upload profile image
+     *
+     * Process:
+     * 1. Upload to Firebase Storage at profile_images/{userId}/
+     * 2. Get download URL
+     * 3. Update Profile document with profileImageUrl
+     *
+     * @param userId User ID for this profile image
+     * @param imageUri URI of image to upload (from file picker)
+     * @param listener Callback with download URL
+     */
+    public void uploadProfileImage(@NonNull String userId,
+                                   @NonNull Uri imageUri,
+                                   @NonNull OnUploadCompleteListener listener) {
+        try {
+            // Generate unique filename
+            String filename = "profile_" + System.currentTimeMillis() + ".jpg";
+            String storagePath = "profile_images/" + userId + "/" + filename;
+
+            Log.d(TAG, "Starting profile image upload to path: " + storagePath);
+            Log.d(TAG, "Image URI: " + imageUri.toString());
+
+            StorageReference profileImageRef = storageRef.child(storagePath);
+
+            Log.d(TAG, "Storage reference created: " + profileImageRef.getPath());
+
+            // Upload file
+            UploadTask uploadTask = profileImageRef.putFile(imageUri);
+
+            uploadTask.addOnProgressListener(taskSnapshot -> {
+                double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+                Log.d(TAG, "Profile image upload progress: " + progress + "%");
+            }).addOnSuccessListener(taskSnapshot -> {
+                Log.d(TAG, "Profile image upload successful! Getting download URL...");
+                // Get download URL
+                profileImageRef.getDownloadUrl().addOnSuccessListener(downloadUri -> {
+                    String downloadUrl = downloadUri.toString();
+                    Log.d(TAG, "Profile image uploaded successfully: " + downloadUrl);
+
+                    // Update Profile document with image URL
+                    updateProfileImageUrl(userId, downloadUrl,
+                        new OnProfileImageUpdateListener() {
+                            @Override
+                            public void onSuccess() {
+                                Log.d(TAG, "Profile document updated with image URL");
+                                listener.onUploadComplete(downloadUrl, null);
+                            }
+
+                            @Override
+                            public void onError(Exception e) {
+                                Log.w(TAG, "Profile update failed, but image uploaded", e);
+                                listener.onUploadComplete(downloadUrl, null);
+                            }
+                        });
+                }).addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get download URL for profile image", e);
+                    listener.onError(e);
+                });
+            }).addOnFailureListener(e -> {
+                Log.e(TAG, "Profile image upload failed", e);
+                Log.e(TAG, "Error class: " + e.getClass().getName());
+                Log.e(TAG, "Error message: " + e.getMessage());
+                if (e.getCause() != null) {
+                    Log.e(TAG, "Error cause: " + e.getCause().getMessage());
+                }
+                listener.onError(e);
+            });
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error preparing profile image upload", e);
+            listener.onError(e);
+        }
+    }
+
+    /**
+     * Update profile document with profile image URL
+     *
+     * @param userId User ID
+     * @param imageUrl Download URL of uploaded image
+     * @param listener Callback when update completes
+     */
+    private void updateProfileImageUrl(@NonNull String userId,
+                                       @NonNull String imageUrl,
+                                       @NonNull OnProfileImageUpdateListener listener) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("profileImageUrl", imageUrl);
+
+        db.collection("profiles")
+                .document(userId)
+                .update(updates)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Profile image URL updated in Firestore: " + userId);
+                    listener.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to update profile image URL", e);
+                    listener.onError(e);
+                });
+    }
+
+    /**
+     * Delete profile image
+     *
+     * @param userId User ID
+     * @param listener Callback when deletion completes
+     */
+    public void deleteProfileImage(@NonNull String userId,
+                                   @NonNull OnDeleteCompleteListener listener) {
+        // Get profile to find current image URL
+        db.collection("profiles")
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String imageUrl = documentSnapshot.getString("profileImageUrl");
+
+                        if (imageUrl != null && !imageUrl.isEmpty()) {
+                            // Delete from Storage
+                            String storagePath = "profile_images/" + userId + "/";
+                            StorageReference userImagesRef = storageRef.child(storagePath);
+
+                            // List and delete all files in user's profile_images folder
+                            userImagesRef.listAll()
+                                    .addOnSuccessListener(listResult -> {
+                                        for (StorageReference item : listResult.getItems()) {
+                                            item.delete().addOnSuccessListener(aVoid -> {
+                                                Log.d(TAG, "Deleted profile image: " + item.getPath());
+                                            }).addOnFailureListener(e -> {
+                                                Log.w(TAG, "Failed to delete profile image: " + item.getPath(), e);
+                                            });
+                                        }
+
+                                        // Clear profile image URL from Firestore
+                                        Map<String, Object> updates = new HashMap<>();
+                                        updates.put("profileImageUrl", "");
+                                        db.collection("profiles")
+                                                .document(userId)
+                                                .update(updates)
+                                                .addOnSuccessListener(aVoid -> {
+                                                    Log.d(TAG, "Profile image URL cleared from Firestore");
+                                                    listener.onDeleteComplete();
+                                                })
+                                                .addOnFailureListener(e -> {
+                                                    Log.w(TAG, "Failed to clear profile image URL", e);
+                                                    listener.onError(e);
+                                                });
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        Log.w(TAG, "Failed to list profile images for deletion", e);
+                                        listener.onError(e);
+                                    });
+                        } else {
+                            Log.d(TAG, "No profile image to delete");
+                            listener.onDeleteComplete();
+                        }
+                    } else {
+                        Log.w(TAG, "Profile document not found: " + userId);
+                        listener.onError(new Exception("Profile not found"));
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get profile document", e);
+                    listener.onError(e);
+                });
     }
 
     // ==================== Delete Operations ====================
@@ -497,6 +682,14 @@ public class ImageRepository {
      */
     public interface OnPostersLoadedListener {
         void onPostersLoaded(List<EventPoster> posters);
+        void onError(Exception e);
+    }
+
+    /**
+     * Callback for profile image update
+     */
+    private interface OnProfileImageUpdateListener {
+        void onSuccess();
         void onError(Exception e);
     }
 }

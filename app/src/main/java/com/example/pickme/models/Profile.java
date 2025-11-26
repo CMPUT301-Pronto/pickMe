@@ -10,21 +10,42 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 /**
- * Profile - User profile information
+ * JAVADOCS LLM GENERATED
  *
- * Represents a user's profile in the event lottery system.
- * Uses device ID as the primary identifier for device-based authentication.
+ * Represents a user's profile in the PickMe event lottery system.
+ * <p>
+ * <b>Role / Pattern:</b> Plain Old Java Object (POJO) used as a Firestore document model
+ * (Data Transfer Object). Also implements {@link Parcelable} for passing between Android components.
+ * </p>
  *
- * Firestore structure:
+ * <p>
+ * <b>Persistence:</b> Firestore collection <code>profiles/{userId}</code>.
+ * </p>
+ *
+ * <p>
+ * </p>
+ *
+ * <p>
+ * <b>Outstanding issues / TODOs:</b>
+ * <ul>
+
+ *   <li>Ensure <code>eventHistory</code> remains consistent with server-side state (writes are append-only).</li>
+ * </ul>
+ * </p>
+ *
+ * <p><b>Firestore structure:</b></p>
+ * <pre>
  * profiles/{userId}
  *   ├─ userId: "device_abc123"
  *   ├─ name: "John Doe"
  *   ├─ email: "john@example.com"
  *   ├─ phoneNumber: "+1234567890" (optional)
  *   ├─ notificationEnabled: true
- *   ├─ eventHistory: [...]
+ *   ├─ eventHistory: [ ... EventHistoryItem ... ]
  *   └─ profileImageUrl: "https://..."
+ * </pre>
  */
 public class Profile implements Parcelable {
 
@@ -35,8 +56,8 @@ public class Profile implements Parcelable {
 
     private String userId; // Device ID or Firebase Auth UID
     private String name;
+    private String phoneNumber;
     private String email;
-    private String phoneNumber; // Optional
     private boolean notificationEnabled;
     private List<EventHistoryItem> eventHistory;
     private String profileImageUrl;
@@ -83,69 +104,58 @@ public class Profile implements Parcelable {
 
     // Getters and Setters
 
-    public String getUserId() {
-        return userId;
-    }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+    /** @return Unique profile identifier (device ID or Firebase UID). */
+    public String getUserId() { return userId; }
 
-    public String getName() {
-        return name;
-    }
+    /** @param userId Unique profile identifier to set. */
+    public void setUserId(String userId) { this.userId = userId; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    /** @return Display name. */
+    public String getName() { return name; }
 
-    public String getEmail() {
-        return email;
-    }
+    /** @param name Display name to set. */
+    public void setName(String name) { this.name = name; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    /** @return Email address or null if not set. */
+    public String getEmail() { return email; }
 
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
+    /** @param email Email address to set. */
+    public void setEmail(String email) { this.email = email; }
 
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
+    /** @return Phone number or null if not set. */
+    public String getPhoneNumber() { return phoneNumber; }
 
-    public boolean isNotificationEnabled() {
-        return notificationEnabled;
-    }
+    /** @param phoneNumber Phone number to set. */
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
-    public void setNotificationEnabled(boolean notificationEnabled) {
-        this.notificationEnabled = notificationEnabled;
-    }
+    /** @return True if notifications are enabled. */
+    public boolean isNotificationEnabled() { return notificationEnabled; }
 
-    public List<EventHistoryItem> getEventHistory() {
-        return eventHistory;
-    }
+    /** @param notificationEnabled Whether notifications are enabled. */
+    public void setNotificationEnabled(boolean notificationEnabled) { this.notificationEnabled = notificationEnabled; }
 
-    public void setEventHistory(List<EventHistoryItem> eventHistory) {
-        this.eventHistory = eventHistory;
-    }
+    /** @return Mutable list of event history items (may be empty). */
+    public List<EventHistoryItem> getEventHistory() { return eventHistory; }
 
-    public String getProfileImageUrl() {
-        return profileImageUrl;
-    }
+    /** @param eventHistory Replaces the event history list. */
+    public void setEventHistory(List<EventHistoryItem> eventHistory) { this.eventHistory = eventHistory; }
 
-    public void setProfileImageUrl(String profileImageUrl) {
-        this.profileImageUrl = profileImageUrl;
-    }
+    /** @return Profile image URL or null if not set. */
+    public String getProfileImageUrl() { return profileImageUrl; }
 
-    public String getRole() {
-        return role != null ? role : ROLE_ENTRANT;
-    }
+    /** @param profileImageUrl Profile image URL to set. */
+    public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
 
-    public void setRole(String role) {
-        this.role = role;
-    }
+    /**
+     * Returns the current role. Defaults to {@link #ROLE_ENTRANT} when null.
+     *
+     * @return Role string (entrant/organizer/admin).
+     */
+    public String getRole() { return role != null ? role : ROLE_ENTRANT; }
+
+    /** @param role Role to set (entrant/organizer/admin). */
+    public void setRole(String role) { this.role = role; }
 
     // Helper Methods
 
@@ -209,7 +219,7 @@ public class Profile implements Parcelable {
     }
 
     /**
-     * Check if user is an organizer
+     * Check if user is an organizer or admin
      */
     public boolean isOrganizer() {
         return ROLE_ORGANIZER.equals(role) || ROLE_ADMIN.equals(role);
@@ -262,6 +272,7 @@ public class Profile implements Parcelable {
                 ", email='" + email + '\'' +
                 ", notificationEnabled=" + notificationEnabled +
                 ", eventCount=" + getEventCount() +
+                ", phoneNumber='" + phoneNumber + '\'' +
                 '}';
     }
 
@@ -278,7 +289,7 @@ public class Profile implements Parcelable {
         profileImageUrl = in.readString();
         role = in.readString();
     }
-
+    //** Parcelable creator */
     public static final Creator<Profile> CREATOR = new Creator<Profile>() {
         @Override
         public Profile createFromParcel(Parcel in) {
@@ -290,12 +301,12 @@ public class Profile implements Parcelable {
             return new Profile[size];
         }
     };
-
+    //** {@inheritDoc} */
     @Override
     public int describeContents() {
         return 0;
     }
-
+    //** {@inheritDoc} */
     @Override
     public void writeToParcel(@NonNull Parcel dest, int flags) {
         dest.writeString(userId);

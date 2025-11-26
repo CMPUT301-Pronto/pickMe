@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph_admin"
+    app:startDestination="@id/navigation_browse">
+
+    <fragment
+        android:id="@+id/navigation_browse"
+        android:name="com.example.pickme.ui.events.EventBrowseFragment"
+        android:label="@string/title_browse" />
+
+    <fragment
+        android:id="@+id/navigation_admin"
+        android:name="com.example.pickme.ui.admin.AdminDashboardFragment"
+        android:label="@string/title_admin" />
+
+    <fragment
+        android:id="@+id/navigation_profile"
+        android:name="com.example.pickme.ui.profile.ProfileFragment"
+        android:label="@string/title_profile" />
+</navigation>
+

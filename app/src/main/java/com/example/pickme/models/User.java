@@ -2,32 +2,36 @@ package com.example.pickme.models;
 
 import java.util.HashMap;
 import java.util.Map;
-
 /**
- * User - Model class representing a user in the event lottery system
+ * JAVADOCS LLM GENERATED
  *
- * This is a Plain Old Java Object (POJO) that represents user data.
- * Firestore automatically converts between this class and Firestore documents.
+ * Firestore DTO for application users (authentication identity + profile snapshot).
+ * <p>
+ * <b>Role / Pattern:</b> Plain Old Java Object (POJO) that maps 1:1 to a Firestore document.
+ * Prefer using {@link Profile} for UI/state; use {@code User} to represent identity + creation metadata.
+ * </p>
  *
- * Fields:
- * - userId: Unique identifier (Firebase Auth UID)
- * - name: User's display name
- * - email: User's email (optional)
- * - profileImageUrl: URL to profile image in Firebase Storage
- * - phoneNumber: User's phone number (optional)
- * - deviceId: Device identifier for device-based authentication
- * - createdAt: Timestamp of account creation
- * - role: User role (entrant, organizer, admin)
+ * <p>
+ * </p>
  *
- * Firestore Structure:
+ * <p>
+ * <b>Outstanding issues / TODOs:</b>
+ * <ul>
+ *   <li>Consolidate identity (User) and UI state (Profile) if duplication causes drift.</li>
+ * </ul>
+ * </p>
+ *
+ * <p><b>Firestore structure:</b></p>
+ * <pre>
  * users/{userId}
- *   ├─ name: "John Doe"
- *   ├─ email: "john@example.com"
- *   ├─ profileImageUrl: "https://..."
- *   ├─ phoneNumber: "+1234567890"
- *   ├─ deviceId: "device123"
- *   ├─ createdAt: 1234567890
- *   └─ role: "entrant"
+ *   ├─ name
+ *   ├─ email
+ *   ├─ profileImageUrl
+ *   ├─ phoneNumber
+ *   ├─ deviceId
+ *   ├─ createdAt
+ *   ├─ role (entrant/organizer/admin)
+ * </pre>
  */
 public class User {
 
@@ -36,6 +40,7 @@ public class User {
     public static final String ROLE_ORGANIZER = "organizer";
     public static final String ROLE_ADMIN = "admin";
 
+    // Role constants
     private String userId;
     private String name;
     private String email;
@@ -44,6 +49,7 @@ public class User {
     private String deviceId;
     private long createdAt;
     private String role;
+
 
     /**
      * Default constructor required for Firestore deserialization
@@ -54,7 +60,16 @@ public class User {
     }
 
     /**
-     * Constructor with all fields
+     * Full constructor for Firestore deserialization or manual creation.
+     *
+     * @param userId       Firebase Auth UID (or unique id)
+     * @param name         Display name
+     * @param email        Email address (optional)
+     * @param profileImageUrl Profile image URL
+     * @param phoneNumber  Phone number (optional)
+     * @param deviceId     Device identifier (device-based auth)
+     * @param createdAt    Epoch millis of account creation
+     * @param role         Role string (entrant/organizer/admin)
      */
     public User(String userId, String name, String email, String profileImageUrl,
                 String phoneNumber, String deviceId, long createdAt, String role) {
@@ -67,9 +82,12 @@ public class User {
         this.createdAt = createdAt;
         this.role = role;
     }
-
     /**
-     * Minimal constructor for new users
+     * Convenience constructor for minimal user creation.
+     *
+     * @param userId  Unique identifier
+     * @param name    Display name
+     * @param deviceId Device identifier (device-based auth)
      */
     public User(String userId, String name, String deviceId) {
         this.userId = userId;
@@ -82,69 +100,53 @@ public class User {
     // Getters and Setters
     // Required by Firestore for serialization/deserialization
 
-    public String getUserId() {
-        return userId;
-    }
+    /** @return Unique user identifier. */
+    public String getUserId() { return userId; }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+    /** @param userId Unique user identifier to set. */
+    public void setUserId(String userId) { this.userId = userId; }
 
-    public String getName() {
-        return name;
-    }
+    /** @return Display name. */
+    public String getName() { return name; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    /** @param name Display name to set. */
+    public void setName(String name) { this.name = name; }
 
-    public String getEmail() {
-        return email;
-    }
+    /** @return Email address or null if not set. */
+    public String getEmail() { return email; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    /** @param email Email address to set. */
+    public void setEmail(String email) { this.email = email; }
 
-    public String getProfileImageUrl() {
-        return profileImageUrl;
-    }
+    /** @return Profile image URL or null if not set. */
+    public String getProfileImageUrl() { return profileImageUrl; }
 
-    public void setProfileImageUrl(String profileImageUrl) {
-        this.profileImageUrl = profileImageUrl;
-    }
+    /** @param profileImageUrl Profile image URL to set. */
+    public void setProfileImageUrl(String profileImageUrl) { this.profileImageUrl = profileImageUrl; }
 
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
+    /** @return Phone number or null if not set. */
+    public String getPhoneNumber() { return phoneNumber; }
 
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
+    /** @param phoneNumber Phone number to set. */
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
 
-    public String getDeviceId() {
-        return deviceId;
-    }
+    /** @return Device identifier (device-based auth). */
+    public String getDeviceId() { return deviceId; }
 
-    public void setDeviceId(String deviceId) {
-        this.deviceId = deviceId;
-    }
+    /** @param deviceId Device identifier to set. */
+    public void setDeviceId(String deviceId) { this.deviceId = deviceId; }
 
-    public long getCreatedAt() {
-        return createdAt;
-    }
+    /** @return Epoch millis of account creation. */
+    public long getCreatedAt() { return createdAt; }
 
-    public void setCreatedAt(long createdAt) {
-        this.createdAt = createdAt;
-    }
+    /** @param createdAt Epoch millis of account creation. */
+    public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
 
-    public String getRole() {
-        return role;
-    }
+    /** @return Role string (entrant/organizer/admin). */
+    public String getRole() { return role; }
 
-    public void setRole(String role) {
-        this.role = role;
-    }
+    /** @param role Role string to set (entrant/organizer/admin). */
+    public void setRole(String role) { this.role = role; }
 
     /**
      * Convert User object to Map for Firestore

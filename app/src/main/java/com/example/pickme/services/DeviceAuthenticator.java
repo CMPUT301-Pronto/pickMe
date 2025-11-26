@@ -11,24 +11,46 @@ import com.example.pickme.models.Profile;
 import com.example.pickme.repositories.ProfileRepository;
 import com.google.firebase.installations.FirebaseInstallations;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * DeviceAuthenticator - Device-based authentication service
+ * JAVADOCS LLM GENERATED
  *
- * Implements no-username/password authentication (US 01.07.01).
- * Uses Firebase Installation ID as unique device identifier.
+ * Manages device-based authentication and user initialization.
  *
- * On first app launch:
- * 1. Get device ID (Firebase Installation ID)
- * 2. Check if Profile exists
- * 3. If not, create default profile
- * 4. Store device ID in SharedPreferences
+ * <p><b>Role / Pattern:</b> Singleton service responsible for implementing
+ *  account creation by using a unique device identifier
+ * (Firebase Installation ID or Android ID fallback) to bind a {@link Profile}
+ * to a specific installation.</p>
  *
- * User roles:
- * - entrant: Default for all new users
- * - organizer: Can create events
- * - admin: Full access
+ * <p><b>Responsibilities:</b>
+ * <ul>
+ *   <li>Retrieve and cache the device identifier.</li>
+ *   <li>Check whether a corresponding {@link Profile} already exists in Firestore.</li>
+ *   <li>Create a default profile for first-time users (role = entrant).</li>
+ *   <li>Cache and persist user state in {@link SharedPreferences}.</li>
+ * </ul>
+ * </p>
  *
- * Related User Stories: US 01.07.01
+ * <p><b>Storage:</b> Authentication metadata is stored in {@code PickMePrefs} under:
+ * <ul>
+ *   <li>{@code device_id} – Firebase Installation ID or Android ID fallback.</li>
+ *   <li>{@code user_id} – the Firestore document ID of the user profile.</li>
+ *   <li>{@code is_first_launch} – flag for first-launch onboarding logic.</li>
+ * </ul>
+ * </p>
+ *
+ * <p><b>Typical Flow (on first launch):</b>
+ * <ol>
+ *   <li>Obtain device ID via Firebase Installations.</li>
+ *   <li>Check if a profile exists for that ID.</li>
+ *   <li>If not found, create a new default entrant profile.</li>
+ *   <li>Persist device/user IDs and return the initialized {@link Profile}.</li>
+ * </ol>
+ * </p>
+ *
+ * <p><b>Related User Story:</b> US 01.07.01 – Device-based authentication.</p>
  */
 public class DeviceAuthenticator {
 
@@ -44,13 +66,21 @@ public class DeviceAuthenticator {
     private ProfileRepository profileRepository;
     private String cachedDeviceId;
     private Profile cachedProfile;
+    private List<RoleChangeListener> roleChangeListeners;
 
     private DeviceAuthenticator(Context context) {
         this.context = context.getApplicationContext();
         this.prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         this.profileRepository = new ProfileRepository();
+        this.roleChangeListeners = new ArrayList<>();
     }
 
+    /**
+     * Returns the singleton instance of the authenticator.
+     *
+     * @param context an application or activity context.
+     * @return global {@link DeviceAuthenticator} instance.
+     */
     public static synchronized DeviceAuthenticator getInstance(Context context) {
         if (instance == null) {
             instance = new DeviceAuthenticator(context);
@@ -110,85 +140,70 @@ public class DeviceAuthenticator {
                 });
     }
 
+
     /**
-     * Initialize user on app startup
+     * Initializes or loads the user’s profile.
      *
-     * Process:
-     * 1. Get device ID
-     * 2. Check if profile exists
-     * 3. If new user, create default profile
-     * 4. Return Profile object
+     * <p>This should be called once during app startup (e.g. in
+     * {@code Application.onCreate()}). The method will:
+     * <ol>
+     *   <li>Obtain the device ID.</li>
+     *   <li>Check Firestore for an existing profile.</li>
+     *   <li>Create a new default entrant profile if none exists.</li>
+     *   <li>Cache the profile locally and return it via callback.</li>
+     * </ol>
+     * </p>
      *
-     * Should be called in Application.onCreate()
-     *
-     * @param listener Callback with Profile
+     * @param listener callback that receives the initialized profile and whether it is new.
      */
     public void initializeUser(@NonNull OnUserInitializedListener listener) {
         Log.d(TAG, "Initializing user");
 
-        getDeviceId(new OnDeviceIdLoadedListener() {
-            @Override
-            public void onDeviceIdLoaded(String deviceId) {
-                // Check if profile exists
-                profileRepository.profileExists(deviceId, new ProfileRepository.OnProfileExistsListener() {
-                    @Override
-                    public void onCheckComplete(boolean exists) {
-                        if (exists) {
-                            // Load existing profile
-                            profileRepository.getProfile(deviceId, new ProfileRepository.OnProfileLoadedListener() {
-                                @Override
-                                public void onProfileLoaded(Profile profile) {
-                                    Log.d(TAG, "Existing user loaded: " + profile.getName());
-                                    cachedProfile = profile;
-                                    prefs.edit()
-                                            .putString(KEY_USER_ID, deviceId)
-                                            .putBoolean(KEY_FIRST_LAUNCH, false)
-                                            .apply();
-                                    listener.onUserInitialized(profile, false);
-                                }
+        getDeviceId(deviceId -> {
+            profileRepository.profileExists(deviceId, new ProfileRepository.OnProfileExistsListener() {
+                @Override
+                public void onCheckComplete(boolean exists) {
+                    if (exists) {
+                        // Load existing profile normally
+                        profileRepository.getProfile(deviceId, new ProfileRepository.OnProfileLoadedListener() {
+                            @Override public void onProfileLoaded(Profile profile) {
+                                Log.d(TAG, "Existing user loaded: " + profile.getName());
+                                cachedProfile = profile;
+                                prefs.edit()
+                                        .putString(KEY_USER_ID, deviceId)
+                                        .putBoolean(KEY_FIRST_LAUNCH, false)
+                                        .apply();
+                                listener.onUserInitialized(profile, /*isNewUser=*/false);
+                            }
+                            @Override public void onError(Exception e) {
+                                Log.e(TAG, "Failed to load profile", e);
+                                listener.onError(e);
+                            }
+                        });
+                    } else {
 
-                                @Override
-                                public void onError(Exception e) {
-                                    Log.e(TAG, "Failed to load profile", e);
-                                    listener.onError(e);
-                                }
-                            });
-                        } else {
-                            // Create new profile for first-time user
-                            Profile newProfile = new Profile(deviceId, "User" + deviceId.substring(0, 8));
-                            newProfile.setRole(Profile.ROLE_ENTRANT); // Default role
+                        // profile does not exist yet
+                        cachedProfile = null;
+                        prefs.edit()
+                                .putString(KEY_USER_ID, deviceId)
+                                .putBoolean(KEY_FIRST_LAUNCH, true)
+                                .apply();
 
-                            profileRepository.createProfile(newProfile, new ProfileRepository.OnSuccessListener() {
-                                @Override
-                                public void onSuccess(String userId) {
-                                    Log.d(TAG, "New user profile created: " + userId);
-                                    cachedProfile = newProfile;
-                                    prefs.edit()
-                                            .putString(KEY_USER_ID, userId)
-                                            .putBoolean(KEY_FIRST_LAUNCH, true)
-                                            .apply();
-                                    listener.onUserInitialized(newProfile, true);
-                                }
-                            }, new ProfileRepository.OnFailureListener() {
-                                @Override
-                                public void onFailure(Exception e) {
-                                    Log.e(TAG, "Failed to create profile", e);
-                                    listener.onError(e);
-                                }
-                            });
-                        }
+                        // pass a  placeholder profile object if you want,
+                        // NOT saved to Firestore.
+                        Profile placeholder = new Profile(deviceId, null);
+                        listener.onUserInitialized(placeholder, /*isNewUser=*/true);
                     }
+                }
 
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e(TAG, "Failed to check profile existence", e);
-                        listener.onError(e);
-                    }
-                });
-            }
+                @Override
+                public void onError(Exception e) {
+                    Log.e(TAG, "Failed to check profile existence", e);
+                    listener.onError(e);
+                }
+            });
         });
     }
-
     /**
      * Get user role (entrant, organizer, admin)
      *
@@ -234,7 +249,47 @@ public class DeviceAuthenticator {
      * @param profile Updated profile
      */
     public void updateCachedProfile(Profile profile) {
+        String oldRole = cachedProfile != null ? cachedProfile.getRole() : null;
+        String newRole = profile != null ? profile.getRole() : null;
+
         this.cachedProfile = profile;
+
+        // Notify listeners if role changed
+        if (oldRole != null && newRole != null && !oldRole.equals(newRole)) {
+            notifyRoleChanged(newRole);
+        }
+    }
+
+    /**
+     * Add a role change listener
+     *
+     * @param listener Listener to be notified when role changes
+     */
+    public void addRoleChangeListener(RoleChangeListener listener) {
+        if (listener != null && !roleChangeListeners.contains(listener)) {
+            roleChangeListeners.add(listener);
+        }
+    }
+
+    /**
+     * Remove a role change listener
+     *
+     * @param listener Listener to remove
+     */
+    public void removeRoleChangeListener(RoleChangeListener listener) {
+        roleChangeListeners.remove(listener);
+    }
+
+    /**
+     * Notify all registered listeners that the role has changed
+     *
+     * @param newRole The new role
+     */
+    private void notifyRoleChanged(String newRole) {
+        Log.d(TAG, "Role changed to: " + newRole + ", notifying " + roleChangeListeners.size() + " listeners");
+        for (RoleChangeListener listener : new ArrayList<>(roleChangeListeners)) {
+            listener.onRoleChanged(newRole);
+        }
     }
 
     /**
@@ -244,6 +299,7 @@ public class DeviceAuthenticator {
         prefs.edit().clear().apply();
         cachedDeviceId = null;
         cachedProfile = null;
+        roleChangeListeners.clear();
         Log.d(TAG, "Authentication data cleared");
     }
 

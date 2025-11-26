@@ -47,20 +47,23 @@
             tools:visibility="visible" />
 
         <!-- Profile Image Container -->
-        <de.hdodenhof.circleimageview.CircleImageView
-            android:id="@+id/profileImage"
-            android:layout_width="120dp"
-            android:layout_height="120dp"
-            android:layout_marginTop="16dp"
-            android:src="@drawable/ic_launcher_foreground"
-            android:scaleType="centerCrop"
-            app:civ_border_width="2dp"
-            app:civ_border_color="@color/primary_pink"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
 
         <!-- Change Photo Button -->
+
+        <de.hdodenhof.circleimageview.CircleImageView
+            android:id="@+id/profileImage"
+            android:layout_width="116dp"
+            android:layout_height="102dp"
+            android:layout_marginTop="4dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_launcher_foreground"
+            app:civ_border_color="@color/primary_pink"
+            app:civ_border_width="2dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.497"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <Button
             android:id="@+id/btnChangePhoto"
             style="@style/Widget.PickMe.Button.Text"
@@ -216,6 +219,7 @@
                 android:background="@drawable/rounded_background"
                 android:padding="12dp" />
 
+
         </LinearLayout>
 
         <!-- Save Button -->
@@ -262,5 +266,4 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </ScrollView>
-
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

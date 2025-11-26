@@ -26,6 +26,5 @@
             android:inputType="number" />
 
     </com.google.android.material.textfield.TextInputLayout>
-
 </LinearLayout>
 

@@ -10,28 +10,22 @@ import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.pickme.databinding.FragmentNotificationsBinding;
-
+import com.example.pickme.R;
+import com.example.pickme.ui.notifications.NotificationsViewModel;
+// -------------- LLM GENERATED -------------- //
 public class NotificationsFragment extends Fragment {
 
-    private FragmentNotificationsBinding binding;
-
-    public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
-        NotificationsViewModel notificationsViewModel =
-                new ViewModelProvider(this).get(NotificationsViewModel.class);
-
-        binding = FragmentNotificationsBinding.inflate(inflater, container, false);
-        View root = binding.getRoot();
-
-        final TextView textView = binding.textNotifications;
-        notificationsViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
-        return root;
-    }
+    private TextView textNotifications;
 
     @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        binding = null;
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             ViewGroup container, Bundle savedInstanceState) {
+        View root = inflater.inflate(R.layout.fragment_notifications, container, false);
+        textNotifications = root.findViewById(R.id.text_notifications);
+
+        NotificationsViewModel vm = new ViewModelProvider(this).get(NotificationsViewModel.class);
+        vm.getText().observe(getViewLifecycleOwner(), textNotifications::setText);
+        return root;
     }
 }
+// -------------- LLM GENERATED -------------- //

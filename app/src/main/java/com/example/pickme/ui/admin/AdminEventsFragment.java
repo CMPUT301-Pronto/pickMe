@@ -64,7 +64,7 @@ public class AdminEventsFragment extends Fragment {
     }
 
     private void setupRecyclerView() {
-        adapter = new EventAdapter();
+        adapter = new EventAdapter(0);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
 
