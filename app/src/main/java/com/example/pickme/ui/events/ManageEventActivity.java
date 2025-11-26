@@ -632,7 +632,6 @@ public class ManageEventActivity extends AppCompatActivity {
 
     // Allows the organizer to edit registration dates before lottery is drawn.
 
-
     private void showEditRegistrationDatesDialog() {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_registration_dates, null);
         TextInputEditText etRegStart = dialogView.findViewById(R.id.etEditRegStartDate);
@@ -650,7 +649,6 @@ public class ManageEventActivity extends AppCompatActivity {
         etRegStart.setText(dateFormat.format(new Date(currentStart)));
         etRegEnd.setText(dateFormat.format(new Date(currentEnd)));
 
-        // MaterialDatePicker for Start Date
         etRegStart.setOnClickListener(v -> {
             MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker()
                     .setTitleText("Select Registration Start Date")
