@@ -880,13 +880,6 @@ public class EventRepository extends BaseRepository {
                 });
     }
 
-    // ============================================================
-// ADD THIS METHOD TO EventRepository.java
-//
-// Location: Add after the removeEntrantFromWaitingList method
-// (around line 400 in your current file)
-// ============================================================
-
     /**
      * Cancel a selected entrant (move from responsePendingList to cancelledList)
      * Used when organizer wants to cancel an entrant who didn't complete registration

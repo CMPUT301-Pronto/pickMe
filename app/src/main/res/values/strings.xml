@@ -328,4 +328,31 @@
     <string name="role_changed_title">Role Changed</string>
     <string name="role_changed_message">Your role has been updated to %1$s. The navigation menu has been updated to reflect your new permissions.</string>
     <string name="action_cancel_entrant">Cancel Entrant</string>
+
+    <!-- Filter Dialog -->
+    <string name="filter_events">Filter Events</string>
+    <string name="date_range">Date Range</string>
+    <string name="select_start_date">Select start date</string>
+    <string name="select_end_date">Select end date</string>
+    <string name="location">Location</string>
+    <string name="all_locations">All Locations</string>
+    <string name="event_type">Event Type</string>
+    <string name="clear_filters">Clear Filters</string>
+    <string name="apply_filters">Apply Filters</string>
+
+    <!-- Filter Results -->
+    <string name="no_events_match_filters">No events match your filters</string>
+
+    <!-- Event Types -->
+    <string name="type_all">All</string>
+    <string name="type_music">Music</string>
+    <string name="type_sports">Sports</string>
+    <string name="type_conference">Conference</string>
+    <string name="type_workshop">Workshop</string>
+    <string name="type_social">Social</string>
+    <string name="type_food_drink">Food &amp; Drink</string>
+    <string name="type_arts">Arts</string>
+    <string name="type_technology">Technology</string>
+    <string name="type_other">Other</string>
+
 </resources>
