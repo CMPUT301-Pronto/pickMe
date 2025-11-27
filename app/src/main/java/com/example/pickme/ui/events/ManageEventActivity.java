@@ -243,6 +243,7 @@ public class ManageEventActivity extends AppCompatActivity {
     private void showActionMenu() {
         String[] actions = {
                 "Execute Lottery Draw",
+                "Draw Replacement",
                 "Send Notification",
                 "Update Poster",
                 "Export Lists",
@@ -258,15 +259,18 @@ public class ManageEventActivity extends AppCompatActivity {
                             showLotteryDrawDialog();
                             break;
                         case 1:
-                            showSendNotificationDialog();
+                            showReplacementDrawDialog();
                             break;
                         case 2:
-                            imagePickerLauncher.launch("image/*");
+                            showSendNotificationDialog();
                             break;
                         case 3:
-                            showExportDialog();
+                            imagePickerLauncher.launch("image/*");
                             break;
                         case 4:
+                            showExportDialog();
+                            break;
+                        case 5:
                             showQRCode();
                             break;
                         case 5:
@@ -358,6 +362,117 @@ public class ManageEventActivity extends AppCompatActivity {
                         progressDialog.dismiss();
                         Toast.makeText(ManageEventActivity.this,
                                 e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    /**
+     * Show replacement draw dialog
+     * Allows organizer to draw replacement entrants when selected entrants decline/cancel
+     */
+    private void showReplacementDrawDialog() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_lottery_draw, null);
+        EditText etNumberOfWinners = dialogView.findViewById(R.id.etNumberOfWinners);
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.draw_replacement_title)
+                .setMessage(R.string.draw_replacement_message)
+                .setView(dialogView)
+                .setPositiveButton(R.string.draw_replacement_button, (dialog, which) -> {
+                    String input = etNumberOfWinners.getText().toString().trim();
+                    if (input.isEmpty()) {
+                        Toast.makeText(this, R.string.replacement_invalid_number, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    try {
+                        int numberOfReplacements = Integer.parseInt(input);
+                        if (numberOfReplacements <= 0) {
+                            Toast.makeText(this, R.string.replacement_invalid_number, Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        executeReplacementDraw(numberOfReplacements);
+                    } catch (NumberFormatException e) {
+                        Toast.makeText(this, R.string.replacement_invalid_number, Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    /**
+     * Execute replacement draw
+     * Selects replacement entrants from remaining eligible waiting list
+     *
+     * @param numberOfReplacements Number of replacements to draw
+     */
+    private void executeReplacementDraw(int numberOfReplacements) {
+        ProgressBar progressBar = new ProgressBar(this);
+        AlertDialog progressDialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.replacement_executing)
+                .setView(progressBar)
+                .setCancelable(false)
+                .create();
+        progressDialog.show();
+
+        lotteryService.executeReplacementDraw(eventId, numberOfReplacements,
+                new LotteryService.OnLotteryCompleteListener() {
+                    @Override
+                    public void onLotteryComplete(LotteryService.LotteryResult result) {
+                        progressDialog.dismiss();
+
+                        if (result.winners.isEmpty()) {
+                            Toast.makeText(ManageEventActivity.this,
+                                    R.string.replacement_no_entrants,
+                                    Toast.LENGTH_LONG).show();
+                            return;
+                        }
+
+                        Toast.makeText(ManageEventActivity.this,
+                                getString(R.string.replacement_success, result.winners.size()),
+                                Toast.LENGTH_LONG).show();
+
+                        refreshFragments();
+
+                        // Send notifications to replacement winners
+                        notificationService.sendReplacementDrawNotification(
+                                result.winners,
+                                currentEvent,
+                                new NotificationService.OnNotificationSentListener() {
+                                    @Override
+                                    public void onNotificationSent(int sentCount) {
+                                        Log.d(TAG, "Replacement winner notifications sent: " + sentCount);
+                                    }
+
+                                    @Override
+                                    public void onError(Exception e) {
+                                        Log.e(TAG, "Replacement notification error", e);
+                                    }
+                                });
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        progressDialog.dismiss();
+                        String errorMessage = e.getMessage();
+
+                        // Provide user-friendly error messages
+                        if (errorMessage != null) {
+                            if (errorMessage.contains("No eligible")) {
+                                Toast.makeText(ManageEventActivity.this,
+                                        R.string.replacement_no_entrants, Toast.LENGTH_SHORT).show();
+                            } else if (errorMessage.contains("Not enough")) {
+                                Toast.makeText(ManageEventActivity.this,
+                                        R.string.replacement_insufficient, Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(ManageEventActivity.this,
+                                        getString(R.string.replacement_failed) + ": " + errorMessage,
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        } else {
+                            Toast.makeText(ManageEventActivity.this,
+                                    R.string.replacement_failed, Toast.LENGTH_SHORT).show();
+                        }
                     }
                 });
     }

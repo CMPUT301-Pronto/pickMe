@@ -81,7 +81,7 @@
     <string name="event_capacity">Capacity: %d</string>
     <string name="waiting_list_status">Waiting list: %d entrants</string>
     <string name="lottery_criteria">Lottery Selection</string>
-    <string name="lottery_criteria_description">Winners will be randomly selected from the waiting list when registration closes.</string>
+    <string name="lottery_criteria_description">How the lottery works:\n\n• Random selection: winners are chosen at random from the waiting list to ensure a fair process.\n\n• When it runs: the lottery is executed after registration closes for the event and eligible entrants are considered.\n\n• If selected: you will receive an invitation and must respond by the deadline in the invitation. If you do not respond or you decline, your spot may be offered to another entrant.\n\n• Replacement draws: if selected entrants decline, the organizer or system may run a replacement draw to choose additional entrants from the remaining waiting list.</string>
     <string name="geolocation_required">Location tracking required for this event</string>
 
     <!-- Event Actions -->
@@ -261,10 +261,22 @@
 
     <!-- Cancel Entrant -->
     <string name="cancel_entrant_title">Cancel Entrant</string>
-    <string name="cancel_entrant_message">Are you sure you want to cancel this entrant? This will trigger a replacement draw if available.</string>
+    <string name="cancel_entrant_message">Are you sure you want to cancel this entrant? This will move them to the cancelled list.</string>
     <string name="cancel_entrant_button">Cancel Entrant</string>
     <string name="entrant_cancelled">Entrant cancelled successfully</string>
     <string name="cancel_entrant_failed">Failed to cancel entrant</string>
+
+    <!-- Replacement Draw -->
+    <string name="draw_replacement_title">Draw Replacement</string>
+    <string name="draw_replacement_message">Enter the number of replacement entrants to select from the waiting list:</string>
+    <string name="number_of_replacements">Number of Replacements</string>
+    <string name="draw_replacement_button">Draw Replacements</string>
+    <string name="replacement_executing">Executing replacement draw…</string>
+    <string name="replacement_success">Replacement draw completed! %d replacements selected.</string>
+    <string name="replacement_failed">Failed to execute replacement draw</string>
+    <string name="replacement_no_entrants">No eligible entrants for replacement draw</string>
+    <string name="replacement_insufficient">Not enough eligible entrants for replacement</string>
+    <string name="replacement_invalid_number">Please enter a valid number</string>
 
     <!-- Map -->
     <string name="map_title">Entrant Locations</string>
