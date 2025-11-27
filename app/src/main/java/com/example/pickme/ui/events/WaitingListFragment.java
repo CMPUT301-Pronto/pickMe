@@ -1,14 +1,18 @@
 package com.example.pickme.ui.events;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.example.pickme.R;
 import com.example.pickme.models.Event;
 import com.example.pickme.models.Profile;
 import com.example.pickme.repositories.EventRepository;
@@ -25,13 +29,14 @@ import com.example.pickme.utils.Constants;
  * - Displays join timestamps for each entrant
  * - Allows organizer to cancel/remove entrants from waiting list
  * - Sends notification to cancelled entrants
+ * - View entrant locations on map (if geolocation enabled)
  *
  * This fragment extends BaseEntrantListFragment which provides:
  * - Lifecycle-aware profile loading
  * - Thread-safe data handling
  * - Common UI state management
  *
- * Related User Stories: US 02.02.01, US 02.02.02, US 02.06.02
+ * Related User Stories: US 02.02.01, US 02.02.02, US 02.02.03, US 02.06.02
  */
 public class WaitingListFragment extends BaseEntrantListFragment
         implements EntrantAdapter.OnEntrantActionListener {
@@ -61,11 +66,13 @@ public class WaitingListFragment extends BaseEntrantListFragment
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        // Map is accessed via ManageEventActivity's action menu, not a FAB
         loadEvent();
     }
 
     /**
-     * Load the event object for use in notifications
+     * Load the event object for use in notifications and geolocation check
      */
     private void loadEvent() {
         if (eventId != null) {
@@ -73,6 +80,7 @@ public class WaitingListFragment extends BaseEntrantListFragment
                 @Override
                 public void onEventLoaded(Event event) {
                     currentEvent = event;
+                    updateMapButtonVisibility();
                 }
 
                 @Override
@@ -81,6 +89,14 @@ public class WaitingListFragment extends BaseEntrantListFragment
                 }
             });
         }
+    }
+
+    /**
+     * Update map button visibility based on geolocation requirement
+     * Note: Map is now accessed via ManageEventActivity's action menu
+     */
+    private void updateMapButtonVisibility() {
+        // No UI update needed - map access is via the action menu in ManageEventActivity
     }
 
     @Override
@@ -117,6 +133,44 @@ public class WaitingListFragment extends BaseEntrantListFragment
     @Override
     protected EntrantAdapter.OnEntrantActionListener getActionListener() {
         return this;
+    }
+
+    // ==================== Map Feature ====================
+
+    /**
+     * Open the entrant map activity to view locations
+     * Can be called from the fragment or parent activity
+     */
+    public void openEntrantMap() {
+        if (getActivity() == null || eventId == null) return;
+
+        // Check if geolocation was enabled for this event
+        if (currentEvent != null && !currentEvent.isGeolocationRequired()) {
+            Toast.makeText(getContext(),
+                    R.string.geolocation_not_enabled,
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(getActivity(), EntrantMapActivity.class);
+        intent.putExtra(EntrantMapActivity.EXTRA_EVENT_ID, eventId);
+        startActivity(intent);
+    }
+
+    /**
+     * Check if geolocation is enabled for this event
+     * @return true if geolocation is required
+     */
+    public boolean isGeolocationEnabled() {
+        return currentEvent != null && currentEvent.isGeolocationRequired();
+    }
+
+    /**
+     * Get the current event
+     * @return Event object or null if not loaded
+     */
+    public Event getCurrentEvent() {
+        return currentEvent;
     }
 
     // ==================== OnEntrantActionListener Implementation ====================

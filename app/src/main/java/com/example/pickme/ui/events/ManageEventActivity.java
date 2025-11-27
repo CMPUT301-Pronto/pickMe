@@ -248,6 +248,7 @@ public class ManageEventActivity extends AppCompatActivity {
                 "Update Poster",
                 "Export Lists",
                 "View QR Code",
+                "View Entrant Map", // NEW: Added map option
                 "Edit Registration Dates"
         };
 
@@ -273,13 +274,42 @@ public class ManageEventActivity extends AppCompatActivity {
                         case 5:
                             showQRCode();
                             break;
-                        case 5:
+                        case 6:
+                            openEntrantMap();  // NEW: Handle map action
+                            break;
+                        case 7:
                             showEditRegistrationDatesDialog();
                             break;
 
                     }
                 })
                 .show();
+    }
+
+    /**
+     * Open the entrant map to view where entrants joined from
+     * Only available if geolocation was enabled for the event
+     */
+    private void openEntrantMap() {
+        if (currentEvent == null) {
+            Toast.makeText(this, "Event data not loaded", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Check if geolocation was enabled for this event
+        if (!currentEvent.isGeolocationRequired()) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.no_location_data_title)
+                    .setMessage(R.string.geolocation_not_enabled_message)
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
+            return;
+        }
+
+        // Open the map activity
+        Intent intent = new Intent(this, EntrantMapActivity.class);
+        intent.putExtra(EntrantMapActivity.EXTRA_EVENT_ID, eventId);
+        startActivity(intent);
     }
 
     private void showLotteryDrawDialog() {
@@ -873,6 +903,5 @@ public class ManageEventActivity extends AppCompatActivity {
         finish();
         return true;
     }
-
 }
 
