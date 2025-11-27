@@ -61,6 +61,8 @@ public class ProfileFragment extends Fragment {
     // UI
     private CircleImageView profileImage;
     private Button btnChangePhoto, btnSave, btnViewHistory, btnDeleteAccount;
+
+    private SwitchMaterial switchNotifications;
     private TextInputEditText etName, etEmail, etPhone;
     private Spinner spinnerRole;
     private ProgressBar progressBar;
@@ -110,6 +112,7 @@ public class ProfileFragment extends Fragment {
         btnViewHistory = root.findViewById(R.id.btnViewHistory);
         btnDeleteAccount = root.findViewById(R.id.btnDeleteAccount);
         progressBar = root.findViewById(R.id.progressBar);
+        switchNotifications = root.findViewById(R.id.switchNotifications);
 
         // Spinner
         String[] roles = {
@@ -159,6 +162,10 @@ public class ProfileFragment extends Fragment {
         btnViewHistory.setOnClickListener(v ->
                 startActivity(new Intent(requireContext(), EventHistoryActivity.class)));
         btnDeleteAccount.setOnClickListener(v -> showDeleteAccountDialog());
+
+        switchNotifications.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            notificationsEnabled = isChecked;
+        });
     }
 
     private void loadProfile() {
@@ -184,6 +191,8 @@ public class ProfileFragment extends Fragment {
         etName.setText(profile.getName());
         etEmail.setText(profile.getEmail());
         etPhone.setText(profile.getPhoneNumber());
+        notificationsEnabled = profile.isNotificationEnabled();
+        switchNotifications.setChecked(notificationsEnabled);
 
         int rolePosition = 0;
         if (Profile.ROLE_ORGANIZER.equals(profile.getRole())) rolePosition = 1;

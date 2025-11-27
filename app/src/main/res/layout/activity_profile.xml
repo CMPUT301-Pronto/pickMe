@@ -95,6 +95,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textPersonName"
+                android:textColor="@color/black"
                 android:maxLines="1" />
 
         </com.google.android.material.textfield.TextInputLayout>
@@ -118,6 +119,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textEmailAddress"
+                android:textColor="@color/black"
                 android:maxLines="1" />
 
         </com.google.android.material.textfield.TextInputLayout>
@@ -141,6 +143,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="phone"
+                android:textColor="@color/black"
                 android:maxLines="1" />
 
         </com.google.android.material.textfield.TextInputLayout>
@@ -254,14 +257,15 @@
             style="@style/Widget.PickMe.Button.Text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="100dp"
             android:text="@string/profile_delete_account"
             android:textColor="@color/error_red"
             android:textSize="14sp"
-            android:layout_marginTop="24dp"
-            app:layout_constraintTop_toBottomOf="@id/btnViewHistory"
-            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/btnViewHistory" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
