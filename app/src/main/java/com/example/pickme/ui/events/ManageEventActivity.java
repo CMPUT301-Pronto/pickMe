@@ -248,7 +248,7 @@ public class ManageEventActivity extends AppCompatActivity {
                 "Update Poster",
                 "Export Lists",
                 "View QR Code",
-                "View Entrant Map"  // NEW: Added map option
+                "View Entrant Map", // NEW: Added map option
                 "Edit Registration Dates"
         };
 
