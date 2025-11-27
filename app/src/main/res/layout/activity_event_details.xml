@@ -31,6 +31,7 @@
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
                 android:src="@drawable/ic_launcher_foreground"
+                android:contentDescription="@string/event_poster"
                 app:layout_collapseMode="parallax" />
 
             <!-- Gradient Overlay -->
@@ -52,10 +53,14 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
+    <!-- Keep scroll behavior; add bottom padding so content doesn't hide under the sticky button -->
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:clipToPadding="false"
+        android:paddingBottom="88dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -298,24 +303,26 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
-            <!-- Action Button -->
-            <Button
-                android:id="@+id/btnJoinLeave"
-                style="@style/Widget.PickMe.Button"
-                android:layout_width="0dp"
-                android:layout_height="56dp"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="16dp"
-                android:text="@string/join_waiting_list"
-                android:textSize="16sp"
-                app:layout_constraintTop_toBottomOf="@id/tvLotteryCriteria"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent" />
-
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.core.widget.NestedScrollView>
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+    <!-- Sticky bottom overlay containing the join/leave CTA. This keeps the button visible at the bottom of the screen. -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:padding="16dp"
+        android:layout_marginBottom="0dp">
 
+        <Button
+            android:id="@+id/btnJoinLeave"
+            style="@style/Widget.PickMe.Button"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="@string/join_waiting_list"
+            android:textSize="16sp" />
+
+    </FrameLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

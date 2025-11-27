@@ -81,7 +81,7 @@
     <string name="event_capacity">Capacity: %d</string>
     <string name="waiting_list_status">Waiting list: %d entrants</string>
     <string name="lottery_criteria">Lottery Selection</string>
-    <string name="lottery_criteria_description">Winners will be randomly selected from the waiting list when registration closes.</string>
+    <string name="lottery_criteria_description">How the lottery works:\n\n• Random selection: winners are chosen at random from the waiting list to ensure a fair process.\n\n• When it runs: the lottery is executed after registration closes for the event and eligible entrants are considered.\n\n• If selected: you will receive an invitation and must respond by the deadline in the invitation. If you do not respond or you decline, your spot may be offered to another entrant.\n\n• Replacement draws: if selected entrants decline, the organizer or system may run a replacement draw to choose additional entrants from the remaining waiting list.</string>
     <string name="geolocation_required">Location tracking required for this event</string>
 
     <!-- Event Actions -->
