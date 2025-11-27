@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Select new registration dates"
+        android:textSize="14sp"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Registration Start Date -->
+    <com.google.android.material.textfield.TextInputLayout
+        style="@style/Widget.PickMe.EditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Registration Start Date">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etEditRegStartDate"
+            android:focusable="false"
+            android:inputType="none"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Registration End Date -->
+    <com.google.android.material.textfield.TextInputLayout
+        style="@style/Widget.PickMe.EditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Registration End Date"
+        android:layout_marginTop="12dp">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etEditRegEndDate"
+            android:focusable="false"
+            android:inputType="none"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+</LinearLayout>

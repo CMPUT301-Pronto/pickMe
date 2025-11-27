@@ -194,6 +194,7 @@
 
         </LinearLayout>
 
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Floating Action Button -->
@@ -205,8 +206,10 @@
         android:layout_marginRight="10dp"
         android:layout_marginBottom="85dp"
         android:contentDescription="@string/scan_qr_code"
-        android:src="@android:drawable/ic_menu_camera"
         app:backgroundTint="@color/primary_pink"
+        app:srcCompat="@drawable/ic_qr_scanner"
+        app:fabSize="normal"
+        app:maxImageSize="32dp"
         app:tint="@color/text_on_primary"
         tools:layout_editor_absoluteX="331dp"
         tools:layout_editor_absoluteY="434dp" />

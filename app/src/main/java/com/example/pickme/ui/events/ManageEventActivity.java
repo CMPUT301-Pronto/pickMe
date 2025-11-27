@@ -2,6 +2,7 @@ package com.example.pickme.ui.events;
 
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -31,10 +32,12 @@ import com.example.pickme.repositories.ImageRepository;
 import com.example.pickme.services.LotteryService;
 import com.example.pickme.services.NotificationService;
 import com.example.pickme.services.QRCodeGenerator;
+import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.example.pickme.utils.CsvExporter;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -243,7 +246,8 @@ public class ManageEventActivity extends AppCompatActivity {
                 "Send Notification",
                 "Update Poster",
                 "Export Lists",
-                "View QR Code"
+                "View QR Code",
+                "Edit Registration Dates"
         };
 
         new AlertDialog.Builder(this)
@@ -265,6 +269,10 @@ public class ManageEventActivity extends AppCompatActivity {
                         case 4:
                             showQRCode();
                             break;
+                        case 5:
+                            showEditRegistrationDatesDialog();
+                            break;
+
                     }
                 })
                 .show();
@@ -651,10 +659,105 @@ public class ManageEventActivity extends AppCompatActivity {
         }
     }
 
+
+
+    // Allows the organizer to edit registration dates before lottery is drawn.
+
+    private void showEditRegistrationDatesDialog() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_registration_dates, null);
+        TextInputEditText etRegStart = dialogView.findViewById(R.id.etEditRegStartDate);
+        TextInputEditText etRegEnd = dialogView.findViewById(R.id.etEditRegEndDate);
+
+        // Pre-fill current dates
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+        long currentStart = currentEvent.getRegistrationStartDate();
+        long currentEnd = currentEvent.getRegistrationEndDate();
+        long eventDate = !currentEvent.getEventDates().isEmpty() ? currentEvent.getEventDates().get(0) : 0;
+
+        final long[] newStart = {currentStart};
+        final long[] newEnd = {currentEnd};
+
+        etRegStart.setText(dateFormat.format(new Date(currentStart)));
+        etRegEnd.setText(dateFormat.format(new Date(currentEnd)));
+
+        etRegStart.setOnClickListener(v -> {
+            MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker()
+                    .setTitleText("Select Registration Start Date")
+                    .setSelection(newStart[0])
+                    .build();
+            picker.show(getSupportFragmentManager(), "reg_start_picker");
+            picker.addOnPositiveButtonClickListener(selection -> {
+                newStart[0] = selection;
+                etRegStart.setText(dateFormat.format(new Date(selection)));
+            });
+        });
+
+        // MaterialDatePicker for End Date
+        etRegEnd.setOnClickListener(v -> {
+            MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker()
+                    .setTitleText("Select Registration End Date")
+                    .setSelection(newEnd[0])
+                    .build();
+            picker.show(getSupportFragmentManager(), "reg_end_picker");
+            picker.addOnPositiveButtonClickListener(selection -> {
+                newEnd[0] = selection;
+                etRegEnd.setText(dateFormat.format(new Date(selection)));
+            });
+        });
+
+        new AlertDialog.Builder(this)
+                .setTitle("Edit Registration Dates")
+                .setView(dialogView)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    // Validate
+                    if (newStart[0] == 0 || newEnd[0] == 0) {
+                        Toast.makeText(this, "Please select both start and end dates.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (newEnd[0] <= newStart[0]) {
+                        Toast.makeText(this, R.string.error_reg_end_before_start, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (eventDate <= newEnd[0]) {
+                        Toast.makeText(this, R.string.error_event_date_before_reg, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // Show centered transparent progress bar overlay
+                    ProgressBar pb = new ProgressBar(this);
+                    AlertDialog progressDialog = new AlertDialog.Builder(this)
+                            .setView(pb)
+                            .setCancelable(false)
+                            .create();
+                    if (progressDialog.getWindow() != null) {
+                        progressDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+                    }
+                    progressDialog.show();
+
+                    // Update Firestore
+                    eventRepository.updateRegistrationDates(
+                            currentEvent.getEventId(), newStart[0], newEnd[0],
+                            aVoid -> {
+                                progressDialog.dismiss();
+                                currentEvent.setRegistrationStartDate(newStart[0]);
+                                currentEvent.setRegistrationEndDate(newEnd[0]);
+                                Toast.makeText(this, "Registration dates updated successfully!", Toast.LENGTH_SHORT).show();
+                                displayEventDetails(currentEvent);
+                            },
+                            e -> {
+                                progressDialog.dismiss();
+                                Toast.makeText(this, "Failed to update dates: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                    );
+                })
+                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
     @Override
     public boolean onSupportNavigateUp() {
         finish();
         return true;
     }
+
 }
 

@@ -10,6 +10,8 @@ import com.example.pickme.models.WaitingList;
 import com.example.pickme.services.FirebaseManager;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.Transaction;
 import com.google.firebase.firestore.WriteBatch;
@@ -276,6 +278,24 @@ public class EventRepository extends BaseRepository {
                     listener.onError(e);
                 });
     }
+    /**
+     * Update registration start and end dates for an event
+     */
+    public void updateRegistrationDates(String eventId, long startDate, long endDate,
+                                        com.google.android.gms.tasks.OnSuccessListener<Void> onSuccess,
+                                        com.google.android.gms.tasks.OnFailureListener onFailure) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("registrationStartDate", startDate);
+        updates.put("registrationEndDate", endDate);
+
+        db.collection("events")
+                .document(eventId)
+                .update(updates)
+                .addOnSuccessListener(onSuccess)
+                .addOnFailureListener(onFailure);
+    }
+
+
 
     // ==================== Waiting List Operations ====================
 
