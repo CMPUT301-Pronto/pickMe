@@ -7,6 +7,7 @@ import com.example.pickme.models.EventStatus;
 import com.example.pickme.models.Profile;
 import com.example.pickme.models.WaitingList;
 import com.example.pickme.models.WaitingList;
+import com.example.pickme.repositories.ProfileRepository;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -472,6 +473,17 @@ public class EntrantUserStoriesTest {
         Profile secondProfile = new Profile(deviceId, "First Launch", "first@test.com");
         assertEquals("Device ID should persist",
                 firstProfile.getUserId(), secondProfile.getUserId());
+    }
+
+    @Test
+    public  void testDeleteProfile(){
+        // Add a profile
+        Profile profile = new Profile("testProfileID", "testProfileName", "testProfileEmail");
+        profile.setPhoneNumber("555-1234");
+        profile.setRole("entrant");
+
+        //Check if Profile is in database
+
     }
 }
 

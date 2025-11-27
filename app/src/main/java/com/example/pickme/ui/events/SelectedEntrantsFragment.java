@@ -12,6 +12,7 @@ import androidx.annotation.Nullable;
 import com.example.pickme.models.Event;
 import com.example.pickme.models.Profile;
 import com.example.pickme.repositories.EventRepository;
+import com.example.pickme.services.LotteryService;
 import com.example.pickme.services.NotificationService;
 import com.example.pickme.utils.Constants;
 
@@ -40,6 +41,7 @@ public class SelectedEntrantsFragment extends BaseEntrantListFragment
     private static final String TAG = "SelectedFragment";
 
     private NotificationService notificationService;
+    private LotteryService lotteryService;
     private Event currentEvent;
 
     /**
@@ -57,6 +59,7 @@ public class SelectedEntrantsFragment extends BaseEntrantListFragment
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         notificationService = NotificationService.getInstance();
+        lotteryService = LotteryService.getInstance();
     }
 
     @Override
@@ -187,6 +190,9 @@ public class SelectedEntrantsFragment extends BaseEntrantListFragment
                             Toast.makeText(getContext(),
                                     "Entrant cancelled successfully",
                                     Toast.LENGTH_SHORT).show();
+
+                            // Offer replacement draw option
+                            offerReplacementDraw();
                         }
                     }
                 },
@@ -234,5 +240,89 @@ public class SelectedEntrantsFragment extends BaseEntrantListFragment
                     }
                 }
         );
+    }
+
+    /**
+     * Offer replacement draw option after cancelling an entrant
+     * Shows a dialog asking if organizer wants to draw a replacement
+     */
+    private void offerReplacementDraw() {
+        if (getContext() == null || !isAdded()) return;
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("Draw Replacement?")
+                .setMessage("Would you like to draw a replacement entrant from the waiting list?")
+                .setPositiveButton("Draw Replacement", (dialog, which) -> {
+                    executeReplacementDraw(1);
+                })
+                .setNegativeButton("Not Now", null)
+                .show();
+    }
+
+    /**
+     * Execute replacement draw to fill the cancelled spot
+     *
+     * @param numberOfReplacements Number of replacements to draw (usually 1)
+     */
+    private void executeReplacementDraw(int numberOfReplacements) {
+        if (!isAdded() || currentEvent == null) return;
+
+        showLoading(true);
+
+        lotteryService.executeReplacementDraw(eventId, numberOfReplacements,
+                new LotteryService.OnLotteryCompleteListener() {
+                    @Override
+                    public void onLotteryComplete(LotteryService.LotteryResult result) {
+                        if (!isAdded()) return;
+
+                        showLoading(false);
+
+                        if (result.winners.isEmpty()) {
+                            Toast.makeText(getContext(),
+                                    "No eligible entrants available for replacement",
+                                    Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        Toast.makeText(getContext(),
+                                result.winners.size() + " replacement(s) selected",
+                                Toast.LENGTH_SHORT).show();
+
+                        // Refresh to show updated lists
+                        refresh();
+
+                        // Send notifications to replacement winners
+                        notificationService.sendReplacementDrawNotification(
+                                result.winners,
+                                currentEvent,
+                                new NotificationService.OnNotificationSentListener() {
+                                    @Override
+                                    public void onNotificationSent(int sentCount) {
+                                        Log.d(TAG, "Replacement notifications sent: " + sentCount);
+                                    }
+
+                                    @Override
+                                    public void onError(Exception e) {
+                                        Log.e(TAG, "Failed to send replacement notifications", e);
+                                    }
+                                }
+                        );
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        if (!isAdded()) return;
+
+                        showLoading(false);
+                        Log.e(TAG, "Replacement draw failed", e);
+
+                        String message = "Failed to draw replacement";
+                        if (e.getMessage() != null && e.getMessage().contains("No eligible")) {
+                            message = "No eligible entrants available for replacement";
+                        }
+
+                        Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 }

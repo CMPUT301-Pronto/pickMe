@@ -105,7 +105,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginRight="10dp"
-        android:layout_marginBottom="65dp"
+        android:layout_marginBottom="85dp"
         android:contentDescription="@string/create_event_fab"
         android:src="@android:drawable/ic_menu_add"
         app:tint="@color/text_on_primary"

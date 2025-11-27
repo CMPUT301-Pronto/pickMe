@@ -107,7 +107,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="textCapWords"
-                    android:maxLines="1" />
+                    android:maxLines="1"
+                    android:textColor="@color/black" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -127,10 +128,11 @@
                     android:id="@+id/etEventDescription"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="top"
                     android:inputType="textMultiLine"
                     android:maxLines="4"
                     android:minLines="3"
-                    android:gravity="top" />
+                    android:textColor="@color/black" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -151,7 +153,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="text"
-                    android:maxLines="2" />
+                    android:maxLines="2"
+                    android:textColor="@color/black" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -185,9 +188,10 @@
                     android:id="@+id/etEventDate"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:focusable="false"
                     android:clickable="true"
-                    android:inputType="none" />
+                    android:focusable="false"
+                    android:inputType="none"
+                    android:textColor="@color/black" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -222,9 +226,10 @@
                     android:id="@+id/etRegStartDate"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:focusable="false"
                     android:clickable="true"
-                    android:inputType="none" />
+                    android:focusable="false"
+                    android:inputType="none"
+                    android:textColor="@color/black" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -246,9 +251,10 @@
                     android:id="@+id/etRegEndDate"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:focusable="false"
                     android:clickable="true"
-                    android:inputType="none" />
+                    android:focusable="false"
+                    android:inputType="none"
+                    android:textColor="@color/black" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -282,7 +288,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="number"
-                    android:maxLines="1" />
+                    android:maxLines="1"
+                    android:textColor="@color/black" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -304,7 +311,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="numberDecimal"
-                    android:maxLines="1" />
+                    android:maxLines="1"
+                    android:textColor="@color/black" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -338,7 +346,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="number"
-                    android:maxLines="1" />
+                    android:maxLines="1"
+                    android:textColor="@color/black" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
