@@ -51,6 +51,7 @@ public class Event implements Parcelable {
     private String posterImageUrl;
     private String status; // Stored as String for Firebase, use EventStatus enum
     private long invitationDeadlineMillis;
+    private String eventType; // Event category (Music, Sports, Conference, etc.)
     /**
      * Default constructor required for Firebase deserialization
      */
@@ -79,6 +80,13 @@ public class Event implements Parcelable {
     }
 
     // Getters and Setters
+    public String getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
 
     public String getEventId() {
         return eventId;
@@ -330,6 +338,7 @@ public class Event implements Parcelable {
         map.put("qrCodeId", qrCodeId);
         map.put("posterImageUrl", posterImageUrl);
         map.put("status", status);
+        map.put("eventType", eventType);
         return map;
     }
 
@@ -352,7 +361,7 @@ public class Event implements Parcelable {
         name = in.readString();
         description = in.readString();
         organizerId = in.readString();
-
+        eventType = in.readString();
         // Read List<Long> for event dates (avoiding deprecated readList)
         int eventDatesSize = in.readInt();
         eventDates = new ArrayList<>(eventDatesSize);
@@ -412,6 +421,7 @@ public class Event implements Parcelable {
         dest.writeString(qrCodeId);
         dest.writeString(posterImageUrl);
         dest.writeString(status);
+        dest.writeString(eventType);
     }
 }
 

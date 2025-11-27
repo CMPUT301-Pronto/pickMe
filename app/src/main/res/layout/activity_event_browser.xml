@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    activity_event_browser.xml - Updated with Filter Button
+
+    REPLACE your existing activity_event_browser.xml with this file.
+
+    Changes:
+    - Added filter button (ImageButton) next to search bar
+    - Added filter active indicator badge
+
+    Related User Stories: US 01.01.03
+-->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -22,15 +33,54 @@
             app:title="@string/event_browser_title"
             app:titleTextColor="@color/text_on_primary" />
 
-        <!-- Search Bar -->
-        <androidx.appcompat.widget.SearchView
-            android:id="@+id/searchView"
+        <!-- Search Bar with Filter Button -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="8dp"
-            android:background="@drawable/rounded_background"
-            app:queryHint="@string/search_events"
-            app:iconifiedByDefault="false" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="8dp">
+
+            <androidx.appcompat.widget.SearchView
+                android:id="@+id/searchView"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/rounded_background"
+                app:queryHint="@string/search_events"
+                app:iconifiedByDefault="false" />
+
+            <!-- Filter Button with Badge -->
+            <FrameLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp">
+
+                <ImageButton
+                    android:id="@+id/btnFilter"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/rounded_background"
+                    android:contentDescription="Filter events"
+                    android:src="@drawable/ic_filter"
+                    android:padding="12dp"
+                    android:scaleType="fitCenter" />
+
+                <!-- Filter Active Indicator (red dot) -->
+                <View
+                    android:id="@+id/filterActiveIndicator"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="4dp"
+                    android:background="@drawable/bg_filter_indicator"
+                    android:visibility="gone" />
+
+            </FrameLayout>
+
+        </LinearLayout>
 
         <!-- Filter Chips -->
         <HorizontalScrollView
@@ -160,5 +210,5 @@
         app:tint="@color/text_on_primary"
         tools:layout_editor_absoluteX="331dp"
         tools:layout_editor_absoluteY="434dp" />
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
 
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

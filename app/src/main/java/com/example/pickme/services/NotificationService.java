@@ -470,5 +470,39 @@ public class NotificationService {
                     listener.onError(e);
                 });
     }
+
+    // ============================================================
+// ADD THIS METHOD TO NotificationService.java
+//
+// Location: Add after the sendOrganizerMessage method
+// (around line 156 in your current file)
+// ============================================================
+
+    /**
+     * Send cancellation notification to an entrant who was cancelled by the organizer
+     *
+     * @param entrantId ID of the cancelled entrant
+     * @param event Event object
+     * @param reason Optional reason for cancellation (can be null)
+     * @param listener Callback
+     *
+     * Related User Stories: US 02.06.02
+     */
+    public void sendCancellationNotification(@NonNull String entrantId,
+                                             @NonNull Event event,
+                                             String reason,
+                                             @NonNull OnNotificationSentListener listener) {
+        String message;
+        if (reason != null && !reason.isEmpty()) {
+            message = "Your selection for " + event.getName() + " has been cancelled. Reason: " + reason;
+        } else {
+            message = "Your selection for " + event.getName() + " has been cancelled by the organizer.";
+        }
+
+        List<String> recipients = new ArrayList<>();
+        recipients.add(entrantId);
+
+        sendNotifications(recipients, message, "entrant_cancelled", event, listener);
+    }
 }
 

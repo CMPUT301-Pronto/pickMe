@@ -2,6 +2,7 @@ package com.example.pickme.ui.events;
 
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -21,26 +22,27 @@ import com.example.pickme.repositories.EventRepository;
 import com.example.pickme.services.DeviceAuthenticator;
 import com.example.pickme.services.GeolocationService;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
 /**
- * JAVADOC LLM GENERATED
- *
  * Displays details for a single {@link Event} and lets the user join/leave its waiting list.
  *
  * <p><b>Responsibilities</b></p>
  * <ul>
  *   <li>Render event metadata (poster, dates, price, location, etc.).</li>
  *   <li>Reflect registration state and waiting-list membership in UI.</li>
+ *   <li>Display real-time waiting list count.</li>
  *   <li>Gate joining by geolocation if required by the event.</li>
  *   <li>Coordinate with repositories/services for data and permissions.</li>
  * </ul>
  *
  * <p><b>Related User Stories:</b>
- * US 01.01.01, US 01.01.02, US 01.05.04, US 01.05.05</p>
+ * US 01.01.01, US 01.01.02, US 01.05.04, US 01.05.05, US 01.06.03</p>
  */
 public class EventDetailsActivity extends AppCompatActivity {
 
@@ -58,7 +60,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     private TextView tvWaitingListStatus;
     private TextView tvGeolocationWarning;
     private TextView tvEventDescription;
-    private TextView tvLotteryCriteria; // present for future criteria display
+    private TextView tvLotteryCriteria;
     private Button btnJoinLeave;
     private ProgressBar progressBar;
 
@@ -66,6 +68,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     private EventRepository eventRepository;
     private DeviceAuthenticator deviceAuthenticator;
     private GeolocationService geolocationService;
+    private FirebaseFirestore db;
 
     // State
     private String eventId;
@@ -73,6 +76,9 @@ public class EventDetailsActivity extends AppCompatActivity {
     private String currentUserId;
     private boolean isUserOnWaitingList = false;
     private SimpleDateFormat dateFormat;
+
+    // Real-time listener for waiting list count
+    private ListenerRegistration waitingListListener;
 
     /**
      * Lifecycle entry: inflates layout, wires services and UI, then loads the event.
@@ -129,10 +135,9 @@ public class EventDetailsActivity extends AppCompatActivity {
         eventRepository     = new EventRepository();
         deviceAuthenticator = DeviceAuthenticator.getInstance(this);
         geolocationService  = new GeolocationService(this);
+        db                  = FirebaseFirestore.getInstance();
 
-        // We may not have a cached profile yet; that's fine — we lazily init on demand
         currentUserId = deviceAuthenticator.getStoredUserId();
-
         dateFormat = new SimpleDateFormat("MMMM dd, yyyy", Locale.getDefault());
     }
 
@@ -145,7 +150,6 @@ public class EventDetailsActivity extends AppCompatActivity {
             setSupportActionBar(toolbar);
             if (getSupportActionBar() != null) {
                 getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-                // Title is shown in the collapsing layout instead
                 getSupportActionBar().setTitle("");
             }
             toolbar.setNavigationOnClickListener(v ->
@@ -168,8 +172,6 @@ public class EventDetailsActivity extends AppCompatActivity {
 
     /**
      * Fetches the event from the repository and renders it.
-     *
-     * <p>Also ensures we have a device user id before checking waiting-list membership.</p>
      */
     private void loadEvent() {
         showLoading(true);
@@ -179,6 +181,9 @@ public class EventDetailsActivity extends AppCompatActivity {
             public void onEventLoaded(Event event) {
                 currentEvent = event;
                 displayEvent(event);
+
+                // Start listening for waiting list count updates
+                startWaitingListListener();
 
                 // If we don't have a user id yet, initialize the device identity first
                 if (currentUserId == null || currentUserId.isEmpty()) {
@@ -193,7 +198,6 @@ public class EventDetailsActivity extends AppCompatActivity {
 
                                 @Override
                                 public void onError(Exception e) {
-                                    // Proceed without a user id; just render UI as "not joined"
                                     checkWaitingListStatusSafely();
                                     showLoading(false);
                                 }
@@ -223,7 +227,6 @@ public class EventDetailsActivity extends AppCompatActivity {
      */
     private void checkWaitingListStatusSafely() {
         if (currentEvent == null || currentUserId == null || currentUserId.isEmpty()) {
-            // No user -> reflect as "not on list"
             isUserOnWaitingList = false;
             updateButtonState();
             return;
@@ -274,12 +277,59 @@ public class EventDetailsActivity extends AppCompatActivity {
 
         tvCapacity.setText(getString(R.string.event_capacity, event.getCapacity()));
 
-        // TODO: Replace "0" with actual size of waiting list if you track it
+        // Initial waiting list count (will be updated by listener)
         tvWaitingListStatus.setText(getString(R.string.waiting_list_status, 0));
 
         tvGeolocationWarning.setVisibility(event.isGeolocationRequired() ? View.VISIBLE : View.GONE);
 
         tvEventDescription.setText(event.getDescription() != null ? event.getDescription() : "");
+    }
+
+    /**
+     * Start real-time listener for waiting list count.
+     * Updates the UI whenever entrants join or leave.
+     */
+    private void startWaitingListListener() {
+        // Remove any existing listener
+        stopWaitingListListener();
+
+        // Listen to the waitingList subcollection for this event
+        waitingListListener = db.collection("events")
+                .document(eventId)
+                .collection("waitingList")
+                .addSnapshotListener((querySnapshot, error) -> {
+                    if (error != null) {
+                        Log.e(TAG, "Error listening to waiting list", error);
+                        return;
+                    }
+
+                    if (querySnapshot != null) {
+                        int count = querySnapshot.size();
+                        updateWaitingListCount(count);
+                        Log.d(TAG, "Waiting list count updated: " + count);
+                    }
+                });
+    }
+
+    /**
+     * Stop the waiting list listener to prevent memory leaks.
+     */
+    private void stopWaitingListListener() {
+        if (waitingListListener != null) {
+            waitingListListener.remove();
+            waitingListListener = null;
+        }
+    }
+
+    /**
+     * Update the waiting list count in the UI.
+     *
+     * @param count Number of entrants on the waiting list
+     */
+    private void updateWaitingListCount(int count) {
+        if (tvWaitingListStatus != null) {
+            tvWaitingListStatus.setText(getString(R.string.waiting_list_status, count));
+        }
     }
 
     /**
@@ -298,7 +348,6 @@ public class EventDetailsActivity extends AppCompatActivity {
 
                     @Override
                     public void onError(Exception e) {
-                        // On error just assume not in list to keep UI usable
                         isUserOnWaitingList = false;
                         updateButtonState();
                     }
@@ -318,7 +367,6 @@ public class EventDetailsActivity extends AppCompatActivity {
             btnJoinLeave.setBackgroundColor(getColor(R.color.primary_pink));
         }
 
-        // If registration is closed, joining/leaving shouldn't be clickable
         btnJoinLeave.setEnabled(currentEvent != null && currentEvent.isRegistrationOpen());
     }
 
@@ -329,21 +377,18 @@ public class EventDetailsActivity extends AppCompatActivity {
         if (currentEvent == null) return;
 
         if (currentEvent.isGeolocationRequired()) {
-            // Need location permission first
             if (!geolocationService.hasLocationPermission(this)) {
                 showLocationPermissionDialog();
                 return;
             }
-            // Already have permission — capture and submit
             captureLocationAndJoin();
         } else {
-            // No geolocation requirement — submit directly
             addToWaitingList(null);
         }
     }
 
     /**
-     * Prompts the user for location permission and continues flow based on their decision.
+     * Prompts the user for location permission.
      */
     private void showLocationPermissionDialog() {
         new AlertDialog.Builder(this)
@@ -389,7 +434,7 @@ public class EventDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Submits the join request to the repository, optionally including a {@link Geolocation}.
+     * Submits the join request to the repository.
      *
      * @param location nullable location to attach if the event requires it.
      */
@@ -406,6 +451,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                         showLoading(false);
                         isUserOnWaitingList = true;
                         updateButtonState();
+                        // Count will update automatically via the listener
                         Toast.makeText(
                                 EventDetailsActivity.this,
                                 R.string.join_success,
@@ -455,6 +501,7 @@ public class EventDetailsActivity extends AppCompatActivity {
                         showLoading(false);
                         isUserOnWaitingList = false;
                         updateButtonState();
+                        // Count will update automatically via the listener
                         Toast.makeText(
                                 EventDetailsActivity.this,
                                 R.string.leave_success,
@@ -479,19 +526,19 @@ public class EventDetailsActivity extends AppCompatActivity {
 
     /**
      * Toggles the progress indicator and disables primary controls while work is in flight.
-     *
-     * @param show true to show progress and disable actions; false to hide and re-enable
      */
     private void showLoading(boolean show) {
         progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
         btnJoinLeave.setEnabled(!show);
     }
 
-    /**
-     * Handles up-navigation from the toolbar.
-     *
-     * @return true after finishing this Activity.
-     */
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Clean up the listener to prevent memory leaks
+        stopWaitingListListener();
+    }
+
     @Override
     public boolean onSupportNavigateUp() {
         finish();

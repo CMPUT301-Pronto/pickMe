@@ -11,6 +11,7 @@ package com.example.pickme.utils;
  * - Intent Extras: Keys for passing data between activities
  * - Intent Actions: Custom actions for internal app communication
  * - File Provider: Authority for file sharing
+ * - Event Types: Categories for event filtering
  */
 public final class Constants {
 
@@ -108,5 +109,54 @@ public final class Constants {
      * Firestore subcollection name for cancelled list
      */
     public static final String SUBCOLLECTION_CANCELLED = "cancelledList";
-}
 
+    // ==================== Event Types ====================
+
+    /**
+     * Event type constants for filtering
+     * Used in EventFilterDialogFragment and CreateEventActivity
+     */
+    public static final String EVENT_TYPE_ALL = "All";
+    public static final String EVENT_TYPE_MUSIC = "Music";
+    public static final String EVENT_TYPE_SPORTS = "Sports";
+    public static final String EVENT_TYPE_CONFERENCE = "Conference";
+    public static final String EVENT_TYPE_WORKSHOP = "Workshop";
+    public static final String EVENT_TYPE_SOCIAL = "Social";
+    public static final String EVENT_TYPE_FOOD_DRINK = "Food & Drink";
+    public static final String EVENT_TYPE_ARTS = "Arts";
+    public static final String EVENT_TYPE_TECHNOLOGY = "Technology";
+    public static final String EVENT_TYPE_OTHER = "Other";
+
+    /**
+     * Array of all event types for dropdowns and filter chips
+     * First element is "All" for filter dialogs
+     */
+    public static final String[] EVENT_TYPES = {
+            EVENT_TYPE_ALL,
+            EVENT_TYPE_MUSIC,
+            EVENT_TYPE_SPORTS,
+            EVENT_TYPE_CONFERENCE,
+            EVENT_TYPE_WORKSHOP,
+            EVENT_TYPE_SOCIAL,
+            EVENT_TYPE_FOOD_DRINK,
+            EVENT_TYPE_ARTS,
+            EVENT_TYPE_TECHNOLOGY,
+            EVENT_TYPE_OTHER
+    };
+
+    /**
+     * Array of event types for creation (excludes "All")
+     * Use this in CreateEventActivity dropdown
+     */
+    public static final String[] EVENT_TYPES_FOR_CREATION = {
+            EVENT_TYPE_MUSIC,
+            EVENT_TYPE_SPORTS,
+            EVENT_TYPE_CONFERENCE,
+            EVENT_TYPE_WORKSHOP,
+            EVENT_TYPE_SOCIAL,
+            EVENT_TYPE_FOOD_DRINK,
+            EVENT_TYPE_ARTS,
+            EVENT_TYPE_TECHNOLOGY,
+            EVENT_TYPE_OTHER
+    };
+}
