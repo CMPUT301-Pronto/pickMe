@@ -899,5 +899,284 @@ public class EventRepository extends BaseRepository {
                     listener.onError(e);
                 });
     }
+
+    /**
+     * Cancel a selected entrant (move from responsePendingList to cancelledList)
+     * Used when organizer wants to cancel an entrant who didn't complete registration
+     *
+     * This performs an atomic batch operation:
+     * 1. Copies entrant data to cancelledList with cancellation metadata
+     * 2. Deletes entrant from responsePendingList
+     *
+     * @param eventId Event ID
+     * @param entrantId User ID of the entrant to cancel
+     * @param reason Optional reason for cancellation
+     * @param onSuccess Success callback
+     * @param onFailure Failure callback
+     *
+     * Related User Stories: US 02.06.02
+     */
+    public void cancelSelectedEntrant(@NonNull String eventId,
+                                      @NonNull String entrantId,
+                                      String reason,
+                                      @NonNull OnSuccessListener onSuccess,
+                                      @NonNull OnFailureListener onFailure) {
+
+        // First, get the existing entrant data from responsePendingList
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .collection(SUBCOLLECTION_RESPONSE_PENDING)
+                .document(entrantId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        onFailure.onFailure(new Exception("Entrant not found in selected list"));
+                        return;
+                    }
+
+                    // Prepare cancelled list entry data
+                    Map<String, Object> cancelledData = new HashMap<>();
+                    cancelledData.put("entrantId", entrantId);
+                    cancelledData.put("cancelledTimestamp", System.currentTimeMillis());
+                    cancelledData.put("cancelledBy", "organizer"); // Indicates organizer initiated
+                    if (reason != null && !reason.isEmpty()) {
+                        cancelledData.put("cancellationReason", reason);
+                    }
+
+                    // Copy any existing data (like geolocation) from the original entry
+                    if (documentSnapshot.contains("latitude")) {
+                        cancelledData.put("latitude", documentSnapshot.getDouble("latitude"));
+                    }
+                    if (documentSnapshot.contains("longitude")) {
+                        cancelledData.put("longitude", documentSnapshot.getDouble("longitude"));
+                    }
+                    if (documentSnapshot.contains("selectedTimestamp")) {
+                        cancelledData.put("originalSelectedTimestamp", documentSnapshot.getLong("selectedTimestamp"));
+                    }
+
+                    // Use batch write for atomicity
+                    WriteBatch batch = db.batch();
+
+                    // Add to cancelled list
+                    batch.set(
+                            db.collection(COLLECTION_EVENTS)
+                                    .document(eventId)
+                                    .collection(SUBCOLLECTION_CANCELLED)
+                                    .document(entrantId),
+                            cancelledData
+                    );
+
+                    // Remove from response pending list
+                    batch.delete(
+                            db.collection(COLLECTION_EVENTS)
+                                    .document(eventId)
+                                    .collection(SUBCOLLECTION_RESPONSE_PENDING)
+                                    .document(entrantId)
+                    );
+
+                    // Commit the batch
+                    batch.commit()
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "Entrant cancelled successfully: " + entrantId + " from event: " + eventId);
+                                onSuccess.onSuccess(entrantId);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Failed to cancel entrant: " + entrantId, e);
+                                onFailure.onFailure(e);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get entrant data for cancellation", e);
+                    onFailure.onFailure(e);
+                });
+    }
+
+    /**
+     * Cancel a waiting list entrant (move from waitingList to cancelledList)
+     * Used when organizer wants to remove an entrant from the waiting list
+     *
+     * This performs an atomic batch operation:
+     * 1. Copies entrant data to cancelledList with cancellation metadata
+     * 2. Deletes entrant from waitingList
+     *
+     * @param eventId Event ID
+     * @param entrantId User ID of the entrant to cancel
+     * @param reason Optional reason for cancellation
+     * @param onSuccess Success callback
+     * @param onFailure Failure callback
+     *
+     * Related User Stories: US 02.06.02
+     */
+    public void cancelWaitingListEntrant(@NonNull String eventId,
+                                         @NonNull String entrantId,
+                                         String reason,
+                                         @NonNull OnSuccessListener onSuccess,
+                                         @NonNull OnFailureListener onFailure) {
+
+        // First, get the existing entrant data from waitingList
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .collection(SUBCOLLECTION_WAITING_LIST)
+                .document(entrantId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        onFailure.onFailure(new Exception("Entrant not found in waiting list"));
+                        return;
+                    }
+
+                    // Prepare cancelled list entry data
+                    Map<String, Object> cancelledData = new HashMap<>();
+                    cancelledData.put("entrantId", entrantId);
+                    cancelledData.put("cancelledTimestamp", System.currentTimeMillis());
+                    cancelledData.put("cancelledBy", "organizer");
+                    cancelledData.put("cancelledFrom", "waitingList");
+                    if (reason != null && !reason.isEmpty()) {
+                        cancelledData.put("cancellationReason", reason);
+                    }
+
+                    // Copy any existing data from the original entry
+                    if (documentSnapshot.contains("latitude")) {
+                        cancelledData.put("latitude", documentSnapshot.getDouble("latitude"));
+                    }
+                    if (documentSnapshot.contains("longitude")) {
+                        cancelledData.put("longitude", documentSnapshot.getDouble("longitude"));
+                    }
+                    if (documentSnapshot.contains("joinedTimestamp")) {
+                        cancelledData.put("originalJoinedTimestamp", documentSnapshot.getLong("joinedTimestamp"));
+                    }
+
+                    // Use batch write for atomicity
+                    WriteBatch batch = db.batch();
+
+                    // Add to cancelled list
+                    batch.set(
+                            db.collection(COLLECTION_EVENTS)
+                                    .document(eventId)
+                                    .collection(SUBCOLLECTION_CANCELLED)
+                                    .document(entrantId),
+                            cancelledData
+                    );
+
+                    // Remove from waiting list
+                    batch.delete(
+                            db.collection(COLLECTION_EVENTS)
+                                    .document(eventId)
+                                    .collection(SUBCOLLECTION_WAITING_LIST)
+                                    .document(entrantId)
+                    );
+
+                    // Commit the batch
+                    batch.commit()
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "Entrant cancelled from waiting list: " + entrantId + " from event: " + eventId);
+                                onSuccess.onSuccess(entrantId);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Failed to cancel waiting list entrant: " + entrantId, e);
+                                onFailure.onFailure(e);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get entrant data for cancellation", e);
+                    onFailure.onFailure(e);
+                });
+    }
+
+    /**
+     * Cancel a confirmed entrant (move from inEventList to cancelledList)
+     * Used when organizer wants to remove a confirmed attendee from the event
+     *
+     * This performs an atomic batch operation:
+     * 1. Copies entrant data to cancelledList with cancellation metadata
+     * 2. Deletes entrant from inEventList
+     *
+     * @param eventId Event ID
+     * @param entrantId User ID of the entrant to cancel
+     * @param reason Optional reason for cancellation
+     * @param onSuccess Success callback
+     * @param onFailure Failure callback
+     *
+     * Related User Stories: US 02.06.02
+     */
+    public void cancelConfirmedEntrant(@NonNull String eventId,
+                                       @NonNull String entrantId,
+                                       String reason,
+                                       @NonNull OnSuccessListener onSuccess,
+                                       @NonNull OnFailureListener onFailure) {
+
+        // First, get the existing entrant data from inEventList
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .collection(SUBCOLLECTION_IN_EVENT)
+                .document(entrantId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        onFailure.onFailure(new Exception("Entrant not found in confirmed list"));
+                        return;
+                    }
+
+                    // Prepare cancelled list entry data
+                    Map<String, Object> cancelledData = new HashMap<>();
+                    cancelledData.put("entrantId", entrantId);
+                    cancelledData.put("cancelledTimestamp", System.currentTimeMillis());
+                    cancelledData.put("cancelledBy", "organizer");
+                    cancelledData.put("cancelledFrom", "inEventList");
+                    if (reason != null && !reason.isEmpty()) {
+                        cancelledData.put("cancellationReason", reason);
+                    }
+
+                    // Copy any existing data from the original entry
+                    if (documentSnapshot.contains("latitude")) {
+                        cancelledData.put("latitude", documentSnapshot.getDouble("latitude"));
+                    }
+                    if (documentSnapshot.contains("longitude")) {
+                        cancelledData.put("longitude", documentSnapshot.getDouble("longitude"));
+                    }
+                    if (documentSnapshot.contains("acceptedTimestamp")) {
+                        cancelledData.put("originalAcceptedTimestamp", documentSnapshot.getLong("acceptedTimestamp"));
+                    }
+                    if (documentSnapshot.contains("joinedTimestamp")) {
+                        cancelledData.put("originalJoinedTimestamp", documentSnapshot.getLong("joinedTimestamp"));
+                    }
+
+                    // Use batch write for atomicity
+                    WriteBatch batch = db.batch();
+
+                    // Add to cancelled list
+                    batch.set(
+                            db.collection(COLLECTION_EVENTS)
+                                    .document(eventId)
+                                    .collection(SUBCOLLECTION_CANCELLED)
+                                    .document(entrantId),
+                            cancelledData
+                    );
+
+                    // Remove from in-event list
+                    batch.delete(
+                            db.collection(COLLECTION_EVENTS)
+                                    .document(eventId)
+                                    .collection(SUBCOLLECTION_IN_EVENT)
+                                    .document(entrantId)
+                    );
+
+                    // Commit the batch
+                    batch.commit()
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "Confirmed entrant cancelled: " + entrantId + " from event: " + eventId);
+                                onSuccess.onSuccess(entrantId);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Failed to cancel confirmed entrant: " + entrantId, e);
+                                onFailure.onFailure(e);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get entrant data for cancellation", e);
+                    onFailure.onFailure(e);
+                });
+    }
+
 }
 

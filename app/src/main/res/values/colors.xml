@@ -18,6 +18,7 @@
     <color name="text_on_primary">#FFFFFF</color>
 
     <!-- Accent and UI Elements -->
+    <color name="card_color">#fdf3f3</color>
     <color name="accent_color">#EF8A87</color>
     <color name="error_red">#F44336</color>
     <color name="success_green">#4CAF50</color>
