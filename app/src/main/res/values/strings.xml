@@ -261,10 +261,22 @@
 
     <!-- Cancel Entrant -->
     <string name="cancel_entrant_title">Cancel Entrant</string>
-    <string name="cancel_entrant_message">Are you sure you want to cancel this entrant? This will trigger a replacement draw if available.</string>
+    <string name="cancel_entrant_message">Are you sure you want to cancel this entrant? This will move them to the cancelled list.</string>
     <string name="cancel_entrant_button">Cancel Entrant</string>
     <string name="entrant_cancelled">Entrant cancelled successfully</string>
     <string name="cancel_entrant_failed">Failed to cancel entrant</string>
+
+    <!-- Replacement Draw -->
+    <string name="draw_replacement_title">Draw Replacement</string>
+    <string name="draw_replacement_message">Enter the number of replacement entrants to select from the waiting list:</string>
+    <string name="number_of_replacements">Number of Replacements</string>
+    <string name="draw_replacement_button">Draw Replacements</string>
+    <string name="replacement_executing">Executing replacement draw…</string>
+    <string name="replacement_success">Replacement draw completed! %d replacements selected.</string>
+    <string name="replacement_failed">Failed to execute replacement draw</string>
+    <string name="replacement_no_entrants">No eligible entrants for replacement draw</string>
+    <string name="replacement_insufficient">Not enough eligible entrants for replacement</string>
+    <string name="replacement_invalid_number">Please enter a valid number</string>
 
     <!-- Map -->
     <string name="map_title">Entrant Locations</string>
