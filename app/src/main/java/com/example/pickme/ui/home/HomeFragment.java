@@ -12,6 +12,11 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.pickme.databinding.FragmentHomeBinding;
 
+/**
+ * A subclass that displays the main home screen content.
+ * <p>
+ *
+ */
 public class HomeFragment extends Fragment {
 
     private FragmentHomeBinding binding;
