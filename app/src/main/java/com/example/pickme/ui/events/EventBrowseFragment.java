@@ -132,6 +132,7 @@ public class EventBrowseFragment extends Fragment implements EventFilterDialogFr
         recyclerViewEvents.setAdapter(eventAdapter);
 
         eventAdapter.setOnEventClickListener(event -> {
+            if (!isAdded() || getContext() == null) return;
             Intent intent = new Intent(requireContext(), EventDetailsActivity.class);
             intent.putExtra(EXTRA_EVENT_ID, event.getEventId());
             startActivity(intent);
@@ -177,6 +178,8 @@ public class EventBrowseFragment extends Fragment implements EventFilterDialogFr
      * Show the filter dialog with current filter state
      */
     private void showFilterDialog() {
+        if (!isAdded()) return;
+
         // Collect unique locations from all events
         List<String> availableLocations = getUniqueLocations();
 
@@ -235,6 +238,10 @@ public class EventBrowseFragment extends Fragment implements EventFilterDialogFr
         eventRepository.getEventsForEntrant(new EventRepository.OnEventsLoadedListener() {
             @Override
             public void onEventsLoaded(List<Event> events) {
+                // Check if fragment is still attached before updating UI
+                if (!isAdded() || getContext() == null) {
+                    return;
+                }
                 allEvents = events;
                 applyFilters();
                 showLoading(false);
@@ -242,11 +249,15 @@ public class EventBrowseFragment extends Fragment implements EventFilterDialogFr
 
             @Override
             public void onError(Exception e) {
+                // Check if fragment is still attached before updating UI
+                if (!isAdded() || getContext() == null) {
+                    return;
+                }
                 showLoading(false);
-                Toast.makeText(requireContext(),
+                showEmptyState(true, getString(R.string.error_occurred));
+                Toast.makeText(getContext(),
                         getString(R.string.error_occurred) + ": " + e.getMessage(),
                         Toast.LENGTH_SHORT).show();
-                showEmptyState(true, getString(R.string.error_occurred));
             }
         });
     }
@@ -255,6 +266,9 @@ public class EventBrowseFragment extends Fragment implements EventFilterDialogFr
      * Apply all filters (search, chips, and advanced filters)
      */
     private void applyFilters() {
+        // Safety check for fragment lifecycle
+        if (!isAdded()) return;
+
         filteredEvents = new ArrayList<>(allEvents);
 
         // 1. Apply search query filter
@@ -357,24 +371,32 @@ public class EventBrowseFragment extends Fragment implements EventFilterDialogFr
     }
 
     private void launchQRScanner() {
+        if (!isAdded() || getContext() == null) return;
+
         if (getActivity() instanceof com.example.pickme.MainActivity) {
             ((com.example.pickme.MainActivity) getActivity()).launchQRScanner();
         } else {
-            Toast.makeText(requireContext(),
+            Toast.makeText(getContext(),
                     "QR scanner not available",
                     Toast.LENGTH_SHORT).show();
         }
     }
 
     private void showLoading(boolean show) {
+        if (!isAdded() || progressBar == null || recyclerViewEvents == null) return;
+
         progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
         recyclerViewEvents.setVisibility(show ? View.GONE : View.VISIBLE);
     }
 
     private void showEmptyState(boolean show, String message) {
+        if (!isAdded() || emptyStateLayout == null || recyclerViewEvents == null) return;
+
         emptyStateLayout.setVisibility(show ? View.VISIBLE : View.GONE);
         recyclerViewEvents.setVisibility(show ? View.GONE : View.VISIBLE);
-        tvEmptyMessage.setText(message);
+        if (tvEmptyMessage != null) {
+            tvEmptyMessage.setText(message);
+        }
     }
 
     @Override
