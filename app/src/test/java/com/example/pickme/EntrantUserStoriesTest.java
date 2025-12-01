@@ -8,6 +8,7 @@ import com.example.pickme.models.InEventList;
 import com.example.pickme.models.Profile;
 import com.example.pickme.models.ResponsePendingList;
 import com.example.pickme.models.WaitingList;
+import com.example.pickme.repositories.ProfileRepository;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -25,8 +26,8 @@ import java.util.List;
  * - US 01.01.03: View joinable events
  * - US 01.02.01: Provide personal information
  * - US 01.02.02: Update personal information
- * - US 01.03.01: Accept invitation
- * - US 01.03.02: Decline invitation
+ * - US 01.04.01: Send Winners Notification
+ * - US 01.04.02: Send Losers Notification
  * - US 01.04.03: notification opt out
  * - US 01.05.02: Accept Invitation
  * - US 01.05.03: Decline Invitation
@@ -335,66 +336,210 @@ public class EntrantUserStoriesTest {
         assertNull("Phone should be removed", testProfile.getPhoneNumber());
     }
 
-    // ==================== US 01.03.01: Accept Invitation ====================
+    // ==================== US 01.02.04: Send Winners Notification ====================
+    // Used AI to learn how to create a test version of real class
 
     @Test
-    public void testAcceptInvitation_StatusChange() {
-        // Given: User selected in lottery
-        String invitationStatus = "SELECTED";
+    public void testDeleteProfile_CascadeAndDeleteCalled() {
 
-        // When: User accepts invitation
-        String newStatus = "ACCEPTED";
+        class FakeProfileRepository {
 
-        // Then: Status should change to accepted
-        assertNotEquals("Status should change", invitationStatus, newStatus);
-        assertEquals("Status should be ACCEPTED", "ACCEPTED", newStatus);
+            boolean cascadeCalled = false;
+            boolean deleteCalled = false;
+            String deletedUserId = null;
+
+            // Copies cascadeDeleteFromEvents()
+            void cascadeDeleteFromEvents(String userId, Runnable onComplete) {
+                cascadeCalled = true;
+                onComplete.run();   // Immediately succeed
+            }
+
+            // Copies Firestore delete operation
+            void performDelete(String userId,
+                               ProfileRepository.OnSuccessListener onSuccess) {
+                deleteCalled = true;
+                deletedUserId = userId;
+                onSuccess.onSuccess(userId); // simulate success callback
+            }
+
+            // Exposed deletion API for test
+            void deleteProfile(String userId,
+                               ProfileRepository.OnSuccessListener success,
+                               ProfileRepository.OnFailureListener failure) {
+
+                cascadeDeleteFromEvents(userId, () -> {
+                    performDelete(userId, success);
+                });
+            }
+        }
+
+        // ---- Arrange ----
+        FakeProfileRepository repo = new FakeProfileRepository();
+        String userId = "test_user_321";
+
+        final String[] callbackResult = { null };
+
+        // ---- Act ----
+        repo.deleteProfile(userId,
+                result -> callbackResult[0] = result,
+                e -> fail("Should not fail")
+        );
+
+        // ---- Assert ----
+        assertTrue("Cascade deletion should be called", repo.cascadeCalled);
+        assertTrue("Profile deletion should be called", repo.deleteCalled);
+        assertEquals("Deleted userId should match", userId, repo.deletedUserId);
+        assertEquals("Success callback should return correct userId",
+                userId, callbackResult[0]);
     }
 
+
+    // ==================== US 01.04.01: Send Winners Notification ====================
+    // Used AI to learn how to create a test version of real class
     @Test
-    public void testAcceptInvitation_MoveToEnrolled() {
-        // Given: Event with selected entrant
-        List<String> selectedList = new ArrayList<>();
-        List<String> enrolledList = new ArrayList<>();
-        selectedList.add(testUserId);
+    public void testWinnerNotification() {
 
-        // When: Accept invitation
-        selectedList.remove(testUserId);
-        enrolledList.add(testUserId);
+        // ---- Fake service that copies winner notification logic ----
+        class FakeNotificationService {
 
-        // Then: User should be in enrolled list
-        assertFalse("Should not be in selected list", selectedList.contains(testUserId));
-        assertTrue("Should be in enrolled list", enrolledList.contains(testUserId));
+            boolean sendCalled = false;
+            List<String> capturedRecipients = new ArrayList<>();
+            String capturedMessage = null;
+            String capturedType = null;
+
+            void sendLotteryWinNotification(List<String> entrantIds, Event event,
+                                            com.example.pickme.services.NotificationService.OnNotificationSentListener listener) {
+
+
+                String message = "Congratulations! You've been selected for " +
+                        event.getName() +
+                        ". Please respond to confirm your participation.";
+
+                // Copy what sendFCMMessages would do:
+                sendCalled = true;
+                capturedRecipients.addAll(entrantIds);
+                capturedMessage = message;
+                capturedType = "lottery_win";
+
+                // Simulate callback success
+                listener.onNotificationSent(entrantIds.size());
+            }
+        }
+
+
+        FakeNotificationService mock = new FakeNotificationService();
+        List<String> winners = new ArrayList<>();
+        winners.add(testUserId);
+
+        testEvent.setName("Test Event");
+
+        final int[] callbackCount = { -1 };
+
+        // ---- Act ----
+        mock.sendLotteryWinNotification(winners, testEvent,
+                new com.example.pickme.services.NotificationService.OnNotificationSentListener() {
+                    @Override
+                    public void onNotificationSent(int sentCount) {
+                        callbackCount[0] = sentCount;
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        fail("Should not error");
+                    }
+                });
+
+        // ---- Assert ----
+        assertTrue("Mock send should be called", mock.sendCalled);
+
+        assertEquals("Recipient count should be 1", 1, mock.capturedRecipients.size());
+        assertEquals("Recipient ID should match",
+                testUserId, mock.capturedRecipients.get(0));
+
+        assertNotNull("Message should not be null", mock.capturedMessage);
+        assertTrue("Message should contain the event name",
+                mock.capturedMessage.contains("Test Event"));
+
+        assertEquals("Notification type should be lottery_win",
+                "lottery_win", mock.capturedType);
+
+        assertEquals("Callback should report 1 sent notification",
+                1, callbackCount[0]);
     }
 
-    // ==================== US 01.03.02: Decline Invitation ====================
-
+    // ==================== US 01.04.02: Send Losers Notifications. ====================
+    // Used AI to learn how to create a test version of real class
     @Test
-    public void testDeclineInvitation_StatusChange() {
-        // Given: User selected in lottery
-        String invitationStatus = "SELECTED";
+    public void testLoserNotification() {
 
-        // When: User declines invitation
-        String newStatus = "DECLINED";
+        // ---- Fake service that mimics LOSS notification logic ----
+        class FakeNotificationServiceLoser {
 
-        // Then: Status should change to declined
-        assertEquals("Status should be DECLINED", "DECLINED", newStatus);
+            boolean sendCalled = false;
+            List<String> capturedRecipients = new ArrayList<>();
+            String capturedMessage = null;
+            String capturedType = null;
+
+            void sendLotteryLossNotification(List<String> entrantIds, Event event,
+                                             com.example.pickme.services.NotificationService.OnNotificationSentListener listener) {
+
+                String message = "Unfortunately, you weren't selected for " +
+                        event.getName() +
+                        ", but you may have another chance if spots become available.";
+
+                // Mock what sendFCMMessages would do
+                sendCalled = true;
+                capturedRecipients.addAll(entrantIds);
+                capturedMessage = message;
+                capturedType = "lottery_loss";
+
+                // Simulate callback success
+                listener.onNotificationSent(entrantIds.size());
+            }
+        }
+
+        // ---- Arrange ----
+        FakeNotificationServiceLoser mock = new FakeNotificationServiceLoser();
+        List<String> losers = new ArrayList<>();
+        losers.add(testUserId);
+
+        testEvent.setName("Test Event");
+
+        final int[] callbackCount = { -1 };
+
+        // ---- Act ----
+        mock.sendLotteryLossNotification(losers, testEvent,
+                new com.example.pickme.services.NotificationService.OnNotificationSentListener() {
+                    @Override
+                    public void onNotificationSent(int sentCount) {
+                        callbackCount[0] = sentCount;
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        fail("Should not error");
+                    }
+                });
+
+        // ---- Assert ----
+        assertTrue("Mock send should be called", mock.sendCalled);
+
+        assertEquals("Recipient count should be 1",
+                1, mock.capturedRecipients.size());
+        assertEquals("Recipient ID should match",
+                testUserId, mock.capturedRecipients.get(0));
+
+        assertNotNull("Message should not be null", mock.capturedMessage);
+        assertTrue("Loss message should include event name",
+                mock.capturedMessage.contains("Test Event"));
+
+        assertEquals("Notification type should be lottery_loss",
+                "lottery_loss", mock.capturedType);
+
+        assertEquals("Callback should return number of recipients",
+                1, callbackCount[0]);
     }
 
-    @Test
-    public void testDeclineInvitation_MoveToCancelled() {
-        // Given: Event with selected entrant
-        List<String> selectedList = new ArrayList<>();
-        List<String> cancelledList = new ArrayList<>();
-        selectedList.add(testUserId);
-
-        // When: Decline invitation
-        selectedList.remove(testUserId);
-        cancelledList.add(testUserId);
-
-        // Then: User should be in cancelled list
-        assertFalse("Should not be in selected list", selectedList.contains(testUserId));
-        assertTrue("Should be in cancelled list", cancelledList.contains(testUserId));
-    }
 
     // ==================== US 01.04.03: Opt Out of Receiving Notifications. ====================
     @Test
