@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * NotificationLogAdapter - Adapter for displaying notification logs in admin view
@@ -34,15 +35,25 @@ public class NotificationLogAdapter extends RecyclerView.Adapter<NotificationLog
     private List<NotificationLog> logs;
     private SimpleDateFormat dateFormat;
     private OnLogClickListener clickListener;
+    private Map<String, String> eventNameCache;
+    private Map<String, String> organizerNameCache;
 
     public interface OnLogClickListener {
         void onLogClick(NotificationLog log);
     }
 
     public NotificationLogAdapter(OnLogClickListener clickListener) {
+        this(clickListener, null, null);
+    }
+
+    public NotificationLogAdapter(OnLogClickListener clickListener,
+                                 Map<String, String> eventNameCache,
+                                 Map<String, String> organizerNameCache) {
         this.logs = new ArrayList<>();
         this.dateFormat = new SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault());
         this.clickListener = clickListener;
+        this.eventNameCache = eventNameCache;
+        this.organizerNameCache = organizerNameCache;
     }
 
     @NonNull
@@ -118,8 +129,25 @@ public class NotificationLogAdapter extends RecyclerView.Adapter<NotificationLog
             }
             tvMessagePreview.setText(message != null ? message : "No message");
 
-            // Event name (will be loaded separately)
-            tvEventName.setText("Event ID: " + log.getEventId());
+            // Event name (use cache if available)
+            String eventName = "Loading...";
+            if (eventNameCache != null && eventNameCache.containsKey(log.getEventId())) {
+                eventName = eventNameCache.get(log.getEventId());
+            } else if (log.getEventId() != null) {
+                eventName = "Event ID: " + log.getEventId();
+            }
+
+            // Add organizer name if available
+            String organizerName = null;
+            if (organizerNameCache != null && organizerNameCache.containsKey(log.getSenderId())) {
+                organizerName = organizerNameCache.get(log.getSenderId());
+            }
+
+            if (organizerName != null) {
+                tvEventName.setText(eventName + " • by " + organizerName);
+            } else {
+                tvEventName.setText(eventName);
+            }
         }
 
         private String formatNotificationType(String type) {

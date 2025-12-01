@@ -129,11 +129,13 @@ public class AdminDashboardActivity extends AppCompatActivity {
         });
 
         btnBrowseImages.setOnClickListener(v -> {
-            Toast.makeText(this, "Browse Images - Coming soon", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, AdminImagesActivity.class);
+            startActivity(intent);
         });
 
         btnNotificationLogs.setOnClickListener(v -> {
-            Toast.makeText(this, "Notification Logs - Coming soon", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(this, AdminNotificationLogsActivity.class);
+            startActivity(intent);
         });
 
         btnRemoveOrganizer.setOnClickListener(v -> {

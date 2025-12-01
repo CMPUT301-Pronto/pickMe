@@ -20,6 +20,12 @@
     <!-- Notification permission - Required for Android 13+ (API 33+) to show push notifications -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Storage permissions - For CSV export functionality -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
     <!-- Camera feature - Declares camera usage but makes it optional (app works without camera) -->
     <uses-feature
         android:name="android.hardware.camera"
@@ -130,6 +136,20 @@
             android:name=".ui.admin.AdminOrganizersActivity"
             android:exported="false"
             android:label="Remove Organizers"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".ui.admin.AdminDashboardActivity" />
+
+        <activity
+            android:name=".ui.admin.AdminNotificationLogsActivity"
+            android:exported="false"
+            android:label="@string/notification_logs"
+            android:theme="@style/Theme.PickMe.NoActionBar"
+            android:parentActivityName=".ui.admin.AdminDashboardActivity" />
+
+        <activity
+            android:name=".ui.admin.AdminImagesActivity"
+            android:exported="false"
+            android:label="@string/browse_images"
             android:theme="@style/Theme.PickMe.NoActionBar"
             android:parentActivityName=".ui.admin.AdminDashboardActivity" />
 
