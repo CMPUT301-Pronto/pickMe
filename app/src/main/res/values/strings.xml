@@ -234,6 +234,7 @@
     <string name="recipients_waiting">Waiting List</string>
     <string name="recipients_selected">Selected Only</string>
     <string name="recipients_confirmed">Confirmed Only</string>
+    <string name="recipients_cancelled">Cancelled Only</string>
     <string name="send_notification_button">Send</string>
     <string name="notification_sending">Sending notifications…</string>
     <string name="notification_sent">Notifications sent successfully</string>
