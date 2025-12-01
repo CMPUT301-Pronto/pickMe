@@ -2,6 +2,7 @@ package com.example.pickme.ui.events;
 
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -31,10 +32,12 @@ import com.example.pickme.repositories.ImageRepository;
 import com.example.pickme.services.LotteryService;
 import com.example.pickme.services.NotificationService;
 import com.example.pickme.services.QRCodeGenerator;
+import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.example.pickme.utils.CsvExporter;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -240,10 +243,13 @@ public class ManageEventActivity extends AppCompatActivity {
     private void showActionMenu() {
         String[] actions = {
                 "Execute Lottery Draw",
+                "Draw Replacement",
                 "Send Notification",
                 "Update Poster",
                 "Export Lists",
-                "View QR Code"
+                "View QR Code",
+                "View Entrant Map", // NEW: Added map option
+                "Edit Registration Dates"
         };
 
         new AlertDialog.Builder(this)
@@ -254,20 +260,56 @@ public class ManageEventActivity extends AppCompatActivity {
                             showLotteryDrawDialog();
                             break;
                         case 1:
-                            showSendNotificationDialog();
+                            showReplacementDrawDialog();
                             break;
                         case 2:
-                            imagePickerLauncher.launch("image/*");
+                            showSendNotificationDialog();
                             break;
                         case 3:
-                            showExportDialog();
+                            imagePickerLauncher.launch("image/*");
                             break;
                         case 4:
+                            showExportDialog();
+                            break;
+                        case 5:
                             showQRCode();
                             break;
+                        case 6:
+                            openEntrantMap();  // NEW: Handle map action
+                            break;
+                        case 7:
+                            showEditRegistrationDatesDialog();
+                            break;
+
                     }
                 })
                 .show();
+    }
+
+    /**
+     * Open the entrant map to view where entrants joined from
+     * Only available if geolocation was enabled for the event
+     */
+    private void openEntrantMap() {
+        if (currentEvent == null) {
+            Toast.makeText(this, "Event data not loaded", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Check if geolocation was enabled for this event
+        if (!currentEvent.isGeolocationRequired()) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.no_location_data_title)
+                    .setMessage(R.string.geolocation_not_enabled_message)
+                    .setPositiveButton(R.string.ok, null)
+                    .show();
+            return;
+        }
+
+        // Open the map activity
+        Intent intent = new Intent(this, EntrantMapActivity.class);
+        intent.putExtra(EntrantMapActivity.EXTRA_EVENT_ID, eventId);
+        startActivity(intent);
     }
 
     private void showLotteryDrawDialog() {
@@ -350,6 +392,117 @@ public class ManageEventActivity extends AppCompatActivity {
                         progressDialog.dismiss();
                         Toast.makeText(ManageEventActivity.this,
                                 e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    /**
+     * Show replacement draw dialog
+     * Allows organizer to draw replacement entrants when selected entrants decline/cancel
+     */
+    private void showReplacementDrawDialog() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_lottery_draw, null);
+        EditText etNumberOfWinners = dialogView.findViewById(R.id.etNumberOfWinners);
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.draw_replacement_title)
+                .setMessage(R.string.draw_replacement_message)
+                .setView(dialogView)
+                .setPositiveButton(R.string.draw_replacement_button, (dialog, which) -> {
+                    String input = etNumberOfWinners.getText().toString().trim();
+                    if (input.isEmpty()) {
+                        Toast.makeText(this, R.string.replacement_invalid_number, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    try {
+                        int numberOfReplacements = Integer.parseInt(input);
+                        if (numberOfReplacements <= 0) {
+                            Toast.makeText(this, R.string.replacement_invalid_number, Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                        executeReplacementDraw(numberOfReplacements);
+                    } catch (NumberFormatException e) {
+                        Toast.makeText(this, R.string.replacement_invalid_number, Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    /**
+     * Execute replacement draw
+     * Selects replacement entrants from remaining eligible waiting list
+     *
+     * @param numberOfReplacements Number of replacements to draw
+     */
+    private void executeReplacementDraw(int numberOfReplacements) {
+        ProgressBar progressBar = new ProgressBar(this);
+        AlertDialog progressDialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.replacement_executing)
+                .setView(progressBar)
+                .setCancelable(false)
+                .create();
+        progressDialog.show();
+
+        lotteryService.executeReplacementDraw(eventId, numberOfReplacements,
+                new LotteryService.OnLotteryCompleteListener() {
+                    @Override
+                    public void onLotteryComplete(LotteryService.LotteryResult result) {
+                        progressDialog.dismiss();
+
+                        if (result.winners.isEmpty()) {
+                            Toast.makeText(ManageEventActivity.this,
+                                    R.string.replacement_no_entrants,
+                                    Toast.LENGTH_LONG).show();
+                            return;
+                        }
+
+                        Toast.makeText(ManageEventActivity.this,
+                                getString(R.string.replacement_success, result.winners.size()),
+                                Toast.LENGTH_LONG).show();
+
+                        refreshFragments();
+
+                        // Send notifications to replacement winners
+                        notificationService.sendReplacementDrawNotification(
+                                result.winners,
+                                currentEvent,
+                                new NotificationService.OnNotificationSentListener() {
+                                    @Override
+                                    public void onNotificationSent(int sentCount) {
+                                        Log.d(TAG, "Replacement winner notifications sent: " + sentCount);
+                                    }
+
+                                    @Override
+                                    public void onError(Exception e) {
+                                        Log.e(TAG, "Replacement notification error", e);
+                                    }
+                                });
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        progressDialog.dismiss();
+                        String errorMessage = e.getMessage();
+
+                        // Provide user-friendly error messages
+                        if (errorMessage != null) {
+                            if (errorMessage.contains("No eligible")) {
+                                Toast.makeText(ManageEventActivity.this,
+                                        R.string.replacement_no_entrants, Toast.LENGTH_SHORT).show();
+                            } else if (errorMessage.contains("Not enough")) {
+                                Toast.makeText(ManageEventActivity.this,
+                                        R.string.replacement_insufficient, Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(ManageEventActivity.this,
+                                        getString(R.string.replacement_failed) + ": " + errorMessage,
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        } else {
+                            Toast.makeText(ManageEventActivity.this,
+                                    R.string.replacement_failed, Toast.LENGTH_SHORT).show();
+                        }
                     }
                 });
     }
@@ -651,6 +804,100 @@ public class ManageEventActivity extends AppCompatActivity {
         }
     }
 
+
+
+    // Allows the organizer to edit registration dates before lottery is drawn.
+
+    private void showEditRegistrationDatesDialog() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_registration_dates, null);
+        TextInputEditText etRegStart = dialogView.findViewById(R.id.etEditRegStartDate);
+        TextInputEditText etRegEnd = dialogView.findViewById(R.id.etEditRegEndDate);
+
+        // Pre-fill current dates
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
+        long currentStart = currentEvent.getRegistrationStartDate();
+        long currentEnd = currentEvent.getRegistrationEndDate();
+        long eventDate = !currentEvent.getEventDates().isEmpty() ? currentEvent.getEventDates().get(0) : 0;
+
+        final long[] newStart = {currentStart};
+        final long[] newEnd = {currentEnd};
+
+        etRegStart.setText(dateFormat.format(new Date(currentStart)));
+        etRegEnd.setText(dateFormat.format(new Date(currentEnd)));
+
+        etRegStart.setOnClickListener(v -> {
+            MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker()
+                    .setTitleText("Select Registration Start Date")
+                    .setSelection(newStart[0])
+                    .build();
+            picker.show(getSupportFragmentManager(), "reg_start_picker");
+            picker.addOnPositiveButtonClickListener(selection -> {
+                newStart[0] = selection;
+                etRegStart.setText(dateFormat.format(new Date(selection)));
+            });
+        });
+
+        // MaterialDatePicker for End Date
+        etRegEnd.setOnClickListener(v -> {
+            MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker()
+                    .setTitleText("Select Registration End Date")
+                    .setSelection(newEnd[0])
+                    .build();
+            picker.show(getSupportFragmentManager(), "reg_end_picker");
+            picker.addOnPositiveButtonClickListener(selection -> {
+                newEnd[0] = selection;
+                etRegEnd.setText(dateFormat.format(new Date(selection)));
+            });
+        });
+
+        new AlertDialog.Builder(this)
+                .setTitle("Edit Registration Dates")
+                .setView(dialogView)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    // Validate
+                    if (newStart[0] == 0 || newEnd[0] == 0) {
+                        Toast.makeText(this, "Please select both start and end dates.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (newEnd[0] <= newStart[0]) {
+                        Toast.makeText(this, R.string.error_reg_end_before_start, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if (eventDate <= newEnd[0]) {
+                        Toast.makeText(this, R.string.error_event_date_before_reg, Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // Show centered transparent progress bar overlay
+                    ProgressBar pb = new ProgressBar(this);
+                    AlertDialog progressDialog = new AlertDialog.Builder(this)
+                            .setView(pb)
+                            .setCancelable(false)
+                            .create();
+                    if (progressDialog.getWindow() != null) {
+                        progressDialog.getWindow().setBackgroundDrawable(new ColorDrawable(android.graphics.Color.TRANSPARENT));
+                    }
+                    progressDialog.show();
+
+                    // Update Firestore
+                    eventRepository.updateRegistrationDates(
+                            currentEvent.getEventId(), newStart[0], newEnd[0],
+                            aVoid -> {
+                                progressDialog.dismiss();
+                                currentEvent.setRegistrationStartDate(newStart[0]);
+                                currentEvent.setRegistrationEndDate(newEnd[0]);
+                                Toast.makeText(this, "Registration dates updated successfully!", Toast.LENGTH_SHORT).show();
+                                displayEventDetails(currentEvent);
+                            },
+                            e -> {
+                                progressDialog.dismiss();
+                                Toast.makeText(this, "Failed to update dates: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                            }
+                    );
+                })
+                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
     @Override
     public boolean onSupportNavigateUp() {
         finish();

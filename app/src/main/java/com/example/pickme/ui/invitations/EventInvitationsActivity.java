@@ -15,6 +15,7 @@ import com.example.pickme.models.Event;
 import com.example.pickme.repositories.EventRepository;
 import com.example.pickme.services.DeviceAuthenticator;
 import com.example.pickme.services.LotteryService;
+import com.example.pickme.services.NotificationService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +42,7 @@ public class EventInvitationsActivity extends AppCompatActivity {
     // Data
     private EventRepository eventRepository;
     private LotteryService lotteryService;
+    private NotificationService notificationService;
     private DeviceAuthenticator deviceAuthenticator;
     private InvitationAdapter invitationAdapter;
     private String currentUserId;
@@ -80,6 +82,7 @@ public class EventInvitationsActivity extends AppCompatActivity {
     private void initializeData() {
         eventRepository = new EventRepository();
         lotteryService = LotteryService.getInstance();
+        notificationService = NotificationService.getInstance();
         deviceAuthenticator = DeviceAuthenticator.getInstance(this);
         currentUserId = deviceAuthenticator.getStoredUserId();
     }
@@ -251,8 +254,24 @@ public class EventInvitationsActivity extends AppCompatActivity {
                     @Override
                     public void onLotteryComplete(LotteryService.LotteryResult result) {
                         if (!result.winners.isEmpty()) {
-                            // Replacement winner selected - notification handled by service
                             android.util.Log.d(TAG, "Replacement winner selected for event: " + event.getName());
+
+                            // Send notification to replacement winner
+                            notificationService.sendReplacementDrawNotification(
+                                    result.winners,
+                                    event,
+                                    new NotificationService.OnNotificationSentListener() {
+                                        @Override
+                                        public void onNotificationSent(int sentCount) {
+                                            android.util.Log.d(TAG, "Replacement notification sent: " + sentCount);
+                                        }
+
+                                        @Override
+                                        public void onError(Exception e) {
+                                            android.util.Log.e(TAG, "Failed to send replacement notification", e);
+                                        }
+                                    }
+                            );
                         }
                     }
 

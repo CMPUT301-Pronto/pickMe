@@ -168,7 +168,17 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
         </service>
+        <!-- Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
 
+        <!-- Register the new EntrantMapActivity -->
+        <activity
+            android:name=".ui.events.EntrantMapActivity"
+            android:label="@string/entrant_map_title"
+            android:parentActivityName=".ui.events.ManageEventActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

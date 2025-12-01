@@ -1,7 +1,7 @@
 # PickMe Event Lottery System - Developer Documentation
 
 **Project**: CMPUT 301 - Event Lottery Mobile Application  
-**Last Updated**: October 31, 2025  
+**Last Updated**: November 26, 2025  
 **Status**: Phase 1-7.1 Complete (Entrant, Organizer, Admin features implemented)  
 **Min SDK**: 34 (Android 14.0) | **Target SDK**: 36
 
@@ -1265,8 +1265,42 @@ All three high-priority gaps have been implemented and verified with successful 
 **Phase 5**: Entrant UI (Profile, Browse, Invitations, History) - COMPLETE
 **Phase 6**: Organizer UI (Create, Dashboard, Manage, Lottery) - COMPLETE
 **Phase 7.1**: Admin UI (Dashboard, Browse Events/Profiles) - COMPLETE
+**Phase 7.2**: Replacement Draw & Cancel Entrant Features - COMPLETE
 
-**Total Lines of Code**: ~14,000+ documented Java code
+### Recently Implemented (November 26, 2025)
+
+#### US 02.05.02 & US 02.05.03: Replacement Draw System
+- **ManageEventActivity**: Added "Draw Replacement" action to organizer menu
+- **Replacement Draw Dialog**: UI for selecting number of replacements to draw
+- **LotteryService Integration**: Executes replacement draws from eligible waiting list
+- **Automatic Notifications**: Replacement winners receive notifications via NotificationService
+- **SelectedEntrantsFragment**: Offers replacement draw after cancelling selected entrants
+- **EventInvitationsActivity**: Triggers replacement when entrants decline invitations
+- **Exclusion Logic**: Automatically excludes already selected and declined entrants from pool
+- **Status Updates**: Real-time UI refresh across all tabs (Waiting, Selected, Confirmed, Cancelled)
+- **Error Handling**: User-friendly messages for insufficient eligible entrants
+
+**Key Files Modified**:
+- `ManageEventActivity.java`: Added `showReplacementDrawDialog()` and `executeReplacementDraw()`
+- `SelectedEntrantsFragment.java`: Added `offerReplacementDraw()` and `executeReplacementDraw()`
+- `EventInvitationsActivity.java`: Enhanced `triggerReplacementDraw()` with notifications
+- `strings.xml`: Added replacement draw UI strings
+
+#### US 02.06.01: Cancel Entrant Feature
+- **Long-press Menu**: Selected entrants show "Cancel Entrant" option
+- **Confirmation Dialog**: Multi-step confirmation before cancellation
+- **Status Change**: Entrant moved from Selected → Cancelled list atomically
+- **Notifications**: Cancelled entrants receive cancellation notification
+- **Tab Updates**: Entrant appears in Cancelled tab, removed from Selected tab
+- **Replacement Option**: Organizer prompted to draw replacement after cancellation
+- **Repository Methods**: `cancelSelectedEntrant()` in EventRepository handles atomic operations
+
+**Key Files Modified**:
+- `SelectedEntrantsFragment.java`: Complete cancel flow with replacement option
+- `EntrantAdapter.java`: Long-press menu support (already implemented)
+- `EventRepository.java`: Cancel methods with atomic batch writes (already implemented)
+
+**Total Lines of Code**: ~15,000+ documented Java code
 **Activities**: 15+ activities
 **Fragments**: 8+ fragments
 **Repositories**: 5 repositories
@@ -1280,11 +1314,13 @@ All three high-priority gaps have been implemented and verified with successful 
 1. Complete AdminImagesFragment (browse/delete event posters)
 2. Implement AdminNotificationLogsFragment (view all notifications)
 3. Add RemoveOrganizerActivity (delete organizer + their events)
-4. Implement MapActivity for geolocation visualization
-5. Add CSV export for entrant lists
+4. Implement MapActivity for geolocation visualization (UI placeholder exists)
+5. ~~Add CSV export for entrant lists~~ ✓ COMPLETE (already implemented)
 6. Enhance notification system with FCM push notifications
 7. Add event analytics for organizers
 8. Implement waiting list limit enforcement
+9. ~~Replacement draw system~~ ✓ COMPLETE (November 26, 2025)
+10. ~~Cancel entrant feature~~ ✓ COMPLETE (November 26, 2025)
 
 ---
 
@@ -1297,7 +1333,7 @@ All three high-priority gaps have been implemented and verified with successful 
 
 ---
 
-**Document Version**: 2.0  
-**Last Updated**: October 31, 2025  
+**Document Version**: 2.1
+**Last Updated**: November 26, 2025
 **Maintained By**: CMPUT 301 Team - PickMe Development Team
 

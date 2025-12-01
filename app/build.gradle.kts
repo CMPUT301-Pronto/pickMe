@@ -1,3 +1,5 @@
+import java.util.Properties
+import java.io.FileInputStream
 plugins {
     alias(libs.plugins.android.application)
     // Google Services plugin - processes google-services.json and generates Firebase config
@@ -7,7 +9,14 @@ plugins {
 android {
     namespace = "com.example.pickme"
     compileSdk = 36
+    val localProperties = Properties().apply {
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            load(FileInputStream(localPropertiesFile))
+        }
+    }
 
+    val mapsApiKey: String = localProperties.getProperty("MAPS_API_KEY") ?: ""
     defaultConfig {
         applicationId = "com.example.pickme"
         minSdk = 34
@@ -16,6 +25,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+
+
     }
 
     buildTypes {
@@ -113,4 +126,7 @@ dependencies {
     androidTestImplementation("com.google.firebase:firebase-firestore")
     androidTestImplementation("com.google.firebase:firebase-auth")
 
+    // Google Maps
+    implementation("com.google.android.gms:play-services-maps:18.2.0")
+    implementation("com.google.android.gms:play-services-location:21.1.0")
 }

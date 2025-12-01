@@ -105,5 +105,16 @@
         app:tint="@color/text_on_primary"
         app:backgroundTint="@color/primary_pink" />
 
+    <ProgressBar
+        android:id="@+id/progressBarUpdateDates"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:indeterminateTint="@color/primary_pink"
+        android:elevation="10dp"
+        android:layout_gravity="center"
+        android:background="@android:color/transparent" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
