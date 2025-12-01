@@ -192,6 +192,7 @@ public class FirebaseManager {
             return;
         }
 
+        Log.d(TAG, "Storing FCM token for user: " + userId);
         new com.example.pickme.repositories.ProfileRepository().setFcmToken(userId, token);
     }
 
@@ -200,9 +201,12 @@ public class FirebaseManager {
      * Useful after sign-in or profile creation.
      */
     public static void refreshAndStoreFcmToken() {
+        Log.d(TAG, "Refreshing FCM token...");
         getInstance().messaging.getToken().addOnSuccessListener(token -> {
             Log.d(TAG, "Refreshed FCM token: " + token);
             getInstance().storeFcmTokenIfPossible(token);
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Failed to refresh FCM token", e);
         });
     }
 
