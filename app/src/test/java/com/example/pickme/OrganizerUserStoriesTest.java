@@ -23,16 +23,16 @@ import java.util.Random;
  *
  * User Stories Covered:
  * - US 02.01.01: Create event and generate QR code
- * - US 02.01.02: Set registration period
+ * - US 02.01.04: Set registration period
  * - US 02.02.01: View waiting list entrants
- * - US 02.03.01: Enable/disable geolocation requirement
- * - US 02.04.01: Limit waiting list capacity
- * - US 02.05.01: Upload event poster
- * - US 02.05.02: Update event poster
- * - US 02.06.01: Execute lottery draw
- * - US 02.06.02: View selected entrants
- * - US 02.06.03: View cancelled entrants
- * - US 02.06.04: View enrolled entrants
+ * - US 02.02.03: Enable/disable geolocation requirement
+ * - US 02.03.01: Limit waiting list capacity
+ * - US 02.04.01: Upload event poster
+ * - US 02.04.02: Update event poster
+ * - US 02.05.02: Execute lottery draw
+ * - US 02.06.01: View selected entrants
+ * - US 02.06.02: View cancelled entrants
+ * - US 02.06.03: View enrolled entrants
  * - US 02.06.05: Export enrolled list to CSV
  */
 public class OrganizerUserStoriesTest {
@@ -123,7 +123,7 @@ public class OrganizerUserStoriesTest {
         assertFalse("Geolocation should be disabled by default", newEvent.isGeolocationRequired());
     }
 
-    // ==================== US 02.01.02: Set Registration Period ====================
+    // ==================== US 02.01.04: Set Registration Period ====================
 
     @Test
     public void testSetRegistrationPeriod_ValidDates() {
@@ -253,7 +253,7 @@ public class OrganizerUserStoriesTest {
         assertTrue("Entrant list should be empty", emptyList.getEntrantIds().isEmpty());
     }
 
-    // ==================== US 02.03.01: Enable/Disable Geolocation ====================
+    // ==================== US 02.02.03: Enable/Disable Geolocation ====================
 
     @Test
     public void testGeolocation_DisabledByDefault() {
@@ -301,7 +301,7 @@ public class OrganizerUserStoriesTest {
         assertTrue("Should be able to enable geolocation", testEvent.isGeolocationRequired());
     }
 
-    // ==================== US 02.04.01: Limit Waiting List Capacity ====================
+    // ==================== US 02.03.01: Limit Waiting List Capacity ====================
 
     @Test
     public void testWaitingListLimit_Unlimited() {
@@ -354,7 +354,7 @@ public class OrganizerUserStoriesTest {
         assertFalse("Should not allow join when full", canJoin);
     }
 
-    // ==================== US 02.05.01 & 02.05.02: Upload/Update Event Poster ====================
+    // ==================== US 02.04.01 & 02.04.02: Upload/Update Event Poster ====================
 
     @Test
     public void testUploadPoster_SetUrl() {
@@ -409,7 +409,7 @@ public class OrganizerUserStoriesTest {
         assertTrue("URL should be valid", testEvent.getPosterImageUrl().startsWith("http"));
     }
 
-    // ==================== US 02.06.01: Execute Lottery Draw ====================
+    // ==================== US 02.05.02: Execute Lottery Draw ====================
 
     @Test
     public void testLotteryDraw_RandomSelection() {
@@ -487,7 +487,7 @@ public class OrganizerUserStoriesTest {
         return winners;
     }
 
-    // ==================== US 02.06.02: View Selected Entrants ====================
+    // ==================== US 02.06.01: View Selected Entrants ====================
 
     @Test
     public void testViewSelectedEntrants_List() {
@@ -536,7 +536,7 @@ public class OrganizerUserStoriesTest {
         assertEquals("Total selected should be 5", 5, selectedList.size());
     }
 
-    // ==================== US 02.06.03: View Cancelled Entrants ====================
+    // ==================== US 02.06.02: View Cancelled Entrants ====================
 
     @Test
     public void testViewCancelledEntrants_List() {
@@ -577,7 +577,7 @@ public class OrganizerUserStoriesTest {
         assertEquals("Count should be 0", 0, cancelledList.size());
     }
 
-    // ==================== US 02.06.04: View Enrolled Entrants ====================
+    // ==================== US 02.06.03: View Enrolled Entrants ====================
 
     @Test
     public void testViewEnrolledEntrants_FinalList() {

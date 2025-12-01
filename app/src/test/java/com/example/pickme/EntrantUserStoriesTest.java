@@ -599,16 +599,5 @@ public class EntrantUserStoriesTest {
         assertEquals("Device ID should persist",
                 firstProfile.getUserId(), secondProfile.getUserId());
     }
-
-    @Test
-    public  void testDeleteProfile(){
-        // Add a profile
-        Profile profile = new Profile("testProfileID", "testProfileName", "testProfileEmail");
-        profile.setPhoneNumber("555-1234");
-        profile.setRole("entrant");
-
-        //Check if Profile is in database
-
-    }
 }
 
