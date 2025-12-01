@@ -24,6 +24,8 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
@@ -35,12 +37,13 @@ import java.util.Map;
 /**
  * EntrantMapActivity - Display entrant locations on a Google Map
  *
- * Shows markers for each entrant who joined the waiting list with geolocation data.
- * Markers display entrant name when tapped.
+ * Shows markers for each entrant with geolocation data from different categories.
+ * Organizers can filter by category: waiting list, selected, enrolled, or cancelled.
  *
  * Features:
  * - Google Maps with zoom and pan controls
- * - Markers for each entrant location
+ * - Filter chips to select user category
+ * - Markers for each entrant location with different colors per category
  * - Marker info window shows entrant name
  * - Auto-zoom to fit all markers
  * - Handles events without geolocation enabled
@@ -52,18 +55,41 @@ public class EntrantMapActivity extends AppCompatActivity implements OnMapReadyC
     private static final String TAG = "EntrantMapActivity";
     public static final String EXTRA_EVENT_ID = "event_id";
 
+    /**
+     * Enum for different user categories/lists
+     */
+    private enum UserCategory {
+        WAITING_LIST("waitingList", "Waiting List", BitmapDescriptorFactory.HUE_BLUE),
+        RESPONSE_PENDING("responsePendingList", "Selected", BitmapDescriptorFactory.HUE_ORANGE),
+        IN_EVENT("inEventList", "Enrolled", BitmapDescriptorFactory.HUE_GREEN),
+        CANCELLED("cancelledList", "Cancelled", BitmapDescriptorFactory.HUE_RED);
+
+        final String collectionName;
+        final String displayName;
+        final float markerHue;
+
+        UserCategory(String collectionName, String displayName, float markerHue) {
+            this.collectionName = collectionName;
+            this.displayName = displayName;
+            this.markerHue = markerHue;
+        }
+    }
+
     // UI Components
     private GoogleMap googleMap;
     private ProgressBar progressBar;
     private View layoutNoLocationData;
     private TextView tvNoLocationMessage;
     private TextView tvEntrantCount;
+    private ChipGroup chipGroupFilters;
+    private Chip chipWaitingList, chipResponsePending, chipInEvent, chipCancelled;
 
     // Data
     private String eventId;
     private Event currentEvent;
     private EventRepository eventRepository;
     private FirebaseFirestore db;
+    private UserCategory currentCategory = UserCategory.WAITING_LIST;
 
     // Entrant location data
     private Map<String, EntrantLocation> entrantLocations = new HashMap<>();
@@ -113,11 +139,66 @@ public class EntrantMapActivity extends AppCompatActivity implements OnMapReadyC
         layoutNoLocationData = findViewById(R.id.tvNoLocationData);
         tvNoLocationMessage = findViewById(R.id.tvNoLocationMessage);
         tvEntrantCount = findViewById(R.id.tvEntrantCount);
+
+        // Initialize filter chips
+        chipGroupFilters = findViewById(R.id.chipGroupFilters);
+        chipWaitingList = findViewById(R.id.chipWaitingList);
+        chipResponsePending = findViewById(R.id.chipResponsePending);
+        chipInEvent = findViewById(R.id.chipInEvent);
+        chipCancelled = findViewById(R.id.chipCancelled);
+
+        setupFilterChips();
     }
 
     private void initializeData() {
         eventRepository = new EventRepository();
         db = FirebaseFirestore.getInstance();
+    }
+
+    /**
+     * Setup filter chip listeners
+     */
+    private void setupFilterChips() {
+        chipGroupFilters.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (checkedIds.isEmpty()) {
+                return; // Prevent no selection
+            }
+
+            int checkedId = checkedIds.get(0);
+            UserCategory newCategory = null;
+
+            if (checkedId == R.id.chipWaitingList) {
+                newCategory = UserCategory.WAITING_LIST;
+            } else if (checkedId == R.id.chipResponsePending) {
+                newCategory = UserCategory.RESPONSE_PENDING;
+            } else if (checkedId == R.id.chipInEvent) {
+                newCategory = UserCategory.IN_EVENT;
+            } else if (checkedId == R.id.chipCancelled) {
+                newCategory = UserCategory.CANCELLED;
+            }
+
+            if (newCategory != null && newCategory != currentCategory) {
+                currentCategory = newCategory;
+                onCategoryChanged();
+            }
+        });
+    }
+
+    /**
+     * Called when user selects a different category filter
+     */
+    private void onCategoryChanged() {
+        // Clear existing data
+        entrantLocations.clear();
+
+        // Hide no data message
+        layoutNoLocationData.setVisibility(View.GONE);
+        tvEntrantCount.setVisibility(View.GONE);
+
+        // Reload data for new category
+        if (currentEvent != null && currentEvent.isGeolocationRequired()) {
+            loadEntrantLocations();
+        }
     }
 
     private void setupToolbar() {
@@ -175,12 +256,12 @@ public class EntrantMapActivity extends AppCompatActivity implements OnMapReadyC
     }
 
     /**
-     * Load entrant locations from the waiting list subcollection
+     * Load entrant locations from the selected category subcollection
      */
     private void loadEntrantLocations() {
         db.collection("events")
                 .document(eventId)
-                .collection("waitingList")
+                .collection(currentCategory.collectionName)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     if (querySnapshot.isEmpty()) {
@@ -229,7 +310,7 @@ public class EntrantMapActivity extends AppCompatActivity implements OnMapReadyC
                     loadEntrantProfiles(locationMap);
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to load waiting list", e);
+                    Log.e(TAG, "Failed to load " + currentCategory.displayName, e);
                     showLoading(false);
                     Toast.makeText(this, "Failed to load entrants", Toast.LENGTH_SHORT).show();
                 });
@@ -327,15 +408,15 @@ public class EntrantMapActivity extends AppCompatActivity implements OnMapReadyC
         // Create bounds builder to fit all markers
         LatLngBounds.Builder boundsBuilder = new LatLngBounds.Builder();
 
-        // Add markers for each entrant
+        // Add markers for each entrant with category-specific color
         for (EntrantLocation entrant : entrantLocations.values()) {
             LatLng position = new LatLng(entrant.latitude, entrant.longitude);
 
             MarkerOptions markerOptions = new MarkerOptions()
                     .position(position)
                     .title(entrant.name)
-                    .snippet("Tap for details")
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ROSE));
+                    .snippet(currentCategory.displayName)
+                    .icon(BitmapDescriptorFactory.defaultMarker(currentCategory.markerHue));
 
             Marker marker = googleMap.addMarker(markerOptions);
             if (marker != null) {

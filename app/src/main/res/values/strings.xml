@@ -282,6 +282,12 @@
     <string name="map_title">Entrant Locations</string>
     <string name="geolocation_not_enabled">Geolocation is not enabled for this event</string>
 
+    <!-- Map Filter Chips -->
+    <string name="filter_waiting_list">Waiting List</string>
+    <string name="filter_response_pending">Selected</string>
+    <string name="filter_enrolled">Enrolled</string>
+    <string name="filter_cancelled">Cancelled</string>
+
     <!-- Main Navigation -->
     <string name="entrant_features">Entrant Features</string>
     <string name="organizer_features">Organizer Features</string>
