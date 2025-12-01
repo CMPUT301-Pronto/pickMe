@@ -541,10 +541,135 @@ public class ManageEventActivity extends AppCompatActivity {
     }
 
     private void sendNotification(String message, int recipientGroup) {
+        if (currentEvent == null) {
+            Toast.makeText(this, "Event data not loaded", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Log.d(TAG, "sendNotification called - eventId: " + eventId + ", recipientGroup: " + recipientGroup);
         Toast.makeText(this, R.string.notification_sending, Toast.LENGTH_SHORT).show();
-        // Notification sending implementation would go here
-        // For now, just show success message
-        Toast.makeText(this, R.string.notification_sent, Toast.LENGTH_SHORT).show();
+
+        // Create listener for notification result
+        NotificationService.OnNotificationSentListener listener = new NotificationService.OnNotificationSentListener() {
+            @Override
+            public void onNotificationSent(int count) {
+                runOnUiThread(() -> {
+                    String successMessage = getString(R.string.notification_sent) +
+                            " to " + count + " recipient" + (count != 1 ? "s" : "");
+                    Toast.makeText(ManageEventActivity.this, successMessage, Toast.LENGTH_LONG).show();
+                    Log.d(TAG, "Notification sent to " + count + " recipients");
+                });
+            }
+
+            @Override
+            public void onError(Exception e) {
+                runOnUiThread(() -> {
+                    Toast.makeText(ManageEventActivity.this,
+                            "Failed to send notification: " + e.getMessage(),
+                            Toast.LENGTH_LONG).show();
+                    Log.e(TAG, "Failed to send notification", e);
+                });
+            }
+        };
+
+        // Send to appropriate recipient group
+        switch (recipientGroup) {
+            case 0: // All entrants (waiting + selected + confirmed) - use parallel approach
+                final int[] counts = new int[3]; // waiting, selected, confirmed
+                final int[] completed = {0};
+                final boolean[] hasError = {false};
+
+                NotificationService.OnNotificationSentListener aggregateListener = new NotificationService.OnNotificationSentListener() {
+                    @Override
+                    public void onNotificationSent(int count) {
+                        // This will be called for each group completion
+                        synchronized (completed) {
+                            completed[0]++;
+                            if (completed[0] == 3 && !hasError[0]) {
+                                int totalCount = counts[0] + counts[1] + counts[2];
+                                runOnUiThread(() -> {
+                                    String successMessage = getString(R.string.notification_sent) +
+                                            " to " + totalCount + " recipient" + (totalCount != 1 ? "s" : "") +
+                                            " (Waiting: " + counts[0] + ", Selected: " + counts[1] +
+                                            ", Confirmed: " + counts[2] + ")";
+                                    Toast.makeText(ManageEventActivity.this, successMessage, Toast.LENGTH_LONG).show();
+                                    Log.d(TAG, "Notification sent to " + totalCount + " total recipients");
+                                });
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        synchronized (completed) {
+                            if (!hasError[0]) {
+                                hasError[0] = true;
+                                listener.onError(e);
+                            }
+                        }
+                    }
+                };
+
+                // Send to all three groups in parallel
+                notificationService.sendToAllWaitingList(eventId, message, new NotificationService.OnNotificationSentListener() {
+                    @Override
+                    public void onNotificationSent(int count) {
+                        counts[0] = count;
+                        aggregateListener.onNotificationSent(count);
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        aggregateListener.onError(e);
+                    }
+                });
+
+                notificationService.sendToAllSelected(eventId, message, new NotificationService.OnNotificationSentListener() {
+                    @Override
+                    public void onNotificationSent(int count) {
+                        counts[1] = count;
+                        aggregateListener.onNotificationSent(count);
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        aggregateListener.onError(e);
+                    }
+                });
+
+                notificationService.sendToAllConfirmed(eventId, message, new NotificationService.OnNotificationSentListener() {
+                    @Override
+                    public void onNotificationSent(int count) {
+                        counts[2] = count;
+                        aggregateListener.onNotificationSent(count);
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        aggregateListener.onError(e);
+                    }
+                });
+                break;
+
+            case 1: // Waiting list only
+                Log.d(TAG, "Sending to waiting list for event: " + eventId);
+                notificationService.sendToAllWaitingList(eventId, message, listener);
+                break;
+
+            case 2: // Selected entrants (response pending)
+                Log.d(TAG, "Sending to selected entrants for event: " + eventId);
+                notificationService.sendToAllSelected(eventId, message, listener);
+                break;
+
+            case 3: // Confirmed entrants
+                Log.d(TAG, "Sending to confirmed entrants for event: " + eventId);
+                notificationService.sendToAllConfirmed(eventId, message, listener);
+                break;
+
+            default:
+                Toast.makeText(this, "Invalid recipient group", Toast.LENGTH_SHORT).show();
+                break;
+        }
     }
 
     private void showExportDialog() {

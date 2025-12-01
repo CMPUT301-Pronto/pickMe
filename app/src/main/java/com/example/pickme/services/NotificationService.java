@@ -17,6 +17,7 @@ import com.google.firebase.functions.FirebaseFunctions;
 import com.google.firebase.functions.HttpsCallableResult;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,6 +71,7 @@ public class NotificationService {
     private static final String SUBCOLLECTION_WAITING_LIST = "waitingList";
     private static final String SUBCOLLECTION_RESPONSE_PENDING = "responsePendingList";
     private static final String SUBCOLLECTION_IN_EVENT = "inEventList";
+    private static final String SUBCOLLECTION_CANCELLED = "cancelledList";
 
     private static NotificationService instance;
     private FirebaseFirestore db;
@@ -225,6 +227,30 @@ public class NotificationService {
     }
 
     /**
+     * Send message to all cancelled entrants
+     * Related User Stories: US 02.07.03
+     *
+     * @param eventId Event ID
+     * @param message Message content
+     * @param listener Callback
+     */
+    public void sendToAllCancelled(@NonNull String eventId,
+                                   @NonNull String message,
+                                   @NonNull OnNotificationSentListener listener) {
+        getEntrantIdsFromSubcollection(eventId, SUBCOLLECTION_CANCELLED, new OnEntrantIdsLoadedListener() {
+            @Override
+            public void onEntrantIdsLoaded(List<String> entrantIds, Event event) {
+                sendNotifications(entrantIds, message, "organizer_message", event, listener);
+            }
+
+            @Override
+            public void onError(Exception e) {
+                listener.onError(e);
+            }
+        });
+    }
+
+    /**
      * Core notification sending logic with preference checking and logging
      *
      *      Orchestrates preference filtering, audit logging, and invocation of the Cloud Function
@@ -241,19 +267,25 @@ public class NotificationService {
                                    @NonNull String notificationType,
                                    @NonNull Event event,
                                    @NonNull OnNotificationSentListener listener) {
+        Log.d(TAG, "sendNotifications called with " + entrantIds.size() + " entrant IDs for event: " + event.getName());
+
         if (entrantIds.isEmpty()) {
+            Log.w(TAG, "No entrants provided to sendNotifications");
             listener.onNotificationSent(0);
             return;
         }
 
         Log.d(TAG, "Sending " + notificationType + " to " + entrantIds.size() + " entrants");
+        Log.d(TAG, "Entrant IDs: " + entrantIds.toString());
 
         // Filter recipients based on notification preferences
         filterEnabledRecipients(entrantIds, new OnRecipientsFilteredListener() {
             @Override
             public void onRecipientsFiltered(List<String> enabledRecipients) {
+                Log.d(TAG, "After preference filtering: " + enabledRecipients.size() + " recipients enabled");
+
                 if (enabledRecipients.isEmpty()) {
-                    Log.w(TAG, "No recipients have notifications enabled");
+                    Log.w(TAG, "No recipients have notifications enabled (all " + entrantIds.size() + " opted out)");
                     listener.onNotificationSent(0);
                     return;
                 }
@@ -269,12 +301,14 @@ public class NotificationService {
                         event.getEventId()
                 );
 
+                Log.d(TAG, "Creating notification log: " + notificationLog.getNotificationId());
+
                 // Save log to Firestore
                 db.collection(COLLECTION_NOTIFICATION_LOGS)
                         .document(notificationLog.getNotificationId())
                         .set(notificationLog.toMap())
                         .addOnSuccessListener(aVoid -> {
-                            Log.d(TAG, "Notification log created: " + notificationLog.getNotificationId());
+                            Log.d(TAG, "Notification log created successfully");
 
                             // Send FCM messages
                             sendFCMMessages(enabledRecipients, message, event, notificationType, listener);
@@ -304,8 +338,11 @@ public class NotificationService {
      */
     private void filterEnabledRecipients(@NonNull List<String> entrantIds,
                                          @NonNull OnRecipientsFilteredListener listener) {
+        Log.d(TAG, "Filtering " + entrantIds.size() + " recipients by notification preferences");
+
         List<String> enabledRecipients = new ArrayList<>();
         int[] processedCount = {0};
+        int[] skippedCount = {0};
 
         for (String entrantId : entrantIds) {
             profileRepository.getProfile(entrantId, new ProfileRepository.OnProfileLoadedListener() {
@@ -314,10 +351,15 @@ public class NotificationService {
                     synchronized (processedCount) {
                         if (profile.isNotificationEnabled()) {
                             enabledRecipients.add(entrantId);
+                            Log.d(TAG, "User " + entrantId + " has notifications enabled");
+                        } else {
+                            skippedCount[0]++;
+                            Log.d(TAG, "User " + entrantId + " has notifications disabled - skipping");
                         }
 
                         processedCount[0]++;
                         if (processedCount[0] == entrantIds.size()) {
+                            Log.d(TAG, "Preference filtering complete: " + enabledRecipients.size() + " enabled, " + skippedCount[0] + " disabled");
                             listener.onRecipientsFiltered(enabledRecipients);
                         }
                     }
@@ -326,9 +368,10 @@ public class NotificationService {
                 @Override
                 public void onError(Exception e) {
                     synchronized (processedCount) {
-                        Log.w(TAG, "Failed to get profile for: " + entrantId, e);
+                        Log.w(TAG, "Failed to get profile for: " + entrantId + " - excluding from recipients", e);
                         processedCount[0]++;
                         if (processedCount[0] == entrantIds.size()) {
+                            Log.d(TAG, "Preference filtering complete (with errors): " + enabledRecipients.size() + " enabled");
                             listener.onRecipientsFiltered(enabledRecipients);
                         }
                     }
@@ -350,17 +393,21 @@ public class NotificationService {
     private void getEntrantIdsFromSubcollection(@NonNull String eventId,
                                                @NonNull String subcollection,
                                                @NonNull OnEntrantIdsLoadedListener listener) {
+        Log.d(TAG, "Fetching entrants from subcollection: " + subcollection + " for event: " + eventId);
+
         // First get the event
         db.collection(COLLECTION_EVENTS)
                 .document(eventId)
                 .get()
                 .addOnSuccessListener(eventDoc -> {
                     if (!eventDoc.exists()) {
+                        Log.e(TAG, "Event not found: " + eventId);
                         listener.onError(new Exception("Event not found"));
                         return;
                     }
 
                     Event event = eventDoc.toObject(Event.class);
+                    Log.d(TAG, "Event loaded: " + (event != null ? event.getName() : "null"));
 
                     // Then get entrants from subcollection
                     db.collection(COLLECTION_EVENTS)
@@ -374,15 +421,21 @@ public class NotificationService {
                                 }
 
                                 Log.d(TAG, "Retrieved " + entrantIds.size() + " entrants from " + subcollection);
+                                if (entrantIds.isEmpty()) {
+                                    Log.w(TAG, "Subcollection " + subcollection + " is empty for event " + eventId);
+                                } else {
+                                    Log.d(TAG, "Entrant IDs from " + subcollection + ": " + entrantIds.toString());
+                                }
+
                                 listener.onEntrantIdsLoaded(entrantIds, event);
                             })
                             .addOnFailureListener(e -> {
-                                Log.e(TAG, "Failed to get entrants from " + subcollection, e);
+                                Log.e(TAG, "Failed to get entrants from " + subcollection + " for event " + eventId, e);
                                 listener.onError(e);
                             });
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Failed to get event", e);
+                    Log.e(TAG, "Failed to get event: " + eventId, e);
                     listener.onError(e);
                 });
     }
@@ -441,32 +494,44 @@ public class NotificationService {
                                  @NonNull Event event,
                                  @NonNull String notificationType,
                                  @NonNull OnNotificationSentListener listener) {
+        Log.d(TAG, "sendFCMMessages called for " + recipientIds.size() + " recipients");
+        Log.d(TAG, "Recipient IDs before copy: " + recipientIds.toString());
 
-        // Data payload consumed on-device by MyFirebaseMessagingService
-        Map<String, Object> data = new HashMap<>();
-        data.put("type", notificationType);
-        data.put("eventId", event.getEventId());
-        data.put("eventName", event.getName());
-        data.put("message", messageBody);
-        // include invitation info if you have it (invitationId/deadline)
-        if (event.getInvitationDeadlineMillis() != 0L) {
-            data.put("invitationDeadline", String.valueOf(event.getInvitationDeadlineMillis()));
+        // Create a completely fresh ArrayList by copying each element individually
+        ArrayList<String> freshUserIds = new ArrayList<>();
+        for (String id : recipientIds) {
+            freshUserIds.add(id);
         }
 
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("userIds", recipientIds);
-        payload.put("data", data);
+        HashMap<String, Object> messageData = new HashMap<>();
+        messageData.put("type", notificationType);
+        messageData.put("eventId", event.getEventId());
+        messageData.put("eventName", event.getName());
+        messageData.put("message", messageBody);
+        if (event.getInvitationDeadlineMillis() != 0L) {
+            messageData.put("invitationDeadline", String.valueOf(event.getInvitationDeadlineMillis()));
+        }
+
+        HashMap<String, Object> requestPayload = new HashMap<>();
+        requestPayload.put("userIds", freshUserIds);
+        requestPayload.put("data", messageData);
+
+        Log.d(TAG, "Calling Cloud Function sendBatchNotifications with payload: " + requestPayload);
+        Log.d(TAG, "userIds class: " + freshUserIds.getClass().getName());
+        Log.d(TAG, "userIds size: " + freshUserIds.size());
+        Log.d(TAG, "userIds contents: " + freshUserIds.toString());
+        Log.d(TAG, "data class: " + messageData.getClass().getName());
+        Log.d(TAG, "data contents: " + messageData.toString());
 
         FirebaseFunctions.getInstance()
                 .getHttpsCallable("sendBatchNotifications")
-                .call(payload)
-                .addOnSuccessListener((HttpsCallableResult r) -> {
-                    Object res = r.getData();
-                    // optional: parse {sent:n}
+                .call(requestPayload)
+                .addOnSuccessListener(result -> {
+                    Log.d(TAG, "Cloud Function succeeded for " + recipientIds.size() + " recipients");
                     listener.onNotificationSent(recipientIds.size());
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "sendBatchNotifications failed", e);
+                    Log.e(TAG, "Cloud Function failed", e);
                     listener.onError(e);
                 });
     }
@@ -505,4 +570,3 @@ public class NotificationService {
         sendNotifications(recipients, message, "entrant_cancelled", event, listener);
     }
 }
-

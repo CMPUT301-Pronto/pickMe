@@ -62,6 +62,7 @@ public class Profile implements Parcelable {
     private List<EventHistoryItem> eventHistory;
     private String profileImageUrl;
     private String role; // entrant, organizer, admin
+    private String fcmToken; // Firebase Cloud Messaging token for push notifications
 
     /**
      * Default constructor required for Firebase deserialization
@@ -157,6 +158,12 @@ public class Profile implements Parcelable {
     /** @param role Role to set (entrant/organizer/admin). */
     public void setRole(String role) { this.role = role; }
 
+    /** @return Firebase Cloud Messaging token or null if not set. */
+    public String getFcmToken() { return fcmToken; }
+
+    /** @param fcmToken Firebase Cloud Messaging token to set. */
+    public void setFcmToken(String fcmToken) { this.fcmToken = fcmToken; }
+
     // Helper Methods
 
     /**
@@ -245,6 +252,7 @@ public class Profile implements Parcelable {
         map.put("phoneNumber", phoneNumber);
         map.put("notificationEnabled", notificationEnabled);
         map.put("role", role);
+        map.put("fcmToken", fcmToken);
 
         // Convert eventHistory to list of maps
         if (eventHistory != null) {
@@ -288,6 +296,7 @@ public class Profile implements Parcelable {
         in.readList(eventHistory, EventHistoryItem.class.getClassLoader());
         profileImageUrl = in.readString();
         role = in.readString();
+        fcmToken = in.readString();
     }
     //** Parcelable creator */
     public static final Creator<Profile> CREATOR = new Creator<Profile>() {
@@ -317,5 +326,6 @@ public class Profile implements Parcelable {
         dest.writeList(eventHistory);
         dest.writeString(profileImageUrl);
         dest.writeString(role);
+        dest.writeString(fcmToken);
     }
 }
