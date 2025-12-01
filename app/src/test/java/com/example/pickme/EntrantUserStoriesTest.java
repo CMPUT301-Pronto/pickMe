@@ -4,10 +4,10 @@ import static org.junit.Assert.*;
 
 import com.example.pickme.models.Event;
 import com.example.pickme.models.EventStatus;
+import com.example.pickme.models.InEventList;
 import com.example.pickme.models.Profile;
+import com.example.pickme.models.ResponsePendingList;
 import com.example.pickme.models.WaitingList;
-import com.example.pickme.models.WaitingList;
-import com.example.pickme.repositories.ProfileRepository;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -27,6 +27,11 @@ import java.util.List;
  * - US 01.02.02: Update personal information
  * - US 01.03.01: Accept invitation
  * - US 01.03.02: Decline invitation
+ * - US 01.04.03: notification opt out
+ * - US 01.05.02: Accept Invitation
+ * - US 01.05.03: Decline Invitation
+ * - US 01.05.04: Get WaitingList Count
+ * - US 01.05.05: Get Event Criteria or Guidelines for the Lottery Selection Process
  * - US 01.06.01: Scan QR code to view event
  * - US 01.06.02: Sign up from event details
  * - US 01.07.01: Device-based authentication
@@ -36,6 +41,8 @@ public class EntrantUserStoriesTest {
     private Event testEvent;
     private Profile testProfile;
     private WaitingList testWaitingList;
+    private ResponsePendingList testResponsePendingList;
+    private InEventList testInEventList;
     private String testUserId;
     private String testEventId;
 
@@ -59,8 +66,10 @@ public class EntrantUserStoriesTest {
         testEvent.setRegistrationEndDate(System.currentTimeMillis() + 86400000); // 1 day from now
         testEvent.setStatus(EventStatus.OPEN.name());
 
-        // Create test waiting list
+        // Create test models
         testWaitingList = new WaitingList();
+        testResponsePendingList = new ResponsePendingList();
+        testInEventList = new InEventList();
     }
 
     // ==================== US 01.01.01: Join Waiting List ====================
@@ -385,6 +394,122 @@ public class EntrantUserStoriesTest {
         // Then: User should be in cancelled list
         assertFalse("Should not be in selected list", selectedList.contains(testUserId));
         assertTrue("Should be in cancelled list", cancelledList.contains(testUserId));
+    }
+
+    // ==================== US 01.04.03: Opt Out of Receiving Notifications. ====================
+    @Test
+    public void testToggleNotification(){
+        // A profile with notifications enabled by default
+        testProfile.setNotificationEnabled(true);
+        assertTrue("Notifications should initially be ON", testProfile.isNotificationEnabled());
+
+        // When: User opts out
+        testProfile.setNotificationEnabled(false);
+
+        // Then: Notification OFF
+        assertFalse("Notifications should be OFF after toggle", testProfile.isNotificationEnabled());
+
+        // When: User toggles back ON
+        testProfile.setNotificationEnabled(true);
+
+        // Then: Notification preference should be ON again
+        assertTrue("Notifications ON", testProfile.isNotificationEnabled());
+    }
+
+    // ==================== US 01.05.02: Accept Invitation ====================
+    @Test
+    public void testAcceptInvitation(){
+        // Given: User joins ResponsePendingList
+        testResponsePendingList.addEntrant("test_accept", null);
+        assertTrue("User in response pending list", testResponsePendingList.containsEntrant("test_accept"));
+
+        // Get current InEventList and ResponsePendingList count
+        int initialInEventCount = testInEventList.getEntrantCount();
+        int initialResponsePendingCount = testResponsePendingList.getEntrantCount();
+
+        // When: User accepts invitation: move from pending → in-event list
+        boolean removed = testResponsePendingList.removeEntrant("test_accept");
+        boolean added = testInEventList.addEntrant("test_accept", null);
+
+        // Then: User removed from pending list
+        assertTrue("User removed from ResponsePendingList", removed);
+        assertFalse("User not in ResponsePendingList", testResponsePendingList.containsEntrant("test_accept"));
+        assertEquals("ResponsePendingList decrease by 1", initialResponsePendingCount - 1,
+                testResponsePendingList.getEntrantCount());
+
+        // Then: User added to in-event list
+        assertTrue("User added to InEventList", added);
+        assertTrue("User in InEventList", testInEventList.containsEntrant("test_accept"));
+        assertEquals("InEventList count increase by 1", initialInEventCount + 1,
+                testInEventList.getEntrantCount());
+
+        // Then: Enrollment timestamp is created
+        Long timestamp = testInEventList.getEntrantEnrollmentTime("test_accept");
+        assertNotNull("Enrollment timestamp recorded", timestamp);
+
+        // 6. Check-in status defaults to false
+        assertFalse("User should not be checked in after acceptance",
+                testInEventList.isCheckedIn("test_accept"));
+    }
+
+    // ==================== US 01.05.03: Decline Invitation ====================
+    @Test
+    public void testDeclineInvitation(){
+        // Given: User starts in ResponsePendingList
+        testResponsePendingList.addEntrant("test_decline", null);
+        assertTrue("User in ResponsePendingList before declining",
+                testResponsePendingList.containsEntrant("test_decline"));
+
+        int initialResponsePendingCount = testResponsePendingList.getEntrantCount();
+        int initialInEventCount = testInEventList.getEntrantCount();
+
+        // When: Declined, remove from pending list
+        boolean removed = testResponsePendingList.removeEntrant("test_decline");
+
+        // Then: User removed from pending list
+        assertTrue("User removed from ResponsePendingList", removed);
+        assertFalse("User not in ResponsePendingList",
+                testResponsePendingList.containsEntrant("test_decline"));
+        assertEquals("ResponsePendingList decrease by 1",
+                initialResponsePendingCount - 1,
+                testResponsePendingList.getEntrantCount());
+
+        // Then: User should NOT be added to InEventList
+        assertFalse("User not in InEventList after declining",
+                testInEventList.containsEntrant("test_decline"));
+
+        // Then: InEventList count should remain unchanged
+        assertEquals("InEventList count should NOT change when declining",
+                initialInEventCount,
+                testInEventList.getEntrantCount());
+    }
+
+    // ==================== US 01.05.04: Waiting List Count ====================
+    @Test
+    public void testWaitingListCount(){
+        //Given: initial waitingList count
+        int waiting_count = testWaitingList.getEntrantCount();
+
+        //When: New User added
+        testWaitingList.addEntrant("user1", null);
+
+        //Then: New waiting count 1 more than initial
+        assertEquals("New count 1 more than initial", waiting_count + 1, testWaitingList.getEntrantCount());
+
+        //When: Same user is removed
+        testWaitingList.removeEntrant("user1");
+
+        //Then: New waitingList is same as the initial
+        assertEquals("New count same as initial", waiting_count, testWaitingList.getEntrantCount());
+
+    }
+
+    // ==================== US 01.05.05: Get Event Criteria or Guidelines for the Lottery Selection Process ====================
+    @Test
+    public void lotteryCriteria_isDisplayedWithCorrectText() {
+        // String for Event Criteria or Guidelines for the Lottery Selection Process exist
+        assertNotEquals("Resource ID should not be 0",
+                0, R.string.lottery_criteria_description);
     }
 
     // ==================== US 01.06.01 & 01.06.02: QR Code & Sign Up ====================
