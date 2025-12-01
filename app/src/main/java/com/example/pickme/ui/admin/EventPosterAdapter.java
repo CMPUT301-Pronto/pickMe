@@ -82,6 +82,7 @@ public class EventPosterAdapter extends RecyclerView.Adapter<EventPosterAdapter.
         private ImageView ivPoster;
         private TextView tvEventName;
         private ImageButton btnRemove;
+        private String currentImageUrl;  // Track current image to avoid rebinding same data
 
         public PosterViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -91,12 +92,23 @@ public class EventPosterAdapter extends RecyclerView.Adapter<EventPosterAdapter.
         }
 
         public void bind(EventPoster poster, int position) {
-            // Load poster image with Glide
+            // Skip rebinding if same image (optimization for scroll)
+            if (poster.getImageUrl() != null && poster.getImageUrl().equals(currentImageUrl)) {
+                return;
+            }
+            currentImageUrl = poster.getImageUrl();
+
+            // Clear any previous requests to avoid loading wrong images
+            Glide.with(itemView.getContext()).clear(ivPoster);
+
+            // Load poster image with Glide - optimized for performance
             Glide.with(itemView.getContext())
                     .load(poster.getImageUrl())
+                    .thumbnail(0.1f)  // Load 10% size thumbnail first for faster display
                     .placeholder(R.drawable.ic_event_placeholder)
                     .error(R.drawable.ic_event_placeholder)
-                    .diskCacheStrategy(DiskCacheStrategy.ALL)
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)  // Cache original & resized
+                    .override(400, 400)  // Downsample to reasonable size (image is 200dp high)
                     .centerCrop()
                     .into(ivPoster);
 

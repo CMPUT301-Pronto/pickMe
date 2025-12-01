@@ -82,6 +82,30 @@ public class AdminImagesActivity extends AppCompatActivity implements EventPoste
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this, GRID_COLUMNS);
         recyclerView.setLayoutManager(gridLayoutManager);
 
+        // Performance optimizations
+        recyclerView.setHasFixedSize(true);  // All items same size - optimization
+        recyclerView.setItemViewCacheSize(20);  // Cache more views for smooth scrolling
+        recyclerView.setDrawingCacheEnabled(true);
+        recyclerView.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
+
+        // Pause Glide during fast scrolls to improve performance
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                    // Resume image loading when scroll stops
+                    if (!isFinishing()) {
+                        com.bumptech.glide.Glide.with(AdminImagesActivity.this).resumeRequests();
+                    }
+                } else {
+                    // Pause image loading during scroll for smoother performance
+                    com.bumptech.glide.Glide.with(AdminImagesActivity.this).pauseRequests();
+                }
+            }
+        });
+
         adapter = new EventPosterAdapter(this, eventNameCache);
         recyclerView.setAdapter(adapter);
     }
