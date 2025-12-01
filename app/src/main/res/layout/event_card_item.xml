@@ -5,96 +5,155 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
+    app:cardBackgroundColor="@color/card_color"
     app:cardCornerRadius="16dp"
     app:cardElevation="4dp"
-    app:strokeWidth="0dp"
-    app:cardBackgroundColor="@color/card_color">
+    app:strokeWidth="0dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:padding="0dp">
 
-        <!-- Event Image/Poster -->
+        <!-- Poster -->
         <ImageView
             android:id="@+id/ivEventPoster"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
+            android:layout_width="0dp"
+            android:layout_height="235dp"
+            android:background="@drawable/poster_gradient"
             android:scaleType="centerCrop"
-            android:background="@drawable/rounded_background"
-            android:src="@drawable/ic_launcher_foreground"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            tools:src="@drawable/ic_launcher_foreground" />
 
         <!-- Joined Badge -->
         <TextView
             android:id="@+id/tvJoinedBadge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/joined_badge"
-            android:textSize="10sp"
-            android:textColor="@color/text_on_primary"
+            android:layout_margin="6dp"
             android:background="@drawable/badge_background"
+            android:fontFamily="serif"
             android:paddingHorizontal="8dp"
             android:paddingVertical="4dp"
+            android:text="@string/joined_badge"
+            android:textColor="@color/text_on_primary"
+            android:textSize="10sp"
             android:visibility="gone"
             app:layout_constraintEnd_toEndOf="@id/ivEventPoster"
             app:layout_constraintTop_toTopOf="@id/ivEventPoster"
-            android:layout_marginTop="4dp"
-            android:layout_marginEnd="4dp"
             tools:visibility="visible" />
 
         <!-- Event Name -->
+
+        <!-- Price -->
+
+        <!-- Event Details (Date + Location) -->
+
         <TextView
             android:id="@+id/tvEventName"
-            android:layout_width="0dp"
+            android:layout_width="250dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            android:maxLines="2"
+            android:layout_marginBottom="8dp"
             android:ellipsize="end"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toEndOf="@id/ivEventPoster"
-            app:layout_constraintEnd_toEndOf="parent"
+            android:fontFamily="@font/oswald_bold"
+            android:maxLines="2"
+            android:shadowColor="#AA000000"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="10"
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@+id/ivEventPoster"
+            app:layout_constraintStart_toStartOf="@+id/ivEventPoster"
             tools:text="Summer Music Festival" />
 
-        <!-- Event Date -->
         <TextView
-            android:id="@+id/tvEventDate"
-            android:layout_width="0dp"
+            android:id="@+id/tvEventPrice"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="4dp"
-            android:textSize="14sp"
-            android:textColor="@color/text_secondary"
-            android:drawablePadding="4dp"
-            app:drawableStartCompat="@android:drawable/ic_menu_my_calendar"
-            app:drawableTint="@color/primary_pink"
-            app:layout_constraintTop_toBottomOf="@id/tvEventName"
-            app:layout_constraintStart_toEndOf="@id/ivEventPoster"
-            app:layout_constraintEnd_toEndOf="parent"
-            tools:text="Feb 10, 2026" />
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="8dp"
+            android:fontFamily="@font/oswald_bold"
+            android:textColor="@color/success_green"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@+id/ivEventPoster"
+            app:layout_constraintEnd_toEndOf="@+id/ivEventPoster"
+            tools:text="$25.00" />
 
-        <!-- Event Location -->
-        <TextView
-            android:id="@+id/tvEventLocation"
+        <LinearLayout
+            android:id="@+id/detailsLayout"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="2dp"
-            android:textSize="14sp"
-            android:textColor="@color/text_secondary"
-            android:drawablePadding="4dp"
-            android:maxLines="1"
-            android:ellipsize="end"
-            app:drawableStartCompat="@android:drawable/ic_dialog_map"
-            app:drawableTint="@color/primary_pink"
-            app:layout_constraintTop_toBottomOf="@id/tvEventDate"
-            app:layout_constraintStart_toEndOf="@id/ivEventPoster"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
             app:layout_constraintEnd_toEndOf="parent"
-            tools:text="Edmonton, AB" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/ivEventPoster">
+
+            <!-- Date -->
+
+            <!-- Location -->
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@android:drawable/ic_dialog_map"
+                    app:tint="@color/primary_pink" />
+
+                <TextView
+                    android:id="@+id/tvEventLocation"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:ellipsize="end"
+                    android:fontFamily="@font/oswald_bold"
+                    android:maxLines="1"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="Edmonton, AB" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:src="@android:drawable/ic_menu_my_calendar"
+                    app:tint="@color/primary_pink" />
+
+                <TextView
+                    android:id="@+id/tvEventDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:fontFamily="@font/oswald_bold"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:text="Feb 10, 2026" />
+            </LinearLayout>
+
+        </LinearLayout>
 
         <!-- Divider -->
         <View
@@ -103,9 +162,9 @@
             android:layout_height="1dp"
             android:layout_marginTop="12dp"
             android:background="@color/divider_color"
-            app:layout_constraintTop_toBottomOf="@id/ivEventPoster"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintTop_toBottomOf="@id/detailsLayout" />
 
         <!-- Status Row -->
         <LinearLayout
@@ -113,38 +172,35 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:orientation="horizontal"
             android:gravity="center_vertical"
-            app:layout_constraintTop_toBottomOf="@id/divider"
+            android:orientation="horizontal"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+            app:layout_constraintTop_toBottomOf="@id/divider">
 
-            <!-- Status Icon/Text -->
-            <TextView
-                android:id="@+id/tvEventStatus"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="14sp"
-                android:textColor="@color/text_secondary"
-                android:drawablePadding="4dp"
-                app:drawableStartCompat="@android:drawable/ic_menu_info_details"
-                app:drawableTint="@color/success_green"
-                tools:text="Spots available: 45" />
-
-            <!-- Price Tag -->
-            <TextView
-                android:id="@+id/tvEventPrice"
+            <!-- Status Icon -->
+            <ImageView
+                android:id="@+id/ivStatusIcon"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/primary_pink"
-                tools:text="$25.00" />
+                android:layout_marginStart="8dp"
+                android:src="@android:drawable/ic_menu_info_details"
+                android:tint="@color/success_green" />
 
+            <!-- Status Text -->
+            <TextView
+                android:id="@+id/tvEventStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:fontFamily="@font/oswald_bold"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                tools:text="Spots available: 45" />
         </LinearLayout>
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>
-
