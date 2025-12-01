@@ -315,46 +315,109 @@ public class EventRepository extends BaseRepository {
                                        Geolocation location,
                                        @NonNull OnSuccessListener onSuccess,
                                        @NonNull OnFailureListener onFailure) {
-        // First get event to check limit
+        // First check if user is already in other subcollections
+        checkEntrantNotInOtherLists(eventId, entrantId,
+                // OnSuccess callback - user is not in other lists
+                id -> {
+                    // Now get event to check limit
+                    db.collection(COLLECTION_EVENTS)
+                            .document(eventId)
+                            .get()
+                            .addOnSuccessListener(eventSnapshot -> {
+                                if (!eventSnapshot.exists()) {
+                                    onFailure.onFailure(new Exception("Event not found"));
+                                    return;
+                                }
+
+                                Event event = eventSnapshot.toObject(Event.class);
+                                if (event == null) {
+                                    onFailure.onFailure(new Exception("Failed to parse event"));
+                                    return;
+                                }
+
+                                int waitingListLimit = event.getWaitingListLimit();
+
+                                // If limit specified, check current count
+                                if (waitingListLimit > 0) {
+                                    db.collection(COLLECTION_EVENTS)
+                                            .document(eventId)
+                                            .collection(SUBCOLLECTION_WAITING_LIST)
+                                            .get()
+                                            .addOnSuccessListener(querySnapshot -> {
+                                                int currentCount = querySnapshot.size();
+
+                                                if (currentCount >= waitingListLimit) {
+                                                    onFailure.onFailure(new Exception("Waiting list is full (limit: " + waitingListLimit + ")"));
+                                                    return;
+                                                }
+
+                                                // Proceed with adding
+                                                addToWaitingListInternal(eventId, entrantId, location, onSuccess, onFailure);
+                                            })
+                                            .addOnFailureListener(onFailure::onFailure);
+                                } else {
+                                    // No limit, proceed directly
+                                    addToWaitingListInternal(eventId, entrantId, location, onSuccess, onFailure);
+                                }
+                            })
+                            .addOnFailureListener(onFailure::onFailure);
+                },
+                // OnFailure callback - user is already in another list
+                onFailure
+        );
+    }
+
+    /**
+     * Checks if an entrant is NOT in responsePendingList, inEventList, or cancelledList.
+     * Calls onSuccess if user is not in any of these lists (safe to add to waitlist).
+     * Calls onFailure if user is already in one of these lists.
+     */
+    private void checkEntrantNotInOtherLists(@NonNull String eventId,
+                                             @NonNull String entrantId,
+                                             @NonNull OnSuccessListener onSuccess,
+                                             @NonNull OnFailureListener onFailure) {
+        // Check responsePendingList
         db.collection(COLLECTION_EVENTS)
                 .document(eventId)
+                .collection(SUBCOLLECTION_RESPONSE_PENDING)
+                .document(entrantId)
                 .get()
-                .addOnSuccessListener(eventSnapshot -> {
-                    if (!eventSnapshot.exists()) {
-                        onFailure.onFailure(new Exception("Event not found"));
+                .addOnSuccessListener(doc -> {
+                    if (doc.exists()) {
+                        onFailure.onFailure(new Exception("You have already been selected for this event and are awaiting your response."));
                         return;
                     }
 
-                    Event event = eventSnapshot.toObject(Event.class);
-                    if (event == null) {
-                        onFailure.onFailure(new Exception("Failed to parse event"));
-                        return;
-                    }
+                    // Check inEventList
+                    db.collection(COLLECTION_EVENTS)
+                            .document(eventId)
+                            .collection(SUBCOLLECTION_IN_EVENT)
+                            .document(entrantId)
+                            .get()
+                            .addOnSuccessListener(doc2 -> {
+                                if (doc2.exists()) {
+                                    onFailure.onFailure(new Exception("You have already confirmed your participation in this event."));
+                                    return;
+                                }
 
-                    int waitingListLimit = event.getWaitingListLimit();
+                                // Check cancelledList
+                                db.collection(COLLECTION_EVENTS)
+                                        .document(eventId)
+                                        .collection(SUBCOLLECTION_CANCELLED)
+                                        .document(entrantId)
+                                        .get()
+                                        .addOnSuccessListener(doc3 -> {
+                                            if (doc3.exists()) {
+                                                onFailure.onFailure(new Exception("You were cancelled from this event and cannot rejoin."));
+                                                return;
+                                            }
 
-                    // If limit specified, check current count
-                    if (waitingListLimit > 0) {
-                        db.collection(COLLECTION_EVENTS)
-                                .document(eventId)
-                                .collection(SUBCOLLECTION_WAITING_LIST)
-                                .get()
-                                .addOnSuccessListener(querySnapshot -> {
-                                    int currentCount = querySnapshot.size();
-
-                                    if (currentCount >= waitingListLimit) {
-                                        onFailure.onFailure(new Exception("Waiting list is full (limit: " + waitingListLimit + ")"));
-                                        return;
-                                    }
-
-                                    // Proceed with adding
-                                    addToWaitingListInternal(eventId, entrantId, location, onSuccess, onFailure);
-                                })
-                                .addOnFailureListener(onFailure::onFailure);
-                    } else {
-                        // No limit, proceed directly
-                        addToWaitingListInternal(eventId, entrantId, location, onSuccess, onFailure);
-                    }
+                                            // User is not in any of the other lists - safe to proceed
+                                            onSuccess.onSuccess(entrantId);
+                                        })
+                                        .addOnFailureListener(onFailure::onFailure);
+                            })
+                            .addOnFailureListener(onFailure::onFailure);
                 })
                 .addOnFailureListener(onFailure::onFailure);
     }
