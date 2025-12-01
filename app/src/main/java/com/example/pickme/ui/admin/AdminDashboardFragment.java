@@ -74,11 +74,13 @@ public class AdminDashboardFragment extends Fragment {
         });
 
         btnBrowseImages.setOnClickListener(v -> {
-            Toast.makeText(requireContext(), "Browse Images - Coming soon", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(requireContext(), AdminImagesActivity.class);
+            startActivity(intent);
         });
 
         btnNotificationLogs.setOnClickListener(v -> {
-            Toast.makeText(requireContext(), "Notification Logs - Coming soon", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(requireContext(), AdminNotificationLogsActivity.class);
+            startActivity(intent);
         });
 
         btnRemoveOrganizer.setOnClickListener(v -> {

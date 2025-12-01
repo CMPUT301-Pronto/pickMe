@@ -234,6 +234,7 @@
     <string name="recipients_waiting">Waiting List</string>
     <string name="recipients_selected">Selected Only</string>
     <string name="recipients_confirmed">Confirmed Only</string>
+    <string name="recipients_cancelled">Cancelled Only</string>
     <string name="send_notification_button">Send</string>
     <string name="notification_sending">Sending notifications…</string>
     <string name="notification_sent">Notifications sent successfully</string>
@@ -282,6 +283,12 @@
     <string name="map_title">Entrant Locations</string>
     <string name="geolocation_not_enabled">Geolocation is not enabled for this event</string>
 
+    <!-- Map Filter Chips -->
+    <string name="filter_waiting_list">Waiting List</string>
+    <string name="filter_response_pending">Selected</string>
+    <string name="filter_enrolled">Enrolled</string>
+    <string name="filter_cancelled">Cancelled</string>
+
     <!-- Main Navigation -->
     <string name="entrant_features">Entrant Features</string>
     <string name="organizer_features">Organizer Features</string>
@@ -305,6 +312,12 @@
     <string name="browse_profiles">Browse Profiles</string>
     <string name="browse_images">Browse Images</string>
     <string name="notification_logs">Notification Logs</string>
+    <string name="search_logs">Search by event, organizer, or message…</string>
+    <string name="no_notification_logs">No notification logs found</string>
+    <string name="no_logs">No logs</string>
+    <string name="filter_by_date">Filter by Date</string>
+    <string name="filter_by_organizer">Filter by Organizer</string>
+    <string name="export_csv">Export CSV</string>
     <string name="management">Management</string>
     <string name="remove_organizer">Remove Organizer</string>
     <string name="search">Search</string>
@@ -313,6 +326,8 @@
     <string name="no_profiles_found">No profiles found</string>
     <string name="no_images_found">No images found</string>
     <string name="no_notifications_found">No notifications found</string>
+    <string name="remove_image">Remove image</string>
+    <string name="refresh">Refresh</string>
 
     <!-- Delete Confirmations -->
     <string name="delete_event_title">Delete Event</string>

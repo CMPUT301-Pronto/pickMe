@@ -512,12 +512,13 @@ public class ManageEventActivity extends AppCompatActivity {
         EditText etMessage = dialogView.findViewById(R.id.etNotificationMessage);
         Spinner spinnerRecipients = dialogView.findViewById(R.id.spinnerRecipients);
 
-        // Setup spinner
+        // Setup spinner with cancelled option added
         String[] recipients = {
                 getString(R.string.recipients_all),
                 getString(R.string.recipients_waiting),
                 getString(R.string.recipients_selected),
-                getString(R.string.recipients_confirmed)
+                getString(R.string.recipients_confirmed),
+                getString(R.string.recipients_cancelled)
         };
         spinnerRecipients.setAdapter(new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_dropdown_item, recipients));
@@ -574,8 +575,8 @@ public class ManageEventActivity extends AppCompatActivity {
 
         // Send to appropriate recipient group
         switch (recipientGroup) {
-            case 0: // All entrants (waiting + selected + confirmed) - use parallel approach
-                final int[] counts = new int[3]; // waiting, selected, confirmed
+            case 0: // All entrants (waiting + selected + confirmed + cancelled) - use parallel approach
+                final int[] counts = new int[4]; // waiting, selected, confirmed, cancelled
                 final int[] completed = {0};
                 final boolean[] hasError = {false};
 
@@ -585,13 +586,13 @@ public class ManageEventActivity extends AppCompatActivity {
                         // This will be called for each group completion
                         synchronized (completed) {
                             completed[0]++;
-                            if (completed[0] == 3 && !hasError[0]) {
-                                int totalCount = counts[0] + counts[1] + counts[2];
+                            if (completed[0] == 4 && !hasError[0]) {
+                                int totalCount = counts[0] + counts[1] + counts[2] + counts[3];
                                 runOnUiThread(() -> {
                                     String successMessage = getString(R.string.notification_sent) +
                                             " to " + totalCount + " recipient" + (totalCount != 1 ? "s" : "") +
                                             " (Waiting: " + counts[0] + ", Selected: " + counts[1] +
-                                            ", Confirmed: " + counts[2] + ")";
+                                            ", Confirmed: " + counts[2] + ", Cancelled: " + counts[3] + ")";
                                     Toast.makeText(ManageEventActivity.this, successMessage, Toast.LENGTH_LONG).show();
                                     Log.d(TAG, "Notification sent to " + totalCount + " total recipients");
                                 });
@@ -610,7 +611,7 @@ public class ManageEventActivity extends AppCompatActivity {
                     }
                 };
 
-                // Send to all three groups in parallel
+                // Send to all four groups in parallel
                 notificationService.sendToAllWaitingList(eventId, message, new NotificationService.OnNotificationSentListener() {
                     @Override
                     public void onNotificationSent(int count) {
@@ -649,6 +650,19 @@ public class ManageEventActivity extends AppCompatActivity {
                         aggregateListener.onError(e);
                     }
                 });
+
+                notificationService.sendToAllCancelled(eventId, message, new NotificationService.OnNotificationSentListener() {
+                    @Override
+                    public void onNotificationSent(int count) {
+                        counts[3] = count;
+                        aggregateListener.onNotificationSent(count);
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        aggregateListener.onError(e);
+                    }
+                });
                 break;
 
             case 1: // Waiting list only
@@ -664,6 +678,11 @@ public class ManageEventActivity extends AppCompatActivity {
             case 3: // Confirmed entrants
                 Log.d(TAG, "Sending to confirmed entrants for event: " + eventId);
                 notificationService.sendToAllConfirmed(eventId, message, listener);
+                break;
+
+            case 4: // Cancelled entrants
+                Log.d(TAG, "Sending to cancelled entrants for event: " + eventId);
+                notificationService.sendToAllCancelled(eventId, message, listener);
                 break;
 
             default:
