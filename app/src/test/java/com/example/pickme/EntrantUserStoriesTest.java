@@ -3,6 +3,7 @@ package com.example.pickme;
 import static org.junit.Assert.*;
 
 import com.example.pickme.models.Event;
+import com.example.pickme.models.EventHistoryItem;
 import com.example.pickme.models.EventStatus;
 import com.example.pickme.models.InEventList;
 import com.example.pickme.models.Profile;
@@ -26,6 +27,8 @@ import java.util.List;
  * - US 01.01.03: View joinable events
  * - US 01.02.01: Provide personal information
  * - US 01.02.02: Update personal information
+ * - US 01.02.03: Entrant Event History Recorde
+ * - US 01.02.04: Send Winners Notification
  * - US 01.04.01: Send Winners Notification
  * - US 01.04.02: Send Losers Notification
  * - US 01.04.03: notification opt out
@@ -334,6 +337,36 @@ public class EntrantUserStoriesTest {
 
         // Then: Phone should be null
         assertNull("Phone should be removed", testProfile.getPhoneNumber());
+    }
+
+    // ==================== US 01.02.03: Entrant Event History Recorded ====================
+    @Test
+    public void testEventHistoryItem_CorrectlyStoresHistory() {
+        // Given: Event records
+        EventHistoryItem item1 = new EventHistoryItem("eventA", "Event Alpha",
+                System.currentTimeMillis(), "waiting");
+
+        EventHistoryItem item2 = new EventHistoryItem("eventB", "Event Beta",
+                System.currentTimeMillis(), "selected");
+
+        EventHistoryItem item3 = new EventHistoryItem("eventC", "Event Gamma",
+                System.currentTimeMillis(), "not_selected");
+
+        // initial Event Count
+        int initialCount = testProfile.getEventCount();
+
+        // When: Stored in Profile
+        testProfile.addEventHistory(item1);
+        testProfile.addEventHistory(item2);
+        testProfile.addEventHistory(item3);
+
+        // Event count should be 3 more than initial
+        assertEquals("Profile should have 3 history items", initialCount + 3, testProfile.getEventCount());
+
+        // Should contain all event IDs
+        assertTrue("History include item1", testProfile.hasEventInHistory(item1.getEventId()));
+        assertTrue("History include item2", testProfile.hasEventInHistory(item2.getEventId()));
+        assertTrue("History include item3", testProfile.hasEventInHistory(item3.getEventId()));
     }
 
     // ==================== US 01.02.04: Send Winners Notification ====================
