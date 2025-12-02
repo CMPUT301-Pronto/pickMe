@@ -21,7 +21,6 @@ import com.example.pickme.services.DeviceAuthenticator;
 import com.example.pickme.services.FirebaseManager;
 import com.example.pickme.services.RoleChangeListener;
 import com.example.pickme.models.Profile;
-import com.example.pickme.ui.events.EventBrowseFragment;
 import com.example.pickme.ui.events.EventDetailsActivity;
 import com.example.pickme.ui.profile.CreateProfileActivity;
 import com.example.pickme.utils.Constants;
@@ -34,31 +33,16 @@ import android.view.MenuItem;
 /**
  * MainActivity - Main entry point and navigation controller for PickMe app
  *
+ * FIXED: Improved notification intent handling for all notification types
+ *
  * Responsibilities:
  * - Hosts NavHostFragment for fragment navigation
  * - Manages bottom navigation bar across different user roles
  * - Initializes device-based authentication
  * - Handles deep links for QR codes and invitations
+ * - Handles push notification intents
  * - Coordinates role-based navigation graph switching
  * - Gates profile access (redirects to profile creation if needed)
- *
- * Navigation Structure:
- * - Entrant: Browse → Invitations → Profile
- * - Organizer: My Events → Browse → Profile
- * - Admin: Browse → Admin Dashboard → Profile
- *
- * Deep Link Support:
- * - eventlottery://event/{eventId} - QR code scanned event links
- * - ACTION_OPEN_INVITATION - Push notification invitation links
- *
- * Lifecycle:
- * - onCreate: Initialize auth, setup navigation, handle intents
- * - onNewIntent: Handle deep links when app is already running
- * - onStart: Re-check for pending deep links
- * - onDestroy: Cleanup role change listeners
- *
- * Related User Stories: US 01.07.01 (device auth), US 01.06.01 (QR scanning),
- *                       US 01.04.01 (navigation), US 01.02.01 (profile management)
  */
 public class MainActivity extends AppCompatActivity implements RoleChangeListener {
 
@@ -72,7 +56,6 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
 
     /**
      * Modern QR scanner launcher using ActivityResultContracts API
-     * Replaces deprecated onActivityResult() pattern
      */
     private ActivityResultLauncher<ScanOptions> qrScannerLauncher;
 
@@ -135,13 +118,12 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
             }
         });
 
-        // Handle any invitation intent passed when launching the app
-        handleInviteIntent(getIntent());
+        // Handle any intent passed when launching the app
+        handleIntent(getIntent());
     }
 
     /**
      * Setup modern QR scanner using ActivityResultContracts API
-     * Replaces deprecated onActivityResult() pattern with lifecycle-aware launcher
      */
     private void setupQRScannerLauncher() {
         qrScannerLauncher = registerForActivityResult(new ScanContract(), result -> {
@@ -154,7 +136,6 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
                     String eventId = scannedData.substring(Constants.DEEP_LINK_PREFIX_EVENT.length());
                     if (!eventId.isEmpty()) {
                         Log.d(TAG, "Opening event: " + eventId);
-                        // Navigate to EventDetailsActivity
                         Intent eventIntent = new Intent(this, EventDetailsActivity.class);
                         eventIntent.putExtra(Constants.EXTRA_EVENT_ID, eventId);
                         startActivity(eventIntent);
@@ -172,25 +153,19 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
 
     /**
      * Public method to launch QR scanner from fragments
-     * Uses modern ActivityResultLauncher pattern
      */
     public void launchQRScanner() {
         ScanOptions options = new ScanOptions();
         options.setDesiredBarcodeFormats(ScanOptions.QR_CODE);
         options.setPrompt("Scan Event QR Code");
-        options.setCameraId(0); // Use back camera
+        options.setCameraId(0);
         options.setBeepEnabled(true);
         options.setOrientationLocked(false);
         qrScannerLauncher.launch(options);
     }
 
-    // ...existing code...
-
     /**
-     * Navigates to a destination with singleTop behavior, preventing multiple copies of the same fragment
-     * from being stacked in the back stack.
-     *
-     * @param destId ID of the destination to navigate to.
+     * Navigates to a destination with singleTop behavior
      */
     private void navigateSingleTop(int destId) {
         NavDestination current = navController.getCurrentDestination();
@@ -206,23 +181,19 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
 
     /**
      * Checks if a profile exists for the current device.
-     * If not, redirects to CreateProfileActivity. Otherwise, navigates to the Profile screen.
      */
     private void gateProfileThenNavigate() {
         String userId = deviceAuth.getStoredUserId();
 
-        // If device initialization hasn't completed yet, wait until it does
         if (userId == null) {
             deviceAuth.initializeUser(new DeviceAuthenticator.OnUserInitializedListener() {
                 @Override
-                public void onUserInitialized(com.example.pickme.models.Profile p, boolean isNew) {
-                    // Once initialized, perform the check again
+                public void onUserInitialized(Profile p, boolean isNew) {
                     checkAndRouteProfile(deviceAuth.getStoredUserId());
                 }
 
                 @Override
                 public void onError(Exception e) {
-                    // If initialization fails, stay on the Browse tab
                     bottomNav.setSelectedItemId(R.id.navigation_browse);
                 }
             });
@@ -234,34 +205,26 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
 
     /**
      * Verifies profile existence in cache or Firestore and routes accordingly.
-     *
-     * @param userId The device's unique user identifier.
      */
     private void checkAndRouteProfile(String userId) {
-        // Fast path: cached profile already exists, navigate directly
         if (deviceAuth.getCachedProfile() != null) {
             navigateSingleTop(R.id.navigation_profile);
             return;
         }
 
-        // Otherwise, check Firestore for an existing profile
         new ProfileRepository().profileExists(userId, new ProfileRepository.OnProfileExistsListener() {
             @Override
             public void onCheckComplete(boolean exists) {
                 if (exists) {
-                    // Profile exists → show the Profile screen
                     navigateSingleTop(R.id.navigation_profile);
                 } else {
-                    // No profile found → prompt user to create one
                     startActivity(new Intent(MainActivity.this, CreateProfileActivity.class));
-                    // Keep Browse tab selected to avoid being "stuck" on Profile
                     bottomNav.setSelectedItemId(R.id.navigation_browse);
                 }
             }
 
             @Override
             public void onError(Exception e) {
-                // Firestore check failed; stay on Browse tab
                 bottomNav.setSelectedItemId(R.id.navigation_browse);
             }
         });
@@ -271,73 +234,113 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        handleInviteIntent(intent);
+        handleIntent(intent);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
-        handleInviteIntent(getIntent());
+        handleIntent(getIntent());
     }
 
     /**
-     * Handles deep links or custom intents used to open invitation dialogs or event details.
+     * FIXED: Handles all types of intents - invitations, notifications, events, and deep links
      *
-     * Supports two types of intents:
-     * 1. ACTION_OPEN_INVITATION: Custom action for push notification invitations
-     *    - Opens invitation dialog fragment with event and invitation details
-     *
-     * 2. eventlottery://event/{eventId}: Deep link from QR code or external source
-     *    - Navigates directly to EventDetailsActivity to show event information
-     *    - Allows entrant to join waiting list
-     *
-     * @param i The intent received by the activity (from onCreate, onNewIntent, or onStart)
+     * Supports:
+     * 1. ACTION_OPEN_INVITATION: Opens invitation dialog for lottery wins
+     * 2. ACTION_OPEN_NOTIFICATIONS: Navigates to invitations/notifications screen
+     * 3. ACTION_OPEN_EVENT: Opens event details
+     * 4. Generic intent with eventId: Opens invitation dialog
+     * 5. Deep link (eventlottery://event/{eventId}): Opens event details
      */
-    private void handleInviteIntent(@Nullable Intent i) {
+    private void handleIntent(@Nullable Intent i) {
         if (i == null) return;
 
-        // Handle invitation intent from push notification
-        if (Constants.ACTION_OPEN_INVITATION.equals(i.getAction())) {
-            String eventId = i.getStringExtra(Constants.EXTRA_EVENT_ID);
+        String action = i.getAction();
+        String eventId = i.getStringExtra(Constants.EXTRA_EVENT_ID);
+
+        // 1. Handle invitation intent (lottery win notification tap)
+        if (Constants.ACTION_OPEN_INVITATION.equals(action)) {
             String invId = i.getStringExtra(Constants.EXTRA_INVITATION_ID);
             long deadline = 0L;
-
             try {
-                deadline = Long.parseLong(i.getStringExtra(Constants.EXTRA_DEADLINE));
+                String deadlineStr = i.getStringExtra(Constants.EXTRA_DEADLINE);
+                if (deadlineStr != null) {
+                    deadline = Long.parseLong(deadlineStr);
+                }
             } catch (Exception ignored) {}
 
             Log.d(TAG, "Opening invitation dialog for event: " + eventId);
             com.example.pickme.ui.invitations.InvitationDialogFragment
                     .newInstance(eventId, invId, deadline)
                     .show(getSupportFragmentManager(), "invite");
+
+            clearIntent(i);
             return;
         }
 
-        // Handle QR code deep link: eventlottery://event/{eventId}
+        // 2. Handle notifications screen intent (loss/message notification tap)
+        if (Constants.ACTION_OPEN_NOTIFICATIONS.equals(action)) {
+            Log.d(TAG, "Opening invitations/notifications screen");
+            // Navigate to invitations tab
+            if (bottomNav != null) {
+                bottomNav.setSelectedItemId(R.id.navigation_invitations);
+            }
+            clearIntent(i);
+            return;
+        }
+
+        // 3. Handle event details intent
+        if (Constants.ACTION_OPEN_EVENT.equals(action) && eventId != null) {
+            Log.d(TAG, "Opening event details for: " + eventId);
+            Intent eventIntent = new Intent(this, EventDetailsActivity.class);
+            eventIntent.putExtra(Constants.EXTRA_EVENT_ID, eventId);
+            startActivity(eventIntent);
+            clearIntent(i);
+            return;
+        }
+
+        // 4. Handle generic notification with eventId but no specific action
+        if (eventId != null && !eventId.isEmpty() && action == null) {
+            Log.d(TAG, "Generic notification tap with eventId: " + eventId);
+            // Default: navigate to invitations screen
+            if (bottomNav != null) {
+                bottomNav.setSelectedItemId(R.id.navigation_invitations);
+            }
+            clearIntent(i);
+            return;
+        }
+
+        // 5. Handle QR code deep link: eventlottery://event/{eventId}
         android.net.Uri data = i.getData();
         if (data != null && Constants.DEEP_LINK_SCHEME.equals(data.getScheme())
                 && Constants.DEEP_LINK_HOST_EVENT.equals(data.getHost())) {
-            // Extract event ID from path (format: eventlottery://event/{eventId})
             String path = data.getPath();
             if (path != null && path.startsWith("/")) {
-                String eventId = path.substring(1); // Remove leading slash
-                if (!eventId.isEmpty()) {
-                    Log.d(TAG, "Deep link scanned for event: " + eventId);
-                    // Navigate to EventDetailsActivity
+                String deepLinkEventId = path.substring(1);
+                if (!deepLinkEventId.isEmpty()) {
+                    Log.d(TAG, "Deep link scanned for event: " + deepLinkEventId);
                     Intent eventIntent = new Intent(this, EventDetailsActivity.class);
-                    eventIntent.putExtra(Constants.EXTRA_EVENT_ID, eventId);
+                    eventIntent.putExtra(Constants.EXTRA_EVENT_ID, deepLinkEventId);
                     startActivity(eventIntent);
-
-                    // Clear the intent data to prevent re-opening on back press
-                    i.setData(null);
-                } else {
-                    Log.w(TAG, "Deep link has empty event ID");
                 }
             }
+            clearIntent(i);
         }
     }
 
-    // ...existing code...
+    /**
+     * Clear intent data to prevent re-processing on configuration change
+     */
+    private void clearIntent(Intent i) {
+        if (i != null) {
+            i.setAction(null);
+            i.removeExtra(Constants.EXTRA_EVENT_ID);
+            i.removeExtra(Constants.EXTRA_INVITATION_ID);
+            i.removeExtra(Constants.EXTRA_DEADLINE);
+            i.setData(null);
+        }
+    }
 
     @Override
     public void onRoleChanged(String newRole) {
@@ -347,16 +350,12 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
 
     /**
      * Setup navigation graph and menu based on user role
-     *
-     * @param role The user's role (ROLE_ENTRANT, ROLE_ORGANIZER, or ROLE_ADMIN)
      */
     private void setupNavigationForRole(String role) {
-        // Clear previous destination change listener
         if (navController != null && destinationChangedListener != null) {
             navController.removeOnDestinationChangedListener(destinationChangedListener);
         }
 
-        // Get appropriate navigation graph and menu based on role
         int navGraphResId;
         int menuResId;
         int startDestination;
@@ -380,17 +379,14 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
                 break;
         }
 
-        // Update bottom nav menu
         bottomNav.getMenu().clear();
         bottomNav.inflateMenu(menuResId);
 
-        // Update navigation graph
         NavInflater inflater = navController.getNavInflater();
         NavGraph graph = inflater.inflate(navGraphResId);
         graph.setStartDestination(startDestination);
         navController.setGraph(graph);
 
-        // Create and attach destination change listener
         destinationChangedListener = (controller, destination, arguments) -> {
             int destId = destination.getId();
             MenuItem menuItem = bottomNav.getMenu().findItem(destId);
@@ -400,7 +396,6 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
         };
         navController.addOnDestinationChangedListener(destinationChangedListener);
 
-        // Setup bottom nav listener
         setupBottomNavListener();
     }
 
@@ -411,19 +406,16 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
         bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
 
-            // Handle common navigation items
             if (id == R.id.navigation_browse) {
                 navigateSingleTop(R.id.navigation_browse);
                 return true;
             }
 
             if (id == R.id.navigation_profile) {
-                // Gated navigation: only allow access if a profile exists
                 gateProfileThenNavigate();
                 return true;
             }
 
-            // Handle role-specific items
             if (id == R.id.navigation_invitations) {
                 navigateSingleTop(R.id.navigation_invitations);
                 return true;
@@ -439,7 +431,6 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
                 return true;
             }
 
-            // Legacy notification support (if it exists)
             if (id == R.id.navigation_notifications) {
                 navigateSingleTop(R.id.navigation_notifications);
                 return true;
@@ -457,4 +448,3 @@ public class MainActivity extends AppCompatActivity implements RoleChangeListene
         }
     }
 }
-

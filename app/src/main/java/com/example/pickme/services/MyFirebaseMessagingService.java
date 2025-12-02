@@ -16,6 +16,7 @@ import androidx.core.app.NotificationCompat;
 import com.example.pickme.MainActivity;
 import com.example.pickme.R;
 import com.example.pickme.models.Profile;
+import com.example.pickme.utils.Constants;
 import com.example.pickme.utils.NotificationBadge;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
@@ -25,35 +26,16 @@ import java.util.Map;
 /**
  * MyFirebaseMessagingService - Handles incoming FCM push notifications
  *
- * Receives data messages from Firebase Cloud Messaging and displays them as Android notifications.
- * Respects user notification preferences and routes different notification types appropriately.
- *
- * Notification Types Handled:
- * - lottery_win: User selected in lottery draw
- * - lottery_loss: User not selected in lottery draw
- * - replacement_draw: User selected as replacement
- * - organizer_message: Custom message from organizer
- * - entrant_cancelled: User cancelled by organizer
- *
- * Related User Stories:
- * - US 01.05.01: Receive notification when chosen (lottery win)
- * - US 01.05.02: Receive notification when not chosen (lottery loss)
- * - US 01.02.02: Opt out of notifications (preference check)
- * - US 02.07.01-03: Organizer notifications
+ * FIXED: Now uses proper Constants for actions and extras so MainActivity can handle them correctly
  */
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     private static final String TAG = "FCMService";
 
-    // Notification channels
     public static final String CHANNEL_LOTTERY = "lottery";
     public static final String CHANNEL_ORGANIZER = "organizer_messages";
     public static final String CHANNEL_SYSTEM = "system";
 
-    /**
-     * Called when Firebase issues a new FCM token for this device.
-     * Persists the token to user profile for server-side messaging.
-     */
     @Override
     public void onNewToken(@NonNull String token) {
         Log.d(TAG, "New FCM token received");
@@ -61,48 +43,31 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         if (userId != null && !userId.isEmpty()) {
             new com.example.pickme.repositories.ProfileRepository().setFcmToken(userId, token);
             Log.d(TAG, "FCM token saved for user: " + userId);
-        } else {
-            Log.w(TAG, "Cannot save FCM token - user not authenticated");
         }
     }
 
-    /**
-     * Handles incoming FCM data messages.
-     * Checks user preferences, creates appropriate notification channels,
-     * and displays notifications based on type.
-     */
     @Override
     public void onMessageReceived(@NonNull RemoteMessage msg) {
         Map<String, String> data = msg.getData();
-        if (data == null || data.isEmpty()) {
-            Log.w(TAG, "Received empty FCM message");
-            return;
-        }
+        if (data == null || data.isEmpty()) return;
 
         Log.d(TAG, "FCM message received: " + data.get("type"));
 
-        // Check user notification preference
         Profile profile = DeviceAuthenticator.getInstance(getApplicationContext()).getCachedProfile();
         if (profile != null && !profile.isNotificationEnabled()) {
-            Log.d(TAG, "Notifications disabled for user - skipping");
+            Log.d(TAG, "Notifications disabled - skipping");
             return;
         }
 
-        // Extract common fields
         String type = data.get("type");
         String eventId = data.get("eventId");
         String eventName = data.get("eventName");
         String message = data.get("message");
 
-        if (type == null || eventName == null) {
-            Log.w(TAG, "Missing required fields in FCM message");
-            return;
-        }
+        if (type == null || eventName == null) return;
 
-        // Create notification channels
         createNotificationChannels();
 
-        // Handle different notification types
         switch (type) {
             case "lottery_win":
                 showLotteryWinNotification(eventId, eventName, message, data);
@@ -120,21 +85,17 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 showCancellationNotification(eventId, eventName, message);
                 break;
             default:
-                Log.w(TAG, "Unknown notification type: " + type);
                 showGenericNotification(eventName, message);
         }
     }
 
-    /**
-     * Show notification for lottery win (user selected)
-     */
     private void showLotteryWinNotification(String eventId, String eventName, String message, Map<String, String> data) {
         String deadline = data.get("invitationDeadline");
 
         Intent intent = new Intent(this, MainActivity.class);
-        intent.setAction("com.example.pickme.ACTION_OPEN_INVITATION");
-        intent.putExtra("eventId", eventId);
-        intent.putExtra("deadline", deadline);
+        intent.setAction(Constants.ACTION_OPEN_INVITATION);
+        intent.putExtra(Constants.EXTRA_EVENT_ID, eventId);
+        intent.putExtra(Constants.EXTRA_DEADLINE, deadline);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -159,12 +120,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         NotificationBadge.incrementPendingInvites(this);
     }
 
-    /**
-     * Show notification for lottery loss (user not selected)
-     */
     private void showLotteryLossNotification(String eventId, String eventName, String message) {
         Intent intent = new Intent(this, MainActivity.class);
-        intent.putExtra("eventId", eventId);
+        intent.setAction(Constants.ACTION_OPEN_NOTIFICATIONS);
+        intent.putExtra(Constants.EXTRA_EVENT_ID, eventId);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -176,7 +135,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 .setContentTitle("Lottery Results")
                 .setContentText(eventName)
                 .setStyle(new NotificationCompat.BigTextStyle()
-                        .bigText(message != null ? message : "You weren't selected for " + eventName + " this time, but you may have another chance if spots open up."))
+                        .bigText(message != null ? message : "You weren't selected for " + eventName + " this time."))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent);
@@ -184,16 +143,13 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         showNotification(builder.build());
     }
 
-    /**
-     * Show notification for replacement draw (second chance)
-     */
     private void showReplacementNotification(String eventId, String eventName, String message, Map<String, String> data) {
         String deadline = data.get("invitationDeadline");
 
         Intent intent = new Intent(this, MainActivity.class);
-        intent.setAction("com.example.pickme.ACTION_OPEN_INVITATION");
-        intent.putExtra("eventId", eventId);
-        intent.putExtra("deadline", deadline);
+        intent.setAction(Constants.ACTION_OPEN_INVITATION);
+        intent.putExtra(Constants.EXTRA_EVENT_ID, eventId);
+        intent.putExtra(Constants.EXTRA_DEADLINE, deadline);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -207,7 +163,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 .setContentTitle("🎊 Good News - Replacement Selected!")
                 .setContentText(eventName)
                 .setStyle(new NotificationCompat.BigTextStyle()
-                        .bigText(message != null ? message : "Good news! You've been selected as a replacement for " + eventName + ". Tap to respond."))
+                        .bigText(message != null ? message : "You've been selected as a replacement for " + eventName + "."))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setSound(sound)
                 .setAutoCancel(true)
@@ -218,12 +174,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         NotificationBadge.incrementPendingInvites(this);
     }
 
-    /**
-     * Show notification for organizer message
-     */
     private void showOrganizerMessageNotification(String eventId, String eventName, String message) {
         Intent intent = new Intent(this, MainActivity.class);
-        intent.putExtra("eventId", eventId);
+        intent.setAction(Constants.ACTION_OPEN_NOTIFICATIONS);
+        intent.putExtra(Constants.EXTRA_EVENT_ID, eventId);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -243,12 +197,10 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         showNotification(builder.build());
     }
 
-    /**
-     * Show notification for entrant cancellation
-     */
     private void showCancellationNotification(String eventId, String eventName, String message) {
         Intent intent = new Intent(this, MainActivity.class);
-        intent.putExtra("eventId", eventId);
+        intent.setAction(Constants.ACTION_OPEN_NOTIFICATIONS);
+        intent.putExtra(Constants.EXTRA_EVENT_ID, eventId);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -268,11 +220,9 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         showNotification(builder.build());
     }
 
-    /**
-     * Show generic notification for unknown types
-     */
     private void showGenericNotification(String eventName, String message) {
         Intent intent = new Intent(this, MainActivity.class);
+        intent.setAction(Constants.ACTION_OPEN_NOTIFICATIONS);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -291,55 +241,28 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         showNotification(builder.build());
     }
 
-    /**
-     * Show notification using NotificationManager
-     */
     private void showNotification(android.app.Notification notification) {
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         int notificationId = (int) (System.currentTimeMillis() & 0x7fffffff);
         nm.notify(notificationId, notification);
-        Log.d(TAG, "Notification shown with ID: " + notificationId);
     }
 
-    /**
-     * Create notification channels for Android O+
-     * Separate channels for different notification types
-     */
     private void createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager nm = getSystemService(NotificationManager.class);
 
-            // Lottery channel (high priority - invitations)
             NotificationChannel lotteryChannel = new NotificationChannel(
-                    CHANNEL_LOTTERY,
-                    "Lottery & Invitations",
-                    NotificationManager.IMPORTANCE_HIGH
-            );
-            lotteryChannel.setDescription("Notifications when you're selected in a lottery or as a replacement");
+                    CHANNEL_LOTTERY, "Lottery & Invitations", NotificationManager.IMPORTANCE_HIGH);
             lotteryChannel.enableVibration(true);
-            lotteryChannel.setVibrationPattern(new long[]{0, 500, 200, 500});
             nm.createNotificationChannel(lotteryChannel);
 
-            // Organizer messages channel (default priority)
             NotificationChannel organizerChannel = new NotificationChannel(
-                    CHANNEL_ORGANIZER,
-                    "Organizer Messages",
-                    NotificationManager.IMPORTANCE_DEFAULT
-            );
-            organizerChannel.setDescription("Messages from event organizers");
+                    CHANNEL_ORGANIZER, "Organizer Messages", NotificationManager.IMPORTANCE_DEFAULT);
             nm.createNotificationChannel(organizerChannel);
 
-            // System channel (default priority)
             NotificationChannel systemChannel = new NotificationChannel(
-                    CHANNEL_SYSTEM,
-                    "System Notifications",
-                    NotificationManager.IMPORTANCE_DEFAULT
-            );
-            systemChannel.setDescription("System notifications and updates");
+                    CHANNEL_SYSTEM, "System Notifications", NotificationManager.IMPORTANCE_DEFAULT);
             nm.createNotificationChannel(systemChannel);
-
-            Log.d(TAG, "Notification channels created");
         }
     }
 }
-

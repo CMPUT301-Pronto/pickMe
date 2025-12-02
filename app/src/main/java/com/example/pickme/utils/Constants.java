@@ -6,12 +6,7 @@ package com.example.pickme.utils;
  * Centralized location for all constant strings, URIs, and configuration values
  * used throughout the application. This prevents duplication and makes maintenance easier.
  *
- * Categories:
- * - Deep Link URIs: QR code and invitation deep link formats
- * - Intent Extras: Keys for passing data between activities
- * - Intent Actions: Custom actions for internal app communication
- * - File Provider: Authority for file sharing
- * - Event Types: Categories for event filtering
+ * UPDATED: Added ACTION_OPEN_NOTIFICATIONS, ACTION_OPEN_EVENT, and EVENT_TYPES
  */
 public final class Constants {
 
@@ -64,9 +59,19 @@ public final class Constants {
     // ==================== Intent Actions ====================
 
     /**
-     * Custom action for opening invitation dialog
+     * Custom action for opening invitation dialog (lottery win)
      */
     public static final String ACTION_OPEN_INVITATION = "com.example.pickme.ACTION_OPEN_INVITATION";
+
+    /**
+     * Custom action for opening notifications/invitations screen
+     */
+    public static final String ACTION_OPEN_NOTIFICATIONS = "com.example.pickme.ACTION_OPEN_NOTIFICATIONS";
+
+    /**
+     * Custom action for opening event details
+     */
+    public static final String ACTION_OPEN_EVENT = "com.example.pickme.ACTION_OPEN_EVENT";
 
     // ==================== File Provider ====================
 
@@ -113,50 +118,24 @@ public final class Constants {
     // ==================== Event Types ====================
 
     /**
-     * Event type constants for filtering
-     * Used in EventFilterDialogFragment and CreateEventActivity
+     * "All" option for event type filter (shows all events)
      */
     public static final String EVENT_TYPE_ALL = "All";
-    public static final String EVENT_TYPE_MUSIC = "Music";
-    public static final String EVENT_TYPE_SPORTS = "Sports";
-    public static final String EVENT_TYPE_CONFERENCE = "Conference";
-    public static final String EVENT_TYPE_WORKSHOP = "Workshop";
-    public static final String EVENT_TYPE_SOCIAL = "Social";
-    public static final String EVENT_TYPE_FOOD_DRINK = "Food & Drink";
-    public static final String EVENT_TYPE_ARTS = "Arts";
-    public static final String EVENT_TYPE_TECHNOLOGY = "Technology";
-    public static final String EVENT_TYPE_OTHER = "Other";
 
     /**
-     * Array of all event types for dropdowns and filter chips
-     * First element is "All" for filter dialogs
+     * Event types for filtering in Browse Events
      */
     public static final String[] EVENT_TYPES = {
-            EVENT_TYPE_ALL,
-            EVENT_TYPE_MUSIC,
-            EVENT_TYPE_SPORTS,
-            EVENT_TYPE_CONFERENCE,
-            EVENT_TYPE_WORKSHOP,
-            EVENT_TYPE_SOCIAL,
-            EVENT_TYPE_FOOD_DRINK,
-            EVENT_TYPE_ARTS,
-            EVENT_TYPE_TECHNOLOGY,
-            EVENT_TYPE_OTHER
-    };
-
-    /**
-     * Array of event types for creation (excludes "All")
-     * Use this in CreateEventActivity dropdown
-     */
-    public static final String[] EVENT_TYPES_FOR_CREATION = {
-            EVENT_TYPE_MUSIC,
-            EVENT_TYPE_SPORTS,
-            EVENT_TYPE_CONFERENCE,
-            EVENT_TYPE_WORKSHOP,
-            EVENT_TYPE_SOCIAL,
-            EVENT_TYPE_FOOD_DRINK,
-            EVENT_TYPE_ARTS,
-            EVENT_TYPE_TECHNOLOGY,
-            EVENT_TYPE_OTHER
+            "All",
+            "General",
+            "Music",
+            "Sports",
+            "Food & Drink",
+            "Arts & Culture",
+            "Technology",
+            "Business",
+            "Education",
+            "Community",
+            "Other"
     };
 }
