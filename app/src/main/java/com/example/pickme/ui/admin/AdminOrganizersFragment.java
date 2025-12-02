@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.pickme.R;
 import com.example.pickme.models.Profile;
 import com.example.pickme.repositories.ProfileRepository;
+import com.example.pickme.utils.AdminUtils;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
@@ -29,7 +30,10 @@ import java.util.stream.Collectors;
 /**
  * AdminOrganizersFragment - Browse and remove organizer profiles
  * Shows only profiles with the "organizer" role
- * Related User Stories: US 03.02.01
+ *
+ * UPDATED: Now deletes organizer AND all their events using AdminUtils
+ *
+ * Related User Stories: US 03.02.01, US 03.07.01, US 03.07.02
  */
 public class AdminOrganizersFragment extends Fragment {
 
@@ -144,31 +148,57 @@ public class AdminOrganizersFragment extends Fragment {
         }
     }
 
+    /**
+     * Show confirmation dialog before deleting organizer
+     * UPDATED: Now warns that all events will be deleted too
+     */
     private void showDeleteConfirmation(Profile profile) {
+        String name = profile.getName() != null ? profile.getName() : "this organizer";
+
         new AlertDialog.Builder(requireContext())
-                .setTitle("Remove Organizer")
-                .setMessage("Are you sure you want to remove this organizer? This will change their role to entrant and they will no longer be able to create events.")
-                .setPositiveButton(R.string.delete, (dialog, which) -> removeOrganizer(profile))
+                .setTitle("Delete Organizer")
+                .setMessage("Are you sure you want to delete " + name + "?\n\n" +
+                        "⚠️ WARNING: This will permanently delete:\n" +
+                        "• The organizer's profile\n" +
+                        "• ALL events they created\n" +
+                        "• All waiting lists and entrant data for those events\n\n" +
+                        "This action cannot be undone.")
+                .setPositiveButton("Delete", (dialog, which) -> deleteOrganizer(profile))
                 .setNegativeButton(R.string.cancel, null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
                 .show();
     }
 
-    private void removeOrganizer(Profile profile) {
-        Toast.makeText(requireContext(), "Removing organizer...", Toast.LENGTH_SHORT).show();
+    /**
+     * Delete organizer and all their events using AdminUtils
+     * UPDATED: Now performs cascade delete instead of just changing role
+     */
+    private void deleteOrganizer(Profile profile) {
+        progressBar.setVisibility(View.VISIBLE);
+        Toast.makeText(requireContext(), "Deleting organizer and their events...", Toast.LENGTH_SHORT).show();
 
-        // Change the user's role to entrant instead of deleting the profile
-        java.util.Map<String, Object> updates = new java.util.HashMap<>();
-        updates.put("role", Profile.ROLE_ENTRANT);
+        AdminUtils.deleteOrganizerWithEvents(profile.getUserId(), new AdminUtils.OnDeleteCompleteListener() {
+            @Override
+            public void onDeleteComplete(String userId) {
+                if (!isAdded()) return; // Fragment might be detached
 
-        profileRepository.updateProfile(profile.getUserId(), updates,
-                id -> {
-                    Toast.makeText(requireContext(), "Organizer role removed successfully", Toast.LENGTH_SHORT).show();
-                    loadOrganizers(); // Reload the list
-                },
-                e -> {
-                    Log.e(TAG, "Failed to remove organizer", e);
-                    Toast.makeText(requireContext(), "Failed to remove organizer: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+                progressBar.setVisibility(View.GONE);
+                Toast.makeText(requireContext(),
+                        "Organizer and all their events deleted successfully",
+                        Toast.LENGTH_SHORT).show();
+                loadOrganizers(); // Reload the list
+            }
+
+            @Override
+            public void onError(Exception e) {
+                if (!isAdded()) return; // Fragment might be detached
+
+                progressBar.setVisibility(View.GONE);
+                Log.e(TAG, "Failed to delete organizer", e);
+                Toast.makeText(requireContext(),
+                        "Failed to delete organizer: " + e.getMessage(),
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 }
-
