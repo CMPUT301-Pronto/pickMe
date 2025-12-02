@@ -1241,5 +1241,172 @@ public class EventRepository extends BaseRepository {
                 });
     }
 
+    /**
+     * Decline an invitation (move from responsePendingList to cancelledList)
+     * Called when a user chooses to decline their lottery win invitation.
+     *
+     * This performs an atomic batch operation:
+     * 1. Copies entrant data to cancelledList with decline metadata
+     * 2. Deletes entrant from responsePendingList
+     *
+     * @param eventId Event ID
+     * @param entrantId User ID of the entrant declining
+     * @param onSuccess Success callback
+     * @param onFailure Failure callback
+     *
+     * Related User Stories: US 01.05.01 (view cancelled/declined events)
+     */
+    public void declineInvitation(@NonNull String eventId,
+                                  @NonNull String entrantId,
+                                  @NonNull OnSuccessListener onSuccess,
+                                  @NonNull OnFailureListener onFailure) {
+
+        // First, get the existing entrant data from responsePendingList
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .collection(SUBCOLLECTION_RESPONSE_PENDING)
+                .document(entrantId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        onFailure.onFailure(new Exception("Invitation not found"));
+                        return;
+                    }
+
+                    // Prepare cancelled list entry data
+                    Map<String, Object> cancelledData = new HashMap<>();
+                    cancelledData.put("entrantId", entrantId);
+                    cancelledData.put("declinedTimestamp", System.currentTimeMillis());
+                    cancelledData.put("cancelledBy", "user");  // User declined, not organizer
+                    cancelledData.put("cancelledFrom", "responsePendingList");
+
+                    // Copy any existing data from the original entry
+                    if (documentSnapshot.contains("latitude")) {
+                        cancelledData.put("latitude", documentSnapshot.getDouble("latitude"));
+                    }
+                    if (documentSnapshot.contains("longitude")) {
+                        cancelledData.put("longitude", documentSnapshot.getDouble("longitude"));
+                    }
+                    if (documentSnapshot.contains("timestamp")) {
+                        cancelledData.put("originalInvitedTimestamp", documentSnapshot.getLong("timestamp"));
+                    }
+                    if (documentSnapshot.contains("deadline")) {
+                        cancelledData.put("originalDeadline", documentSnapshot.getLong("deadline"));
+                    }
+
+                    // Use batch write for atomicity
+                    WriteBatch batch = db.batch();
+
+                    // Add to cancelled list
+                    batch.set(
+                            db.collection(COLLECTION_EVENTS)
+                                    .document(eventId)
+                                    .collection(SUBCOLLECTION_CANCELLED)
+                                    .document(entrantId),
+                            cancelledData
+                    );
+
+                    // Remove from response pending list
+                    batch.delete(
+                            db.collection(COLLECTION_EVENTS)
+                                    .document(eventId)
+                                    .collection(SUBCOLLECTION_RESPONSE_PENDING)
+                                    .document(entrantId)
+                    );
+
+                    // Commit the batch
+                    batch.commit()
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "Invitation declined: " + entrantId + " from event: " + eventId);
+                                onSuccess.onSuccess(entrantId);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Failed to decline invitation: " + entrantId, e);
+                                onFailure.onFailure(e);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get invitation data for decline", e);
+                    onFailure.onFailure(e);
+                });
+    }
+
+    /**
+     * Allow a user to leave an event they've already confirmed for.
+     * Moves from inEventList to cancelledList.
+     *
+     * @param eventId Event ID
+     * @param entrantId User ID
+     * @param onSuccess Success callback
+     * @param onFailure Failure callback
+     *
+     * Related User Stories: US 01.05.01
+     */
+    public void leaveConfirmedEvent(@NonNull String eventId,
+                                    @NonNull String entrantId,
+                                    @NonNull OnSuccessListener onSuccess,
+                                    @NonNull OnFailureListener onFailure) {
+
+        db.collection(COLLECTION_EVENTS)
+                .document(eventId)
+                .collection(SUBCOLLECTION_IN_EVENT)
+                .document(entrantId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (!documentSnapshot.exists()) {
+                        onFailure.onFailure(new Exception("Not found in confirmed list"));
+                        return;
+                    }
+
+                    Map<String, Object> cancelledData = new HashMap<>();
+                    cancelledData.put("entrantId", entrantId);
+                    cancelledData.put("cancelledTimestamp", System.currentTimeMillis());
+                    cancelledData.put("cancelledBy", "user");  // User left voluntarily
+                    cancelledData.put("cancelledFrom", "inEventList");
+
+                    // Copy existing data
+                    if (documentSnapshot.contains("latitude")) {
+                        cancelledData.put("latitude", documentSnapshot.getDouble("latitude"));
+                    }
+                    if (documentSnapshot.contains("longitude")) {
+                        cancelledData.put("longitude", documentSnapshot.getDouble("longitude"));
+                    }
+                    if (documentSnapshot.contains("acceptedAt")) {
+                        cancelledData.put("originalAcceptedAt", documentSnapshot.getLong("acceptedAt"));
+                    }
+
+                    WriteBatch batch = db.batch();
+
+                    batch.set(
+                            db.collection(COLLECTION_EVENTS)
+                                    .document(eventId)
+                                    .collection(SUBCOLLECTION_CANCELLED)
+                                    .document(entrantId),
+                            cancelledData
+                    );
+
+                    batch.delete(
+                            db.collection(COLLECTION_EVENTS)
+                                    .document(eventId)
+                                    .collection(SUBCOLLECTION_IN_EVENT)
+                                    .document(entrantId)
+                    );
+
+                    batch.commit()
+                            .addOnSuccessListener(aVoid -> {
+                                Log.d(TAG, "User left event: " + entrantId + " from: " + eventId);
+                                onSuccess.onSuccess(entrantId);
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Failed to leave event: " + entrantId, e);
+                                onFailure.onFailure(e);
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to get confirmed data", e);
+                    onFailure.onFailure(e);
+                });
+    }
+
 }
 

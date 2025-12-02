@@ -79,15 +79,34 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 tools:visibility="visible" />
 
+            <!-- User Status Banner (shows current relationship with event) -->
+            <TextView
+                android:id="@+id/tvUserStatus"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:padding="12dp"
+                android:textSize="14sp"
+                android:textColor="@color/white"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:background="@color/primary_pink"
+                android:visibility="gone"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                tools:text="You are on the waiting list"
+                tools:visibility="visible" />
+
             <!-- Event Name -->
             <TextView
                 android:id="@+id/tvEventName"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 android:textColor="@color/text_primary"
-                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tvUserStatus"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 tools:text="Summer Music Festival" />

@@ -8,9 +8,11 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -27,6 +29,7 @@ import com.example.pickme.repositories.ImageRepository;
 import com.example.pickme.repositories.ProfileRepository;
 import com.example.pickme.services.DeviceAuthenticator;
 import com.example.pickme.services.QRCodeGenerator;
+import com.example.pickme.utils.Constants;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -42,19 +45,13 @@ import java.util.Locale;
  *
  * Features:
  * - Input event details (name, description, location, dates, capacity, price)
+ * - Select event type for filtering
  * - Upload event poster image
  * - Set registration period
  * - Configure waiting list limit (optional)
  * - Enable geolocation requirement
  * - Auto-generate QR code on publish
  * - Display QR code with share/download options
- *
- * Validation:
- * - All required fields must be filled
- * - Dates must be logical (reg end > reg start, event date > reg end)
- * - Capacity must be > 0
- * - Waiting list limit must be > capacity (if specified)
- * - Only users with Organizer role can access
  *
  * Related User Stories: US 02.01.01, US 02.01.04, US 02.03.01, US 02.04.01, US 02.02.03
  */
@@ -77,6 +74,7 @@ public class CreateEventActivity extends AppCompatActivity {
     private SwitchMaterial switchGeolocation;
     private Button btnPublishEvent;
     private ProgressBar progressBar;
+    private Spinner spinnerEventType;
 
     // Data
     private EventRepository eventRepository;
@@ -112,6 +110,7 @@ public class CreateEventActivity extends AppCompatActivity {
         initializeViews();
         initializeData();
         setupImagePicker();
+        setupEventTypeSpinner();
         checkOrganizerRole();
         setupClickListeners();
     }
@@ -134,6 +133,7 @@ public class CreateEventActivity extends AppCompatActivity {
         switchGeolocation = findViewById(R.id.switchGeolocation);
         btnPublishEvent = findViewById(R.id.btnPublishEvent);
         progressBar = findViewById(R.id.progressBar);
+        spinnerEventType = findViewById(R.id.spinnerEventType);
     }
 
     /**
@@ -148,6 +148,33 @@ public class CreateEventActivity extends AppCompatActivity {
 
         // Get device ID asynchronously
         deviceAuthenticator.getDeviceId(deviceId -> currentUserId = deviceId);
+    }
+
+    /**
+     * Setup event type spinner with options from Constants (excluding "All")
+     */
+    private void setupEventTypeSpinner() {
+        // Create list without "All" option (All is only for filtering)
+        String[] eventTypes = Constants.EVENT_TYPES;
+        String[] createEventTypes;
+
+        // Skip "All" if it's the first item
+        if (eventTypes.length > 0 && Constants.EVENT_TYPE_ALL.equals(eventTypes[0])) {
+            createEventTypes = new String[eventTypes.length - 1];
+            System.arraycopy(eventTypes, 1, createEventTypes, 0, eventTypes.length - 1);
+        } else {
+            createEventTypes = eventTypes;
+        }
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                createEventTypes
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerEventType.setAdapter(adapter);
+        // Default to first item (General)
+        spinnerEventType.setSelection(0);
     }
 
     /**
@@ -231,13 +258,10 @@ public class CreateEventActivity extends AppCompatActivity {
         Calendar calendar = Calendar.getInstance();
         new DatePickerDialog(this,
                 (view, year, month, dayOfMonth) -> {
-                    // Get a fresh calendar instance
                     Calendar selectedCal = Calendar.getInstance();
-                    // Set the selected date
                     selectedCal.set(Calendar.YEAR, year);
                     selectedCal.set(Calendar.MONTH, month);
                     selectedCal.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-                    // Set time to start of day (00:00:00)
                     selectedCal.set(Calendar.HOUR_OF_DAY, 0);
                     selectedCal.set(Calendar.MINUTE, 0);
                     selectedCal.set(Calendar.SECOND, 0);
@@ -257,9 +281,7 @@ public class CreateEventActivity extends AppCompatActivity {
         Calendar calendar = Calendar.getInstance();
         new DatePickerDialog(this,
                 (view, year, month, dayOfMonth) -> {
-                    // Get a fresh calendar instance with current time
                     Calendar selectedCal = Calendar.getInstance();
-                    // Set the selected date but keep current time of day
                     selectedCal.set(Calendar.YEAR, year);
                     selectedCal.set(Calendar.MONTH, month);
                     selectedCal.set(Calendar.DAY_OF_MONTH, dayOfMonth);
@@ -279,13 +301,10 @@ public class CreateEventActivity extends AppCompatActivity {
         Calendar calendar = Calendar.getInstance();
         new DatePickerDialog(this,
                 (view, year, month, dayOfMonth) -> {
-                    // Get a fresh calendar instance
                     Calendar selectedCal = Calendar.getInstance();
-                    // Set the selected date
                     selectedCal.set(Calendar.YEAR, year);
                     selectedCal.set(Calendar.MONTH, month);
                     selectedCal.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-                    // Set time to end of day (23:59:59) so registration is open all day
                     selectedCal.set(Calendar.HOUR_OF_DAY, 23);
                     selectedCal.set(Calendar.MINUTE, 59);
                     selectedCal.set(Calendar.SECOND, 59);
@@ -309,6 +328,11 @@ public class CreateEventActivity extends AppCompatActivity {
         String capacityStr = etCapacity.getText() != null ? etCapacity.getText().toString().trim() : "";
         String priceStr = etPrice.getText() != null ? etPrice.getText().toString().trim() : "0";
         String waitingListStr = etWaitingListLimit.getText() != null ? etWaitingListLimit.getText().toString().trim() : "";
+
+        // Get selected event type
+        String eventType = spinnerEventType.getSelectedItem() != null
+                ? spinnerEventType.getSelectedItem().toString()
+                : "General";
 
         // Validate required fields
         if (TextUtils.isEmpty(name)) {
@@ -348,7 +372,7 @@ public class CreateEventActivity extends AppCompatActivity {
         // Parse and validate numeric fields
         int capacity;
         double price;
-        int waitingListLimit = -1; // -1 means unlimited
+        int waitingListLimit = -1;
 
         try {
             capacity = Integer.parseInt(capacityStr);
@@ -403,21 +427,14 @@ public class CreateEventActivity extends AppCompatActivity {
         }
 
         // All validation passed - create event
-        createEvent(name, description, location, capacity, price, waitingListLimit);
+        createEvent(name, description, location, capacity, price, waitingListLimit, eventType);
     }
 
     /**
      * Create event object and save to Firestore
-     *
-     * @param name Event name
-     * @param description Event description
-     * @param location Event location
-     * @param capacity Maximum participants
-     * @param price Event price
-     * @param waitingListLimit Waiting list limit (-1 for unlimited)
      */
     private void createEvent(String name, String description, String location,
-                            int capacity, double price, int waitingListLimit) {
+                             int capacity, double price, int waitingListLimit, String eventType) {
         showLoading(true);
 
         // Create event object
@@ -426,6 +443,7 @@ public class CreateEventActivity extends AppCompatActivity {
         event.setDescription(description);
         event.setLocation(location);
         event.setOrganizerId(currentUserId);
+        event.setEventType(eventType);
 
         // Set dates
         ArrayList<Long> eventDates = new ArrayList<>();
@@ -448,12 +466,9 @@ public class CreateEventActivity extends AppCompatActivity {
         // Save event to Firestore
         eventRepository.createEvent(event,
                 eventId -> {
-                    // Event created successfully
                     if (selectedPosterUri != null) {
-                        // Upload poster image
                         uploadPosterImage(eventId, event);
                     } else {
-                        // No poster - generate QR code directly
                         generateQRCode(eventId, event);
                     }
                 },
@@ -465,27 +480,22 @@ public class CreateEventActivity extends AppCompatActivity {
 
     /**
      * Upload event poster image
-     *
-     * @param eventId Event ID
-     * @param event Event object
      */
     private void uploadPosterImage(String eventId, Event event) {
         imageRepository.uploadEventPoster(eventId, selectedPosterUri, currentUserId,
                 new ImageRepository.OnUploadCompleteListener() {
                     @Override
                     public void onUploadComplete(String downloadUrl, String posterId) {
-                        // Poster uploaded - update event with poster URL
                         event.setPosterImageUrl(downloadUrl);
                         eventRepository.updateEvent(eventId,
                                 java.util.Collections.singletonMap("posterImageUrl", downloadUrl),
                                 id -> generateQRCode(eventId, event),
-                                e -> generateQRCode(eventId, event) // Continue even if update fails
+                                e -> generateQRCode(eventId, event)
                         );
                     }
 
                     @Override
                     public void onError(Exception e) {
-                        // Poster upload failed - continue without poster
                         generateQRCode(eventId, event);
                     }
                 });
@@ -493,9 +503,6 @@ public class CreateEventActivity extends AppCompatActivity {
 
     /**
      * Generate QR code for event
-     *
-     * @param eventId Event ID
-     * @param event Event object
      */
     private void generateQRCode(String eventId, Event event) {
         qrCodeGenerator.generateQRCode(eventId, this,
@@ -503,23 +510,20 @@ public class CreateEventActivity extends AppCompatActivity {
                     @Override
                     public void onQRGenerated(Bitmap qrBitmap, String filePath, String qrCodeId) {
                         showLoading(false);
-                        // Update event with QR code ID
                         if (qrCodeId != null) {
                             event.setQrCodeId(qrCodeId);
                             eventRepository.updateEvent(eventId,
                                     java.util.Collections.singletonMap("qrCodeId", qrCodeId),
-                                    id -> {}, // Silent success
-                                    e -> {} // Silent failure
+                                    id -> {},
+                                    e -> {}
                             );
                         }
-                        // Show success dialog with QR code
                         showSuccessDialog(qrBitmap, filePath);
                     }
 
                     @Override
                     public void onError(Exception e) {
                         showLoading(false);
-                        // Event created but QR generation failed
                         Toast.makeText(CreateEventActivity.this,
                                 R.string.qr_code_generation_failed, Toast.LENGTH_SHORT).show();
                         finish();
@@ -529,9 +533,6 @@ public class CreateEventActivity extends AppCompatActivity {
 
     /**
      * Show success dialog with QR code
-     *
-     * @param qrBitmap QR code bitmap
-     * @param filePath File path where QR code is saved
      */
     private void showSuccessDialog(Bitmap qrBitmap, String filePath) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_event_created, null);
@@ -547,14 +548,9 @@ public class CreateEventActivity extends AppCompatActivity {
                 .setCancelable(false)
                 .create();
 
-        btnShare.setOnClickListener(v -> {
-            shareQRCode(filePath);
-        });
-
-        btnDownload.setOnClickListener(v -> {
-            Toast.makeText(this, "QR code saved to: " + filePath, Toast.LENGTH_LONG).show();
-        });
-
+        btnShare.setOnClickListener(v -> shareQRCode(filePath));
+        btnDownload.setOnClickListener(v ->
+                Toast.makeText(this, "QR code saved to: " + filePath, Toast.LENGTH_LONG).show());
         btnClose.setOnClickListener(v -> {
             dialog.dismiss();
             finish();
@@ -565,8 +561,6 @@ public class CreateEventActivity extends AppCompatActivity {
 
     /**
      * Share QR code image
-     *
-     * @param filePath File path of QR code image
      */
     private void shareQRCode(String filePath) {
         File file = new File(filePath);
@@ -590,8 +584,6 @@ public class CreateEventActivity extends AppCompatActivity {
 
     /**
      * Show/hide loading indicator
-     *
-     * @param show true to show, false to hide
      */
     private void showLoading(boolean show) {
         progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
@@ -604,4 +596,3 @@ public class CreateEventActivity extends AppCompatActivity {
         return true;
     }
 }
-

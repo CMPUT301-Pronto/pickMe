@@ -51,7 +51,7 @@ public class Event implements Parcelable {
     private String posterImageUrl;
     private String status; // Stored as String for Firebase, use EventStatus enum
     private long invitationDeadlineMillis;
-    private String eventType; // Event category (Music, Sports, Conference, etc.)
+    private String eventType = "General";
     /**
      * Default constructor required for Firebase deserialization
      */
